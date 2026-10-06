@@ -155,6 +155,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
     document.documentElement.setAttribute('data-theme', theme);
+    const themeClasses = ['theme-ocean', 'theme-forest', 'theme-violet', 'theme-sunset', 'theme-cyber', 'theme-crimson', 'theme-gold', 'theme-contrast'];
+    themeClasses.forEach(c => {
+      document.documentElement.classList.remove(c);
+      document.body?.classList.remove(c);
+    });
+    document.documentElement.classList.add(`theme-${theme}`);
+    document.body?.classList.add(`theme-${theme}`);
   }, [isDark, theme]);
 
   return (

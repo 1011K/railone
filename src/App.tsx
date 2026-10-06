@@ -7,41 +7,42 @@ import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './components/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { SystemModeBanner } from './components/SystemModeBanner';
+import { HomePassengerView } from './components/HomePassengerView';
 import { JourneyDecisionView } from './components/JourneyDecisionView';
-import { AiTasksView } from './components/AiTasksView';
-import { ScenariosLab } from './components/ScenariosLab';
-import { TrainLiveTracker } from './components/TrainLiveTracker';
-import { RulesReferenceView } from './components/RulesReferenceView';
+import { NetworkAndStatusView } from './components/NetworkAndStatusView';
+import { MyTicketsView } from './components/MyTicketsView';
+import { HelpAndRailSathiView } from './components/HelpAndRailSathiView';
+import { ThemeSelectorModal } from './components/ThemeSelectorModal';
 import { VoiceDialerModal } from './components/VoiceDialerModal';
 import { SpecimenTicketModal } from './components/SpecimenTicketModal';
-import { TicketWalletModal } from './components/TicketWalletModal';
 import { MockBookingStore } from './engine/mockBookingStore';
 import { JourneyItinerary, TravelClass, SpecimenTicket } from './types/railway';
 import { 
   Train, 
   Mic, 
   Ticket, 
-  Radio, 
-  Layers, 
+  Navigation, 
   ShieldCheck, 
-  ExternalLink,
-  Bot,
+  Compass,
   Zap,
-  Eye
+  Sparkles
 } from 'lucide-react';
 
-const NetworkMapViewer = React.lazy(() => import('./components/NetworkMapViewer'));
 const MovingTrain3DModal = React.lazy(() => import('./components/MovingTrain3DModal'));
 const StationGodsEyeModal = React.lazy(() => import('./components/StationGodsEyeModal'));
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('journey');
-  const [is3DTrainOpen, setIs3DTrainOpen] = useState(false); // 3D train moving experience available on demand
+  const [activeTab, setActiveTab] = useState<string>('home');
+  const [journeyOrigin, setJourneyOrigin] = useState<string>('TNA');
+  const [journeyDest, setJourneyDest] = useState<string>('CSMT');
+
+  // Modals state
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [is3DTrainOpen, setIs3DTrainOpen] = useState(false);
   const [isGodsEyeOpen, setIsGodsEyeOpen] = useState(false);
   const [godsEyeStationCode, setGodsEyeStationCode] = useState('DR');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<JourneyItinerary | null>(null);
   const [selectedClass, setSelectedClass] = useState<TravelClass>('II');
   const [inspectedTrainNumber, setInspectedTrainNumber] = useState<string>('95112');
@@ -59,7 +60,7 @@ export default function App() {
 
   const handleInspectTrain = (trainNumber: string) => {
     setInspectedTrainNumber(trainNumber);
-    setActiveTab('tracker');
+    setActiveTab('status');
   };
 
   const handleOpenGodsEye = (stationCode: string = 'DR') => {
@@ -71,132 +72,104 @@ export default function App() {
     setSavedTicketCount(MockBookingStore.listBookings().length);
   };
 
+  const handleNavigateFromHome = (tab: string, params?: { origin?: string; dest?: string }) => {
+    if (params?.origin) setJourneyOrigin(params.origin);
+    if (params?.dest) setJourneyDest(params.dest);
+    setActiveTab(tab);
+  };
+
+  const handlePlanRouteFromStation = (stationCode: string) => {
+    setJourneyOrigin(stationCode);
+    setActiveTab('journey');
+  };
+
+  const handleSearchRouteShortcut = (from: string, to: string) => {
+    setJourneyOrigin(from);
+    setJourneyDest(to);
+    setActiveTab('journey');
+  };
+
   return (
     <ThemeProvider>
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
         
         {/* System Mode & Provenance Banner */}
         <SystemModeBanner />
 
         {/* Global Navigation Bar */}
         <Navbar 
-          activeTab={activeTab === 'voice' || activeTab === 'wallet' ? 'journey' : activeTab} 
-          setActiveTab={(tab) => {
-            if (tab === 'voice') {
-              setIsVoiceModalOpen(true);
-            } else if (tab === 'wallet') {
-              setIsWalletModalOpen(true);
-            } else {
-              setActiveTab(tab);
-            }
-          }}
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab}
           savedTicketCount={savedTicketCount}
+          onOpenThemeModal={() => setIsThemeModalOpen(true)}
           onOpen3DTrain={() => setIs3DTrainOpen(true)}
+          onOpenGodsEye={handleOpenGodsEye}
         />
 
         {/* Main Content Viewport */}
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 w-full">
+          {activeTab === 'home' && (
+            <HomePassengerView
+              onNavigateTab={handleNavigateFromHome}
+              onOpenStationGodsEye={handleOpenGodsEye}
+              onOpenThemeModal={() => setIsThemeModalOpen(true)}
+            />
+          )}
+
           {activeTab === 'journey' && (
-            <JourneyDecisionView
-              onBookSpecimen={handleOpenBooking}
-              onInspectTrain={handleInspectTrain}
-            />
-          )}
-
-          {activeTab === 'map' && (
-            <React.Suspense fallback={
-              <div className="flex flex-col items-center justify-center p-20 space-y-4 text-slate-500">
-                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                <div className="text-center">
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    Loading Interactive Network Map
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Initializing Mumbai Suburban & Pan-India Track Topology...
-                  </p>
-                </div>
-              </div>
-            }>
-              <NetworkMapViewer 
-                onPlanRouteFromStation={(stn) => {
-                  setActiveTab('journey');
-                }}
-                onInspectTrainSchedule={handleInspectTrain}
-                onOpenGodsEye={handleOpenGodsEye}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <JourneyDecisionView
+                initialOriginCode={journeyOrigin}
+                initialDestCode={journeyDest}
+                onBookSpecimen={handleOpenBooking}
+                onInspectTrain={handleInspectTrain}
               />
-            </React.Suspense>
+            </div>
           )}
 
-          {activeTab === 'ai_tasks' && (
-            <AiTasksView 
-              onSearchRouteShortcut={(from, to) => {
-                setActiveTab('journey');
-              }}
-            />
-          )}
-
-          {activeTab === 'scenarios' && (
-            <ScenariosLab
-              onBookSpecimen={handleOpenBooking}
-              onInspectTrain={handleInspectTrain}
-            />
-          )}
-
-          {activeTab === 'tracker' && (
-            <TrainLiveTracker
+          {activeTab === 'status' && (
+            <NetworkAndStatusView
+              onPlanRouteFromStation={handlePlanRouteFromStation}
+              onOpenGodsEye={handleOpenGodsEye}
               initialTrainNumber={inspectedTrainNumber}
             />
           )}
 
-          {activeTab === 'rules' && (
-            <RulesReferenceView />
+          {activeTab === 'tickets' && (
+            <MyTicketsView
+              onNavigateToJourney={() => setActiveTab('journey')}
+              onViewStationGodsEye={handleOpenGodsEye}
+            />
+          )}
+
+          {activeTab === 'help' && (
+            <HelpAndRailSathiView
+              onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
+              onSearchRouteShortcut={handleSearchRouteShortcut}
+              onBookSpecimen={handleOpenBooking}
+              onInspectTrain={handleInspectTrain}
+            />
           )}
         </main>
 
-        {/* Floating Quick Action Buttons (Mobile & Desktop) */}
-        <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-3">
-          {/* 3D Station God's Eye Navigation Floating Button */}
-          <button
-            onClick={() => handleOpenGodsEye('DR')}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-blue-700/90 dark:bg-blue-600/90 hover:bg-blue-700 text-white rounded-xl shadow-lg border border-blue-500/60 font-bold text-xs transition-all active:scale-95 group backdrop-blur-xs"
-            aria-label="Launch 3D Station God's Eye Navigation"
-          >
-            <Eye className="w-3.5 h-3.5 text-blue-200 group-hover:scale-110 transition-transform" />
-            <span className="hidden sm:inline">God's Eye Station</span>
-          </button>
-
-          {/* 3D Train Simulator Quick Floating Button */}
-          <button
-            onClick={() => setIs3DTrainOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-900/90 dark:bg-slate-800/90 hover:bg-slate-900 text-white rounded-xl shadow-lg border border-slate-700/60 font-bold text-xs transition-all active:scale-95 group backdrop-blur-xs"
-            aria-label="Launch 3D Train Simulation"
-          >
-            <Zap className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-            <span className="hidden sm:inline">3D Train Sim</span>
-          </button>
-
-          {/* Quick Voice Assistant Floating Button */}
+        {/* Floating RailSathi Voice Quick-Dialer (Compact & Unobtrusive) */}
+        <div className="fixed bottom-6 right-6 z-30">
           <button
             onClick={() => setIsVoiceModalOpen(true)}
-            className="flex items-center gap-2.5 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl hover:shadow-2xl font-bold text-xs transition-all active:scale-95 group ring-4 ring-blue-500/20"
+            className="flex items-center gap-2.5 px-4 py-3 bg-theme-primary text-white rounded-2xl shadow-xl hover:shadow-2xl font-bold text-xs transition-all active:scale-95 group ring-4 ring-theme-primary/20"
             aria-label="Open RailSathi Voice Assistant"
+            title="RailSathi Multilingual Voice Assistant"
           >
             <Mic className="w-4 h-4 animate-pulse group-hover:scale-110 transition-transform" />
-            <span className="hidden sm:inline">Voice & Dialer</span>
+            <span className="hidden sm:inline">RailSathi Voice</span>
           </button>
-
-          {/* Quick Wallet Floating Button */}
-          {savedTicketCount > 0 && (
-            <button
-              onClick={() => setIsWalletModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl shadow-lg font-bold text-xs transition-all active:scale-95"
-              aria-label="Open Specimen Wallet"
-            >
-              <Ticket className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
-              <span>{savedTicketCount} Specimen{savedTicketCount > 1 ? 's' : ''}</span>
-            </button>
-          )}
         </div>
+
+        {/* Theme Selector Modal */}
+        <ThemeSelectorModal
+          isOpen={isThemeModalOpen}
+          onClose={() => setIsThemeModalOpen(false)}
+        />
 
         {/* 3D Moving Train Opening Animation Modal */}
         {is3DTrainOpen && (
@@ -219,16 +192,17 @@ export default function App() {
           </React.Suspense>
         )}
 
-        {/* Modals */}
+        {/* Voice Assistant Modal */}
         <VoiceDialerModal
           isOpen={isVoiceModalOpen}
           onClose={() => setIsVoiceModalOpen(false)}
           onViewTicketWallet={() => {
             setIsVoiceModalOpen(false);
-            setIsWalletModalOpen(true);
+            setActiveTab('tickets');
           }}
         />
 
+        {/* Booking Specimen Ticket Modal */}
         <SpecimenTicketModal
           isOpen={isTicketModalOpen}
           onClose={() => setIsTicketModalOpen(false)}
@@ -237,16 +211,11 @@ export default function App() {
           onBookingCreated={handleBookingCreated}
         />
 
-        <TicketWalletModal
-          isOpen={isWalletModalOpen}
-          onClose={() => setIsWalletModalOpen(false)}
-        />
-
-        {/* Footer */}
-        <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 py-6 text-xs text-slate-500">
+        {/* Institutional Footer */}
+        <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 py-6 text-xs text-slate-500">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-800 dark:text-slate-200">RailOne Next</span>
+              <span className="font-extrabold text-slate-800 dark:text-slate-200">RailOne Next</span>
               <span>·</span>
               <span>Academic Engineering Redesign</span>
               <span>·</span>
@@ -254,16 +223,19 @@ export default function App() {
             </div>
             <div className="flex items-center gap-4 text-[11px]">
               <button 
-                onClick={() => setActiveTab('rules')}
+                onClick={() => {
+                  setActiveTab('help');
+                }}
                 className="hover:text-slate-800 dark:hover:text-slate-300 underline"
               >
                 MST List & Legal Section 138
               </button>
               <button 
-                onClick={() => setActiveTab('scenarios')}
-                className="hover:text-slate-800 dark:hover:text-slate-300 underline"
+                onClick={() => setIsThemeModalOpen(true)}
+                className="hover:text-slate-800 dark:hover:text-slate-300 underline flex items-center gap-1"
               >
-                Commuter Dilemma Scenarios
+                <Sparkles className="w-3 h-3 text-theme-primary" />
+                <span>Appearance Liveries (8)</span>
               </button>
             </div>
           </div>

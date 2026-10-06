@@ -19,7 +19,8 @@ export type RegionalLine =
   | 'harbour'
   | 'transharbour'
   | 'uran'
-  | 'national';
+  | 'national'
+  | 'metro';
 
 export interface Station {
   id: string;
@@ -262,7 +263,7 @@ export interface CommuterScenario {
   keyLearning: string;
 }
 
-export type MapScope = 'mumbai_suburban' | 'pan_india';
+export type MapScope = 'mumbai_suburban' | 'pan_india' | 'mumbai_metro';
 export type MapRenderMode = '2d' | '3d';
 
 export interface MapStationNode {

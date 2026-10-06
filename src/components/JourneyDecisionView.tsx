@@ -33,17 +33,27 @@ import { useTheme } from './ThemeContext';
 interface JourneyDecisionViewProps {
   onBookSpecimen: (itinerary: JourneyItinerary, travelClass: TravelClass) => void;
   onInspectTrain: (trainNumber: string) => void;
+  initialOriginCode?: string;
+  initialDestCode?: string;
 }
 
 export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
   onBookSpecimen,
-  onInspectTrain
+  onInspectTrain,
+  initialOriginCode,
+  initialDestCode
 }) => {
   const { language } = useTheme();
 
   // Search state
-  const [originCode, setOriginCode] = useState('TNA');
-  const [destCode, setDestCode] = useState('DR');
+  const [originCode, setOriginCode] = useState(() => initialOriginCode || 'TNA');
+  const [destCode, setDestCode] = useState(() => initialDestCode || 'DR');
+
+  React.useEffect(() => {
+    if (initialOriginCode) setOriginCode(initialOriginCode);
+    if (initialDestCode) setDestCode(initialDestCode);
+  }, [initialOriginCode, initialDestCode]);
+
   const [originSearch, setOriginSearch] = useState('');
   const [destSearch, setDestSearch] = useState('');
   const [isOriginOpen, setIsOriginOpen] = useState(false);

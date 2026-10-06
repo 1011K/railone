@@ -707,6 +707,85 @@ console.log('\nTest Suite 18: 3D Station Navigation, God\'s Eye Topological Layo
     '18.22: Unindexed station layout request safely fails with explanatory guidance');
 }
 
+console.log('\nTest Suite 19: Mumbai Metro Network, Strict AC Filtering, Pan-India Clickability & Multimodal Fare Engine');
+{
+  const { METRO_STATIONS, METRO_LINES, calculateMetroFare, METRO_INTERCHANGES } = await import('../src/fixtures/metroData');
+  const { PAN_INDIA_NODES, MUMBAI_METRO_NODES } = await import('../src/fixtures/networkMapData');
+  const { searchNetworkMap } = await import('../src/engine/networkMapEngine');
+
+  // 19.1 Mumbai Metro Line Coverage
+  assert(METRO_LINES.line1.stationCodes.length === 12, '19.1: Mumbai Metro Line 1 covers 12 stations (Versova to Ghatkopar)');
+  assert(METRO_LINES.line2a.stationCodes.length === 17, '19.2: Mumbai Metro Line 2A covers 17 stations (Dahisar East to Andheri West)');
+  assert(METRO_LINES.line7.stationCodes.length === 14, '19.3: Mumbai Metro Line 7 covers 14 stations (Dahisar East to Gundavali)');
+  assert(METRO_LINES.line3.stationCodes.length === 10, '19.4: Mumbai Metro Line 3 covers Phase 1 underground corridor');
+
+  // 19.2 Distance-Slab Metro Fares
+  assert(calculateMetroFare(2.5) === 10, '19.5: Metro fare for <=3 km is ₹10');
+  assert(calculateMetroFare(8.0) === 20, '19.6: Metro fare for 3-12 km is ₹20');
+  assert(calculateMetroFare(15.0) === 30, '19.7: Metro fare for 12-18 km is ₹30');
+  assert(calculateMetroFare(22.0) === 40, '19.8: Metro fare for 18-24 km is ₹40');
+  assert(calculateMetroFare(28.0) === 50, '19.9: Metro fare for 24-30 km is ₹50');
+
+  // 19.3 Multimodal Interchanges
+  const ghatkoparTransfer = METRO_STATIONS['METRO_GHT'].interchangeWith.find(i => i.targetCode === 'GC');
+  assert(ghatkoparTransfer !== undefined && ghatkoparTransfer.networkType === 'suburban', 
+    '19.10: Ghatkopar Metro 1 has dedicated Foot Over Bridge transfer to Central Suburban');
+  const andheriTransfer = METRO_STATIONS['METRO_ADH'].interchangeWith.find(i => i.targetCode === 'ADH');
+  assert(andheriTransfer !== undefined && andheriTransfer.walkwayType === 'skywalk', 
+    '19.11: Andheri Metro 1 has direct elevated skywalk to Western Suburban platforms');
+
+  // 19.4 Pan-India Station Nodes (Nagpur and Raipur)
+  const nagpur = PAN_INDIA_NODES.find(n => n.code === 'NGP');
+  const raipur = PAN_INDIA_NODES.find(n => n.code === 'R');
+  assert(nagpur !== undefined && Array.isArray(nagpur.platforms) && nagpur.platforms.length === 8 && nagpur.zone === 'CR', 
+    '19.12: Pan-India network includes Nagpur (NGP) with 8 platforms and Central Railway zone metadata');
+  assert(raipur !== undefined && Array.isArray(raipur.platforms) && raipur.platforms.length === 7 && raipur.zone === 'SECR', 
+    '19.13: Pan-India network includes Raipur (R) with 7 platforms and South East Central Railway zone metadata');
+
+  // 19.5 Global Network Map Search fallback
+  const globalNagpur = searchNetworkMap('Nagpur', 'mumbai_suburban');
+  assert(globalNagpur.stations.some(s => s.code === 'NGP'), 
+    '19.14: Global search finds Nagpur across national network even when Mumbai Suburban is selected');
+  const globalRaipur = searchNetworkMap('Raipur', 'mumbai_suburban');
+  assert(globalRaipur.stations.some(s => s.code === 'R'), 
+    '19.15: Global search finds Raipur across national network even when Mumbai Suburban is selected');
+
+  // 19.6 Strict AC Only Filtering
+  const acJourneys = planJourneys({
+    originCode: 'TNA',
+    destCode: 'CSMT',
+    departureTime: '10:30',
+    userContext: 'pre_departure',
+    preferences: {
+      classPreference: 'ac_mandatory',
+      priority: 'fastest',
+      hasSeasonPass: false,
+      walkToStationMinutes: 5,
+      maxTransfers: 0
+    }
+  });
+  assert(acJourneys.length > 0, '19.16: Found AC suburban journeys when AC is mandatory');
+  assert(acJourneys.every(j => j.isAcService), '19.17: Strict AC filtering excludes 100% of non-AC services');
+
+  // 19.7 Multimodal Metro Journey Planning
+  const metroJourneys = planJourneys({
+    originCode: 'METRO_VER',
+    destCode: 'METRO_GHT',
+    departureTime: '10:00',
+    userContext: 'pre_departure',
+    preferences: {
+      classPreference: 'any',
+      priority: 'fastest',
+      hasSeasonPass: false,
+      walkToStationMinutes: 5,
+      maxTransfers: 0
+    }
+  });
+  assert(metroJourneys.length > 0, '19.18: Multimodal journey engine successfully plans direct Mumbai Metro trip');
+  assert(metroJourneys[0].totalFareByClass.II !== undefined && metroJourneys[0].totalFareByClass.II > 0, 
+    '19.19: Calculates official distance-slab fare for Metro journey');
+}
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');

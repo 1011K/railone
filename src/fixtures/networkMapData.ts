@@ -1,4 +1,5 @@
 import { MapStationNode, MapTrackSegment, RegionalLine } from '../types/railway';
+import { METRO_STATIONS } from './metroData';
 
 /**
  * Comprehensive Mumbai Suburban & Pan-India Railway Station Geometry & Topology
@@ -490,3 +491,54 @@ export const KNOWN_DISRUPTION_RULES: Record<string, TrackDisruptionRule> = {
     congestionLevel: 'HIGH'
   }
 };
+
+export const MUMBAI_METRO_NODES: MapStationNode[] = Object.values(METRO_STATIONS).map(ms => ({
+  id: ms.id,
+  code: ms.code,
+  name: ms.name,
+  hindiName: ms.hindiName,
+  marathiName: ms.marathiName,
+  line: 'metro' as RegionalLine,
+  city: 'Mumbai',
+  x: ms.x,
+  y: ms.y,
+  z: 12,
+  platforms: [1, 2],
+  isInterchange: ms.isInterchange,
+  isMajorHub: ms.isInterchange,
+  passingTrainCount: 30
+}));
+
+export const METRO_CORRIDORS = [
+  // Line 1 Versova - Ghatkopar
+  { id: 'METRO_VER-METRO_DNN', fromCode: 'METRO_VER', toCode: 'METRO_DNN', line: 'metro' as RegionalLine, distKm: 1.2, type: 'twin_through' as const },
+  { id: 'METRO_DNN-METRO_AZD', fromCode: 'METRO_DNN', toCode: 'METRO_AZD', line: 'metro' as RegionalLine, distKm: 1.0, type: 'twin_through' as const },
+  { id: 'METRO_AZD-METRO_ADH', fromCode: 'METRO_AZD', toCode: 'METRO_ADH', line: 'metro' as RegionalLine, distKm: 1.1, type: 'twin_through' as const },
+  { id: 'METRO_ADH-METRO_WEH', fromCode: 'METRO_ADH', toCode: 'METRO_WEH', line: 'metro' as RegionalLine, distKm: 1.2, type: 'twin_through' as const },
+  { id: 'METRO_WEH-METRO_CKL', fromCode: 'METRO_WEH', toCode: 'METRO_CKL', line: 'metro' as RegionalLine, distKm: 1.3, type: 'twin_through' as const },
+  { id: 'METRO_CKL-METRO_AIR', fromCode: 'METRO_CKL', toCode: 'METRO_AIR', line: 'metro' as RegionalLine, distKm: 1.0, type: 'twin_through' as const },
+  { id: 'METRO_AIR-METRO_MRL', fromCode: 'METRO_AIR', toCode: 'METRO_MRL', line: 'metro' as RegionalLine, distKm: 0.9, type: 'twin_through' as const },
+  { id: 'METRO_MRL-METRO_SKN', fromCode: 'METRO_MRL', toCode: 'METRO_SKN', line: 'metro' as RegionalLine, distKm: 1.2, type: 'twin_through' as const },
+  { id: 'METRO_SKN-METRO_ASL', fromCode: 'METRO_SKN', toCode: 'METRO_ASL', line: 'metro' as RegionalLine, distKm: 1.1, type: 'twin_through' as const },
+  { id: 'METRO_ASL-METRO_JGT', fromCode: 'METRO_ASL', toCode: 'METRO_JGT', line: 'metro' as RegionalLine, distKm: 0.8, type: 'twin_through' as const },
+  { id: 'METRO_JGT-METRO_GHT', fromCode: 'METRO_JGT', toCode: 'METRO_GHT', line: 'metro' as RegionalLine, distKm: 0.6, type: 'twin_through' as const },
+
+  // Line 7 Red Line
+  { id: 'METRO_DHE-METRO_NPK', fromCode: 'METRO_DHE', toCode: 'METRO_NPK', line: 'metro' as RegionalLine, distKm: 2.8, type: 'twin_through' as const },
+  { id: 'METRO_NPK-METRO_AKR', fromCode: 'METRO_NPK', toCode: 'METRO_AKR', line: 'metro' as RegionalLine, distKm: 2.5, type: 'twin_through' as const },
+  { id: 'METRO_AKR-METRO_DND', fromCode: 'METRO_AKR', toCode: 'METRO_DND', line: 'metro' as RegionalLine, distKm: 3.2, type: 'twin_through' as const },
+  { id: 'METRO_DND-METRO_ARY', fromCode: 'METRO_DND', toCode: 'METRO_ARY', line: 'metro' as RegionalLine, distKm: 2.1, type: 'twin_through' as const },
+  { id: 'METRO_ARY-METRO_GDV', fromCode: 'METRO_ARY', toCode: 'METRO_GDV', line: 'metro' as RegionalLine, distKm: 4.5, type: 'twin_through' as const },
+
+  // Line 3 Aqua Line
+  { id: 'METRO_ARY_3-METRO_SPZ', fromCode: 'METRO_ARY_3', toCode: 'METRO_SPZ', line: 'metro' as RegionalLine, distKm: 1.6, type: 'twin_through' as const },
+  { id: 'METRO_SPZ-METRO_MRL', fromCode: 'METRO_SPZ', toCode: 'METRO_MRL', line: 'metro' as RegionalLine, distKm: 2.1, type: 'twin_through' as const },
+  { id: 'METRO_MRL-METRO_CSMIA2', fromCode: 'METRO_MRL', toCode: 'METRO_CSMIA2', line: 'metro' as RegionalLine, distKm: 1.8, type: 'twin_through' as const },
+  { id: 'METRO_CSMIA2-METRO_BKC', fromCode: 'METRO_CSMIA2', toCode: 'METRO_BKC', line: 'metro' as RegionalLine, distKm: 5.2, type: 'twin_through' as const },
+
+  // Interchanges with Suburban lines
+  { id: 'METRO_ADH-ADH', fromCode: 'METRO_ADH', toCode: 'ADH', line: 'metro' as RegionalLine, distKm: 0.2, type: 'single_branch' as const },
+  { id: 'METRO_GHT-GC', fromCode: 'METRO_GHT', toCode: 'GC', line: 'metro' as RegionalLine, distKm: 0.15, type: 'single_branch' as const },
+  { id: 'METRO_WEH-METRO_GDV', fromCode: 'METRO_WEH', toCode: 'METRO_GDV', line: 'metro' as RegionalLine, distKm: 0.2, type: 'single_branch' as const }
+];
+

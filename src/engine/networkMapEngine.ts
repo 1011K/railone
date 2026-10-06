@@ -10,6 +10,8 @@ import {
 import { 
   MUMBAI_SUBURBAN_NODES, 
   PAN_INDIA_NODES, 
+  MUMBAI_METRO_NODES,
+  METRO_CORRIDORS,
   SUBURBAN_CORRIDOR_CHAINS,
   SUBURBAN_FAST_CORRIDORS,
   PAN_INDIA_CORRIDORS,
@@ -37,9 +39,12 @@ export function makeSegmentKey(codeA: string, codeB: string): string {
 }
 
 /**
- * Retrieves station nodes for the chosen scope (Mumbai Suburban or Pan-India)
+ * Retrieves station nodes for the chosen scope (Mumbai Suburban, Pan-India, or Mumbai Metro)
  */
 export function getStationsForScope(scope: MapScope): MapStationNode[] {
+  if (scope === 'mumbai_metro') {
+    return MUMBAI_METRO_NODES;
+  }
   const rawNodes = scope === 'mumbai_suburban' ? MUMBAI_SUBURBAN_NODES : PAN_INDIA_NODES;
   const trains = scope === 'mumbai_suburban' ? TRAIN_TRIPS : PAN_INDIA_TRAINS;
 
@@ -134,6 +139,75 @@ export function getTrackSegmentsForScope(scope: MapScope): MapTrackSegment[] {
           zone: 'CR',
           trackType: fastSeg.type,
           speedLimitKmh: 105,
+          trainsPassing: [],
+          averageDelayMinutes: 0,
+          maxDelayMinutes: 0,
+          trainDelays: {},
+          congestionLevel: 'LOW',
+          isBottleneck: false,
+          coordinates: {
+            x1: fromNode.x,
+            y1: fromNode.y,
+            x2: toNode.x,
+            y2: toNode.y
+          }
+        });
+      }
+    });
+
+    // Also include Metro interchange branch tracks
+    METRO_CORRIDORS.filter(c => c.id.includes('ADH') || c.id.includes('GC') || c.id.includes('WEH')).forEach(c => {
+      const fromNode = stationMap.get(c.fromCode);
+      const toNode = stationMap.get(c.toCode);
+      if (!fromNode || !toNode) return;
+      const segKey = makeSegmentKey(c.fromCode, c.toCode);
+      if (!segmentsMap.has(segKey)) {
+        segmentsMap.set(segKey, {
+          id: segKey,
+          fromCode: c.fromCode,
+          toCode: c.toCode,
+          fromName: fromNode.name,
+          toName: toNode.name,
+          distanceKm: c.distKm,
+          line: 'metro',
+          zone: 'MMRDA',
+          trackType: c.type,
+          speedLimitKmh: 80,
+          trainsPassing: [],
+          averageDelayMinutes: 0,
+          maxDelayMinutes: 0,
+          trainDelays: {},
+          congestionLevel: 'LOW',
+          isBottleneck: false,
+          coordinates: {
+            x1: fromNode.x,
+            y1: fromNode.y,
+            x2: toNode.x,
+            y2: toNode.y
+          }
+        });
+      }
+    });
+  } else if (scope === 'mumbai_metro') {
+    // Mumbai Metro Network Corridors
+    METRO_CORRIDORS.forEach(corridor => {
+      const fromNode = stationMap.get(corridor.fromCode);
+      const toNode = stationMap.get(corridor.toCode);
+      if (!fromNode || !toNode) return;
+
+      const segKey = makeSegmentKey(corridor.fromCode, corridor.toCode);
+      if (!segmentsMap.has(segKey)) {
+        segmentsMap.set(segKey, {
+          id: segKey,
+          fromCode: corridor.fromCode,
+          toCode: corridor.toCode,
+          fromName: fromNode.name,
+          toName: toNode.name,
+          distanceKm: corridor.distKm,
+          line: 'metro',
+          zone: 'MMMOCL',
+          trackType: corridor.type,
+          speedLimitKmh: 80,
           trainsPassing: [],
           averageDelayMinutes: 0,
           maxDelayMinutes: 0,
@@ -435,8 +509,11 @@ export function getTrainMarkersForScope(scope: MapScope): MapTrainMarker[] {
 
     if (!fromNode) return;
 
-    // Estimate progress along segment (0.35 to 0.70 if between stations, or 0 if at station)
-    const progress = (fromStop.stationCode === toStop.stationCode) ? 0 : 0.45;
+    // Dynamic train progress along segment: at halt or between stations based on live status
+    const isAtStation = fromStop.stationCode === toStop.stationCode || (obs?.hasDepartedOrigin === false);
+    const progress = isAtStation 
+      ? 0 
+      : Math.min(0.85, Math.max(0.15, ((train.stops.indexOf(fromStop) * 7 + (obs?.delayMinutesAtCurrent || 0)) % 10) * 0.08 + 0.2));
     
     const posX = toNode ? Math.round(fromNode.x + (toNode.x - fromNode.x) * progress) : fromNode.x;
     const posY = toNode ? Math.round(fromNode.y + (toNode.y - fromNode.y) * progress) : fromNode.y;
@@ -478,8 +555,8 @@ export function searchNetworkMap(query: string, scope: MapScope): {
     return { stations: [], trains: [] };
   }
 
-  const allStations = getStationsForScope(scope);
-  const matchedStations = allStations.filter(s => 
+  let allStations = getStationsForScope(scope);
+  let matchedStations = allStations.filter(s => 
     s.code.toLowerCase().includes(q) ||
     s.name.toLowerCase().includes(q) ||
     (s.hindiName && s.hindiName.toLowerCase().includes(q)) ||
@@ -487,7 +564,19 @@ export function searchNetworkMap(query: string, scope: MapScope): {
     s.city.toLowerCase().includes(q)
   );
 
-  const allTrains = scope === 'mumbai_suburban' ? TRAIN_TRIPS : ALL_NETWORK_TRAINS;
+  // If no stations found in current scope, search across all networks
+  if (matchedStations.length === 0) {
+    const globalStations = [...MUMBAI_SUBURBAN_NODES, ...PAN_INDIA_NODES, ...MUMBAI_METRO_NODES];
+    matchedStations = globalStations.filter(s =>
+      s.code.toLowerCase().includes(q) ||
+      s.name.toLowerCase().includes(q) ||
+      (s.hindiName && s.hindiName.toLowerCase().includes(q)) ||
+      (s.marathiName && s.marathiName.toLowerCase().includes(q)) ||
+      s.city.toLowerCase().includes(q)
+    );
+  }
+
+  const allTrains = ALL_NETWORK_TRAINS;
   const matchedTrains = allTrains.filter(t => 
     t.trainNumber.toLowerCase().includes(q) ||
     t.trainName.toLowerCase().includes(q) ||

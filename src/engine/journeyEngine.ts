@@ -10,6 +10,7 @@ import {
   TrainRunningObservation 
 } from '../types/railway';
 import { STATIONS, TRAIN_TRIPS, INITIAL_OBSERVATIONS, calculateSuburbanFare } from '../fixtures/railwayData';
+import { METRO_STATIONS, METRO_LINES, calculateMetroFare } from '../fixtures/metroData';
 import { computePredictedStops, addMinutesToTimeString, getMinutesDifference } from './delayModel';
 import { evaluateJourneyEligibility } from './eligibilityEngine';
 import { estimateCrowdLevel } from './crowdEstimator';
@@ -26,6 +27,96 @@ export interface PlanJourneyParams {
   observations?: Record<string, TrainRunningObservation>;
 }
 
+// Unified station lookup across Suburban Rail and Mumbai Metro
+function resolveStation(code: string): Station | null {
+  if (STATIONS[code]) return STATIONS[code];
+  const ms = METRO_STATIONS[code];
+  if (ms) {
+    return {
+      id: ms.id,
+      code: ms.code,
+      name: ms.name,
+      hindiName: ms.hindiName,
+      marathiName: ms.marathiName,
+      line: 'metro',
+      city: 'Mumbai',
+      platforms: [1, 2],
+      interchangeWalkMinutes: ms.isInterchange ? 3 : undefined,
+      isInterchange: ms.isInterchange,
+      aliases: [ms.name, ms.code]
+    };
+  }
+  return null;
+}
+
+// Synthetic high-frequency Metro trips generator (every 5-8 minutes between 05:30 and 23:30)
+function generateMetroTrips(depTime: string): TrainTrip[] {
+  const trips: TrainTrip[] = [];
+  const baseOffsets = [-10, -4, 2, 8, 14, 20, 26, 32, 45, 60];
+
+  // Line 1: Versova to Ghatkopar (and reverse)
+  const l1Codes = METRO_LINES.line1.stationCodes;
+  const l1StopsForward = l1Codes.map((c, idx) => ({
+    stationCode: c,
+    stationName: METRO_STATIONS[c]?.name || c,
+    scheduledArrival: '10:30',
+    scheduledDeparture: '10:30',
+    platform: '1',
+    distanceKm: idx * 1.0,
+    isHalt: true
+  }));
+
+  const l1StopsReverse = [...l1Codes].reverse().map((c, idx) => ({
+    stationCode: c,
+    stationName: METRO_STATIONS[c]?.name || c,
+    scheduledArrival: '10:30',
+    scheduledDeparture: '10:30',
+    platform: '2',
+    distanceKm: idx * 1.0,
+    isHalt: true
+  }));
+
+  baseOffsets.forEach((offset, idx) => {
+    const tDep = addMinutesToTimeString(depTime, offset);
+    
+    // Line 1 Versova -> Ghatkopar
+    const forwardStops = l1StopsForward.map((s, sIdx) => {
+      const haltTime = addMinutesToTimeString(tDep, sIdx * 2);
+      return { ...s, scheduledArrival: haltTime, scheduledDeparture: haltTime };
+    });
+
+    trips.push({
+      trainNumber: `M1-${101 + idx * 2}`,
+      trainName: 'Metro Line 1 (Versova ➔ Ghatkopar)',
+      originStation: 'METRO_VER',
+      destinationStation: 'METRO_GHT',
+      serviceType: 'suburban_ac_slow',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      availableClasses: ['II'],
+      stops: forwardStops
+    });
+
+    // Line 1 Ghatkopar -> Versova
+    const reverseStops = l1StopsReverse.map((s, sIdx) => {
+      const haltTime = addMinutesToTimeString(tDep, sIdx * 2);
+      return { ...s, scheduledArrival: haltTime, scheduledDeparture: haltTime };
+    });
+
+    trips.push({
+      trainNumber: `M1-${102 + idx * 2}`,
+      trainName: 'Metro Line 1 (Ghatkopar ➔ Versova)',
+      originStation: 'METRO_GHT',
+      destinationStation: 'METRO_VER',
+      serviceType: 'suburban_ac_slow',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      availableClasses: ['II'],
+      stops: reverseStops
+    });
+  });
+
+  return trips;
+}
+
 export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   const {
     originCode: rawOriginCode,
@@ -40,7 +131,6 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   } = params;
 
   // Onboard passenger context: passengers already onboard cannot backtrack to prior stations.
-  // Origin is strictly bound to the train's current/next station halt.
   let originCode = rawOriginCode;
   let isOnboardBacktrackForbidden = false;
 
@@ -51,7 +141,6 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         const currentHaltIdx = onboardTrain.stops.findIndex(s => s.stationCode === onboardCurrentStation);
         const requestedOriginIdx = onboardTrain.stops.findIndex(s => s.stationCode === rawOriginCode);
 
-        // If requested origin is before current station, forbid backtracking and clamp origin to current station
         if (requestedOriginIdx !== -1 && requestedOriginIdx < currentHaltIdx) {
           originCode = onboardCurrentStation;
           isOnboardBacktrackForbidden = true;
@@ -68,12 +157,16 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     }
   }
 
-  const originStation = STATIONS[originCode];
-  const destStation = STATIONS[destCode];
+  const originStation = resolveStation(originCode);
+  const destStation = resolveStation(destCode);
 
   if (!originStation || !destStation || originCode === destCode) {
     return [];
   }
+
+  // Combined train catalog including suburban services and active metro services
+  const metroTrips = generateMetroTrips(departureTime);
+  const allAvailableTrains = [...TRAIN_TRIPS, ...metroTrips];
 
   const candidateItineraries: JourneyItinerary[] = [];
 
@@ -112,8 +205,10 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     );
 
     const stopsTraversed = toIdx - fromIdx;
-    const skippedStopsCount = Math.max(0, (train.stops.length > 5 ? 3 : 0));
-    const stoppingPatternLabel = train.serviceType.includes('fast') 
+    const isMetro = train.trainNumber.startsWith('M1') || train.trainNumber.startsWith('M2') || train.trainNumber.startsWith('M7');
+    const stoppingPatternLabel = isMetro
+      ? `Mumbai Metro Rapid Transit (${stopsTraversed} halts)`
+      : train.serviceType.includes('fast') 
       ? `Fast Service (${stopsTraversed} halts)` 
       : train.serviceType.includes('slow')
       ? `Slow Local (All Stations, ${stopsTraversed} halts)`
@@ -133,11 +228,11 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       predictedArr: toStop.predictedArrival,
       delayDepMinutes: fromStop.delayDepartureMinutes,
       delayArrMinutes: toStop.delayArrivalMinutes,
-      departurePlatform: rawTripStopFrom?.platform || '1',
-      arrivalPlatform: rawTripStopTo?.platform || '1',
+      departurePlatform: rawTripStopFrom?.platform || (isMetro ? '1' : '1'),
+      arrivalPlatform: rawTripStopTo?.platform || (isMetro ? '1' : '1'),
       dataStatus: fromStop.dataStatus,
       crowding,
-      skippedStopsCount,
+      skippedStopsCount: isMetro ? 0 : Math.max(0, (train.stops.length > 5 ? 3 : 0)),
       stoppingPatternLabel,
       depDayOffset: fromStop.dayOffset || 0,
       arrDayOffset: toStop.dayOffset || 0
@@ -145,7 +240,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   };
 
   // 1. Direct Trains Search
-  for (const train of TRAIN_TRIPS) {
+  for (const train of allAvailableTrains) {
     const fromIdx = train.stops.findIndex(s => s.stationCode === originCode);
     const toIdx = train.stops.findIndex(s => s.stationCode === destCode);
 
@@ -157,40 +252,63 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       if (arriveByDeadline) {
         const diffToDeadline = getMinutesDifference(leg.predictedArr, arriveByDeadline, leg.arrDayOffset || 0, 0);
         if (diffToDeadline < 0) {
-          // Arrives AFTER deadline! Strictly excluded
-          continue;
+          continue; // Arrives AFTER deadline
         }
         if (departureTime) {
           const diffFromDep = getMinutesDifference(departureTime, leg.predictedDep, 0, leg.depDayOffset || 0);
           if (diffFromDep < -10) continue;
         }
       } else {
-        // Standard depart-after filter: allow trains within realistic window (-10 min to +180 min)
         const diffFromQuery = getMinutesDifference(departureTime, leg.predictedDep, 0, leg.depDayOffset || 0);
         if (diffFromQuery < -10 || diffFromQuery > 180) continue;
       }
 
-      // Fare calculation
+      // Legal eligibility check
+      const userClassForEligibility = preferences.classPreference === 'ac_mandatory' || preferences.classPreference === 'ac_preferred'
+        ? 'AC_LOCAL'
+        : preferences.classPreference === 'first' ? 'I' : 'II';
+
+      const isMetro = train.trainNumber.startsWith('M1') || train.trainNumber.startsWith('M2') || train.trainNumber.startsWith('M7');
+
+      let eligibility = evaluateJourneyEligibility({
+        train,
+        fromStationCode: originCode,
+        toStationCode: destCode,
+        userTicketType: preferences.hasSeasonPass ? 'suburban_season_pass' : 'suburban_single',
+        userClass: userClassForEligibility,
+        hasMST: preferences.hasSeasonPass
+      });
+
+      if (isMetro) {
+        eligibility = {
+          status: 'ELIGIBLE',
+          summary: 'Eligible for Mumbai Metro rapid transit via single ticket, QR paper ticket, or NCMC smart-card.',
+          rulesApplied: ['Mumbai Metro Line fare & ticketing tariff applied.'],
+          validClasses: ['II', 'AC_LOCAL'],
+          passPermitted: true,
+          ticketRequiredNote: 'Standard Metro paper QR token or NCMC smart card.'
+        };
+      }
+
+      // Strict Exclusion: Prohibited trains are NEVER recommended or shown as bookable passenger journeys
+      if (eligibility.status === 'PROHIBITED') {
+        continue;
+      }
+
+      // Fare calculation based on verified segment distance
       const stopFrom = train.stops[fromIdx];
       const stopTo = train.stops[toIdx];
       const segmentDistance = Math.abs(stopTo.distanceKm - stopFrom.distanceKm) || 20;
 
       const totalFareByClass: Partial<Record<TravelClass, number>> = {};
-      for (const cls of train.availableClasses) {
-        totalFareByClass[cls] = calculateSuburbanFare(segmentDistance, cls);
-      }
 
-      // Legal eligibility check
-      const eligibility = evaluateJourneyEligibility({
-        train,
-        fromStationCode: originCode,
-        toStationCode: destCode,
-        userTicketType: preferences.hasSeasonPass ? 'suburban_season_pass' : 'suburban_single',
-        userClass: preferences.classPreference === 'ac_mandatory' || preferences.classPreference === 'ac_preferred'
-          ? 'AC_LOCAL'
-          : preferences.classPreference === 'first' ? 'I' : 'II',
-        hasMST: preferences.hasSeasonPass
-      });
+      if (isMetro) {
+        totalFareByClass['II'] = calculateMetroFare(segmentDistance);
+      } else {
+        for (const cls of train.availableClasses) {
+          totalFareByClass[cls] = calculateSuburbanFare(segmentDistance, cls);
+        }
+      }
 
       const totalDurationMinutes = Math.max(1, getMinutesDifference(
         leg.predictedDep, 
@@ -238,25 +356,32 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     }
   }
 
-  // 2. Transfer Trains Search (e.g. Thane Central Line -> Dadar -> Churchgate Western Line)
+  // 2. Transfer Trains Search (Suburban interchanges & Multimodal Metro interchanges)
   const potentialInterchanges = [
-    { centralCode: 'DR', westernCode: 'DDR', station: STATIONS.DR, walkMinutes: 7 },
-    { centralCode: 'CLA', westernCode: 'CLA', station: STATIONS.CLA, walkMinutes: 4 },
-    { centralCode: 'CSMT', westernCode: 'CSMT', station: STATIONS.CSMT, walkMinutes: 3 }
+    // Suburban interchanges
+    { centralCode: 'DR', westernCode: 'DDR', station: STATIONS.DR, walkMinutes: 7, type: 'suburban_fob' },
+    { centralCode: 'CLA', westernCode: 'CLA', station: STATIONS.CLA, walkMinutes: 4, type: 'suburban_fob' },
+    { centralCode: 'CSMT', westernCode: 'CSMT', station: STATIONS.CSMT, walkMinutes: 3, type: 'suburban_fob' },
+    // Multimodal Metro interchanges
+    { centralCode: 'METRO_ADH', westernCode: 'ADH', station: STATIONS.ADH, walkMinutes: 4, type: 'metro_skywalk' },
+    { centralCode: 'METRO_GHT', westernCode: 'GC', station: STATIONS.GC, walkMinutes: 3, type: 'metro_fob' },
+    { centralCode: 'METRO_WEH', westernCode: 'METRO_GDV', station: resolveStation('METRO_WEH')!, walkMinutes: 3, type: 'metro_fob' }
   ];
 
   for (const interchange of potentialInterchanges) {
-    if (originCode === interchange.centralCode || destCode === interchange.centralCode) continue;
+    if (!interchange.station) continue;
+    if (originCode === interchange.centralCode || originCode === interchange.westernCode) continue;
+    if (destCode === interchange.centralCode || destCode === interchange.westernCode) continue;
 
     // First leg: originCode to interchange
-    const firstLegTrains = TRAIN_TRIPS.filter(t => {
+    const firstLegTrains = allAvailableTrains.filter(t => {
       const fIdx = t.stops.findIndex(s => s.stationCode === originCode);
       const tIdx = t.stops.findIndex(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode);
       return fIdx !== -1 && tIdx !== -1 && fIdx < tIdx;
     });
 
     // Second leg: interchange to destCode
-    const secondLegTrains = TRAIN_TRIPS.filter(t => {
+    const secondLegTrains = allAvailableTrains.filter(t => {
       const fIdx = t.stops.findIndex(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode);
       const tIdx = t.stops.findIndex(s => s.stationCode === destCode);
       return fIdx !== -1 && tIdx !== -1 && fIdx < tIdx;
@@ -264,7 +389,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
     for (const train1 of firstLegTrains) {
       const leg1FromStation = originStation;
-      const leg1ToStation = STATIONS[train1.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode)!.stationCode];
+      const leg1ToStation = resolveStation(train1.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode)!.stationCode)!;
       const leg1 = buildLeg(train1, leg1FromStation, leg1ToStation, 0);
       if (!leg1) continue;
 
@@ -279,7 +404,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       }
 
       for (const train2 of secondLegTrains) {
-        const leg2FromStation = STATIONS[train2.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode)!.stationCode];
+        const leg2FromStation = resolveStation(train2.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode)!.stationCode)!;
         const leg2ToStation = destStation;
         const leg2 = buildLeg(train2, leg2FromStation, leg2ToStation, 1);
         if (!leg2) continue;
@@ -288,7 +413,6 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         if (arriveByDeadline) {
           const diffToDeadline = getMinutesDifference(leg2.predictedArr, arriveByDeadline, leg2.arrDayOffset || 0, 0);
           if (diffToDeadline < 0) {
-            // Arrives after deadline
             continue;
           }
         }
@@ -305,7 +429,43 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         const isTightConnection = transferBufferMinutes >= minWalkTime && transferBufferMinutes < minWalkTime + 4;
 
         if (isMissedConnection) continue;
-        if (transferBufferMinutes > 50) continue; // too long a layover
+        if (transferBufferMinutes > 50) continue;
+
+        // Verify eligibility for BOTH legs
+        const userClassForEligibility = preferences.classPreference === 'ac_mandatory' || preferences.classPreference === 'ac_preferred'
+          ? 'AC_LOCAL'
+          : preferences.classPreference === 'first' ? 'I' : 'II';
+
+        const eligibility1 = evaluateJourneyEligibility({
+          train: train1,
+          fromStationCode: originCode,
+          toStationCode: leg1ToStation.code,
+          userTicketType: preferences.hasSeasonPass ? 'suburban_season_pass' : 'suburban_single',
+          userClass: userClassForEligibility,
+          hasMST: preferences.hasSeasonPass
+        });
+
+        const eligibility2 = evaluateJourneyEligibility({
+          train: train2,
+          fromStationCode: leg2FromStation.code,
+          toStationCode: destCode,
+          userTicketType: preferences.hasSeasonPass ? 'suburban_season_pass' : 'suburban_single',
+          userClass: userClassForEligibility,
+          hasMST: preferences.hasSeasonPass
+        });
+
+        // Strict Exclusion: If either leg is PROHIBITED, connection is prohibited
+        if (eligibility1.status === 'PROHIBITED' || eligibility2.status === 'PROHIBITED') {
+          continue;
+        }
+
+        const overallEligibility = eligibility1.status === 'CONDITIONAL' ? eligibility1 : eligibility2;
+
+        const transferGuide = interchange.type === 'metro_skywalk'
+          ? `Interchange at Andheri: Transfer between Western Railway Platform ${leg1.arrivalPlatform} and Mumbai Metro Line 1 via elevated Skywalk (est. ${minWalkTime} min walk, ${transferBufferMinutes} min buffer).`
+          : interchange.type === 'metro_fob'
+          ? `Interchange at Ghatkopar: Transfer between Central Railway Platform ${leg1.arrivalPlatform} and Metro Line 1 concourse via dedicated Foot Over Bridge (est. ${minWalkTime} min walk, ${transferBufferMinutes} min buffer).`
+          : `Interchange at ${interchange.station.name}: Walk from Platform ${leg1.arrivalPlatform} across Foot Over Bridge to Platform ${leg2.departurePlatform} (est. ${minWalkTime} min walk, ${transferBufferMinutes} min buffer).`;
 
         const transfer: TransferInfo = {
           station: interchange.station,
@@ -315,7 +475,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
           bufferMinutes: transferBufferMinutes,
           isTightConnection,
           isMissedConnection,
-          transferGuide: `Interchange at ${interchange.station.name}: Walk from Platform ${leg1.arrivalPlatform} across Foot Over Bridge to Platform ${leg2.departurePlatform} (est. ${minWalkTime} min walk, ${transferBufferMinutes} min buffer available).`
+          transferGuide
         };
 
         const totalDurationMinutes = Math.max(1, getMinutesDifference(
@@ -327,24 +487,41 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         const walkMargin = preferences.walkToStationMinutes || 15;
         const leaveHomeTime = addMinutesToTimeString(leg1.predictedDep, -walkMargin);
 
-        const totalFareByClass: Partial<Record<TravelClass, number>> = {
-          II: 15,
-          I: 105,
-          AC_LOCAL: 135
-        };
+        // Derive accurate multi-leg fare based on verified leg distances & operator tariffs
+        const stop1From = train1.stops.find(s => s.stationCode === originCode);
+        const stop1To = train1.stops.find(s => s.stationCode === leg1ToStation.code);
+        const dist1 = Math.abs((stop1To?.distanceKm || 20) - (stop1From?.distanceKm || 0)) || 20;
+
+        const stop2From = train2.stops.find(s => s.stationCode === leg2FromStation.code);
+        const stop2To = train2.stops.find(s => s.stationCode === destCode);
+        const dist2 = Math.abs((stop2To?.distanceKm || 15) - (stop2From?.distanceKm || 0)) || 15;
+
+        const isTrain1Metro = train1.trainNumber.startsWith('M1');
+        const isTrain2Metro = train2.trainNumber.startsWith('M1');
+
+        let totalFareByClass: Partial<Record<TravelClass, number>> = {};
+        if (isTrain1Metro || isTrain2Metro) {
+          // Multimodal combined fare
+          const metroFare = calculateMetroFare(isTrain1Metro ? dist1 : dist2);
+          const railDist = isTrain1Metro ? dist2 : dist1;
+          totalFareByClass = {
+            II: metroFare + calculateSuburbanFare(railDist, 'II'),
+            I: metroFare + calculateSuburbanFare(railDist, 'I'),
+            AC_LOCAL: metroFare + calculateSuburbanFare(railDist, 'AC_LOCAL')
+          };
+        } else {
+          // Pure suburban through journey via interchange (CRIS through suburban tariff)
+          const totalThroughDist = dist1 + dist2;
+          totalFareByClass = {
+            II: calculateSuburbanFare(totalThroughDist, 'II'),
+            I: calculateSuburbanFare(totalThroughDist, 'I'),
+            AC_LOCAL: calculateSuburbanFare(totalThroughDist, 'AC_LOCAL')
+          };
+        }
 
         const leg1Ac = train1.serviceType.includes('ac');
         const leg2Ac = train2.serviceType.includes('ac');
         const isAc = leg1Ac && leg2Ac;
-
-        const eligibility = evaluateJourneyEligibility({
-          train: train1,
-          fromStationCode: originCode,
-          toStationCode: interchange.centralCode,
-          userTicketType: preferences.hasSeasonPass ? 'suburban_season_pass' : 'suburban_single',
-          userClass: preferences.classPreference === 'ac_mandatory' ? 'AC_LOCAL' : 'II',
-          hasMST: preferences.hasSeasonPass
-        });
 
         candidateItineraries.push({
           id: `transfer-${train1.trainNumber}-${leg1.scheduledDep.replace(':', '')}-${train2.trainNumber}-${leg2.scheduledDep.replace(':', '')}`,
@@ -357,7 +534,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
           predictedArrival: leg2.predictedArr,
           totalFareByClass,
           recommendedClass: isAc ? 'AC_LOCAL' : 'II',
-          eligibility,
+          eligibility: overallEligibility,
           score: 0,
           rankReason: '',
           isRecommended: false,
@@ -369,113 +546,13 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     }
   }
 
-  // 3. Fallback only if no catalogue itineraries matched (and never invent phantom AC)
-  if (candidateItineraries.length === 0) {
-    const isSameLine = originStation.line === destStation.line;
-    const estDistanceKm = Math.max(8, Math.min(65, Math.abs(
-      (originStation.platforms[0] * 5) - (destStation.platforms[0] * 5)
-    ) + 16));
-
-    const departures = [
-      { offset: 4, type: 'suburban_slow' as const, isAc: false, nameSuffix: 'Slow Local' },
-      { offset: 12, type: 'suburban_fast' as const, isAc: false, nameSuffix: 'Fast Local' }
-    ];
-
-    for (let dIdx = 0; dIdx < departures.length; dIdx++) {
-      const dep = departures[dIdx];
-      const speedKmh = dep.type === 'suburban_slow' ? 33 : 48;
-      const legDuration = Math.max(12, Math.round((estDistanceKm / speedKmh) * 60));
-
-      const schedDep = addMinutesToTimeString(departureTime, dep.offset);
-      const schedArr = addMinutesToTimeString(schedDep, legDuration);
-
-      if (arriveByDeadline && getMinutesDifference(schedArr, arriveByDeadline) < 0) {
-        continue;
-      }
-
-      const delayMin = dep.type === 'suburban_fast' ? 3 : 1;
-      const predDep = addMinutesToTimeString(schedDep, delayMin);
-      const predArr = addMinutesToTimeString(schedArr, delayMin);
-
-      const mockTrainNumber = `9${originStation.platforms[0]}${destStation.platforms[0]}${dIdx + 1}2`;
-      const mockTrip: TrainTrip = {
-        trainNumber: mockTrainNumber,
-        trainName: `${originStation.name} - ${destStation.name} ${dep.nameSuffix}`,
-        originStation: originStation.code,
-        destinationStation: destStation.code,
-        serviceType: dep.type,
-        runningDays: [0, 1, 2, 3, 4, 5, 6],
-        availableClasses: ['II', 'I'],
-        stops: [
-          { stationCode: originStation.code, stationName: originStation.name, scheduledArrival: schedDep, scheduledDeparture: schedDep, platform: '2', distanceKm: 0, isHalt: true },
-          { stationCode: destStation.code, stationName: destStation.name, scheduledArrival: schedArr, scheduledDeparture: schedArr, platform: '1', distanceKm: estDistanceKm, isHalt: true }
-        ]
-      };
-
-      const fareByClass: Partial<Record<TravelClass, number>> = {
-        II: calculateSuburbanFare(estDistanceKm, 'II'),
-        I: calculateSuburbanFare(estDistanceKm, 'I')
-      };
-
-      const crowding = estimateCrowdLevel(mockTrip, originStation.code, predDep, delayMin, false);
-      const walkMargin = preferences.walkToStationMinutes || 12;
-      const leaveHomeTime = addMinutesToTimeString(predDep, -walkMargin);
-
-      const leg: ItineraryLeg = {
-        legIndex: 0,
-        train: mockTrip,
-        fromStation: originStation,
-        toStation: destStation,
-        scheduledDep: schedDep,
-        scheduledArr: schedArr,
-        predictedDep: predDep,
-        predictedArr: predArr,
-        delayDepMinutes: delayMin,
-        delayArrMinutes: delayMin,
-        departurePlatform: '2',
-        arrivalPlatform: '1',
-        dataStatus: 'SCHEDULED',
-        crowding,
-        skippedStopsCount: dep.type === 'suburban_fast' ? 4 : 0,
-        stoppingPatternLabel: dep.type === 'suburban_fast' ? 'Fast Suburban Service' : 'All-Stations Local Service'
-      };
-
-      candidateItineraries.push({
-        id: `universal-${mockTrainNumber}`,
-        legs: [leg],
-        transfers: isSameLine ? [] : [{
-          station: STATIONS.DR || originStation,
-          fromLegIndex: 0,
-          toLegIndex: 0,
-          walkTimeMinutes: 7,
-          bufferMinutes: 9,
-          isTightConnection: false,
-          isMissedConnection: false,
-          transferGuide: `Interchange via Dadar Foot Over Bridge (allow 7 min walking buffer between platforms).`
-        }],
-        totalDurationMinutes: legDuration,
-        scheduledDeparture: schedDep,
-        predictedDeparture: predDep,
-        scheduledArrival: schedArr,
-        predictedArrival: predArr,
-        totalFareByClass: fareByClass,
-        recommendedClass: preferences.classPreference === 'first' ? 'I' : 'II',
-        eligibility: {
-          status: 'ELIGIBLE',
-          summary: 'Suburban EMU travel eligible with UTS suburban single ticket or Season Pass.',
-          rulesApplied: ['Mumbai Suburban Railway tariff section rules applied.'],
-          validClasses: ['II', 'I'],
-          passPermitted: true,
-          ticketRequiredNote: 'Ordinary suburban ticket or season pass.'
-        },
-        score: 0,
-        rankReason: '',
-        isRecommended: false,
-        leaveHomeTime,
-        leaveHomeMarginMinutes: walkMargin,
-        isAcService: false
-      });
-    }
+  // 3. Strict AC Preference Filtering
+  if (preferences.classPreference === 'ac_mandatory') {
+    // AC Only: Never recommend non-AC alternatives as eligible.
+    // Filter strictly so that only itineraries where ALL legs are AC are kept.
+    const acOnlyCandidates = candidateItineraries.filter(it => it.isAcService);
+    candidateItineraries.length = 0;
+    candidateItineraries.push(...acOnlyCandidates);
   }
 
   // 4. Detect Delay Inversion (Slow vs Delayed Fast)
@@ -505,7 +582,6 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     const arrOffset = lastLeg?.arrDayOffset || 0;
 
     if (arriveByDeadline) {
-      // Arrive-by scoring: rewards journeys arriving before deadline with minimum idle time
       const marginBeforeDeadline = getMinutesDifference(it.predictedArrival, arriveByDeadline, arrOffset, 0);
       if (marginBeforeDeadline >= 0) {
         score += Math.max(0, 400 - marginBeforeDeadline * 3);
@@ -513,7 +589,6 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         score -= 10000;
       }
     } else {
-      // Depart-after scoring: earlier arrival is better
       const minutesToArr = getMinutesDifference(departureTime, it.predictedArrival, 0, arrOffset);
       score -= minutesToArr * 4;
     }
@@ -522,21 +597,15 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     score -= it.transfers.length * 15;
 
     // Disqualification / Penalties for Eligibility
-    if (it.eligibility.status === 'PROHIBITED') {
-      score -= 5000;
-    } else if (it.eligibility.status === 'CONDITIONAL') {
+    if (it.eligibility.status === 'CONDITIONAL') {
       score -= 80;
     }
 
     // AC Preference handling
-    if (preferences.classPreference === 'ac_mandatory') {
-      if (!it.isAcService) {
-        score -= 3000;
-      } else {
-        score += 350;
+    if (preferences.classPreference === 'ac_preferred') {
+      if (it.isAcService) {
+        score += 350; // Priority boost for AC Preferred
       }
-    } else if (preferences.classPreference === 'ac_preferred') {
-      if (it.isAcService) score += 120;
     }
 
     // Priority modifier
@@ -581,10 +650,10 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
     for (let i = 1; i < candidateItineraries.length; i++) {
       const cand = candidateItineraries[i];
-      if (cand.eligibility.status === 'PROHIBITED') {
-        cand.rankReason = 'Not recommended: Ticketing eligibility restrictions / prohibited suburban boarding.';
-      } else if (cand.isAcService && preferences.classPreference !== 'ac_mandatory') {
+      if (cand.isAcService && preferences.classPreference !== 'ac_mandatory') {
         cand.rankReason = 'Alternative: Air-conditioned option (higher fare, comfortable ride).';
+      } else if (!cand.isAcService && preferences.classPreference === 'ac_preferred') {
+        cand.rankReason = 'Alternative: Non-AC Service (Eligible alternative with standard tariff).';
       } else if (cand.transfers.length > 0) {
         cand.rankReason = `Alternative: Interchange route (+${cand.totalDurationMinutes - best.totalDurationMinutes}m travel time).`;
       } else {

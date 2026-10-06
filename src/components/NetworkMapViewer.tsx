@@ -35,8 +35,11 @@ import {
   CheckCircle2,
   Navigation,
   Compass,
-  Eye
+  Eye,
+  SlidersHorizontal,
+  ChevronRight
 } from 'lucide-react';
+import { useTheme } from './ThemeContext';
 
 interface NetworkMapViewerProps {
   onPlanRouteFromStation?: (stationCode: string) => void;
@@ -49,6 +52,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
   onInspectTrainSchedule,
   onOpenGodsEye
 }) => {
+  const { language } = useTheme();
   const [scope, setScope] = useState<MapScope>('mumbai_suburban');
   const [renderMode, setRenderMode] = useState<MapRenderMode>('2d');
   const [delayFilter, setDelayFilter] = useState<'all' | 'disrupted' | 'ontime'>('all');
@@ -104,7 +108,9 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
       
       // Line filter for Mumbai Suburban
       if (scope === 'mumbai_suburban' && suburbanLineFilter !== 'all') {
-        if (seg.line !== suburbanLineFilter && !activeTrainSegments.has(seg.id)) {
+        if (suburbanLineFilter === 'metro') {
+          if (seg.line !== 'metro') return false;
+        } else if (seg.line !== suburbanLineFilter && !activeTrainSegments.has(seg.id)) {
           return false;
         }
       }
@@ -143,14 +149,17 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     if (selectedSegmentId) {
       return allSegments.find(s => s.id === selectedSegmentId) || null;
     }
-    // Default to highest delay bottleneck if none selected
-    return allSegments.find(s => s.isBottleneck) || allSegments[0] || null;
+    return null;
   }, [selectedSegmentId, allSegments]);
 
   // Active inspected station
   const activeStation = useMemo(() => {
     if (selectedStationCode) {
-      return stations.find(s => s.code === selectedStationCode) || null;
+      // Look in current scope first, then fallback to global catalog
+      const fromScope = stations.find(s => s.code === selectedStationCode);
+      if (fromScope) return fromScope;
+      const allPossibilities = [...getStationsForScope('mumbai_suburban'), ...getStationsForScope('pan_india'), ...getStationsForScope('mumbai_metro')];
+      return allPossibilities.find(s => s.code === selectedStationCode) || null;
     }
     return null;
   }, [selectedStationCode, stations]);
@@ -202,8 +211,8 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     setIsDragging(false);
   };
 
-  const handleZoomIn = () => setZoom(z => Math.min(2.5, Number((z + 0.25).toFixed(2))));
-  const handleZoomOut = () => setZoom(z => Math.max(0.5, Number((z - 0.25).toFixed(2))));
+  const handleZoomIn = () => setZoom(z => Math.min(3.0, Number((z + 0.25).toFixed(2))));
+  const handleZoomOut = () => setZoom(z => Math.max(0.6, Number((z - 0.25).toFixed(2))));
   const handleResetView = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -226,11 +235,29 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     setSelectedSegmentId(null);
     setSelectedTrainNumber(null);
     setSearchQuery('');
-    const target = stations.find(s => s.code === code);
+
+    // If target station belongs to another scope, automatically switch to appropriate scope
+    let target = stations.find(s => s.code === code);
+    if (!target) {
+      const panStns = getStationsForScope('pan_india');
+      const metroStns = getStationsForScope('mumbai_metro');
+      const subStns = getStationsForScope('mumbai_suburban');
+      if (panStns.some(s => s.code === code)) {
+        setScope('pan_india');
+        target = panStns.find(s => s.code === code);
+      } else if (metroStns.some(s => s.code === code)) {
+        setScope('mumbai_metro');
+        target = metroStns.find(s => s.code === code);
+      } else if (subStns.some(s => s.code === code)) {
+        setScope('mumbai_suburban');
+        target = subStns.find(s => s.code === code);
+      }
+    }
+
     if (target) {
       const p = projectCoords(target.x, target.y, target.z || 10);
-      setPan({ x: Math.round(500 - p.px), y: Math.round(450 - p.py) });
-      setZoom(1.4);
+      setPan({ x: Math.round(500 - p.px * 1.3), y: Math.round(450 - p.py * 1.3) });
+      setZoom(1.3);
     }
   };
 
@@ -243,7 +270,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     const marker = trainMarkers.find(m => m.trainNumber === tNum);
     if (marker) {
       const p = projectCoords(marker.position.x, marker.position.y, (marker.position.z || 10) + 5);
-      setPan({ x: Math.round(500 - p.px), y: Math.round(450 - p.py) });
+      setPan({ x: Math.round(500 - p.px * 1.3), y: Math.round(450 - p.py * 1.3) });
       setZoom(1.3);
     }
   };
@@ -260,61 +287,72 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     <div className="space-y-6">
       
       {/* Header & Controls Toolbar */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+              <span className="p-2.5 rounded-2xl bg-theme-light text-theme-primary border border-theme-border">
                 <Navigation className="w-5 h-5" />
               </span>
               <div>
                 <h1 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  Live Rail Network Map
-                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                    2D / 3D Isometric
+                  {language === 'hi' ? 'लाइव रेल नेटवर्क मैप' : language === 'mr' ? 'थेट रेल्वे नेटवर्क नकाशा' : 'Live Rail & Transit Network Map'}
+                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-theme-light text-theme-text border border-theme-border">
+                    {scope === 'mumbai_metro' ? 'Mumbai Metro' : scope === 'pan_india' ? 'Pan-India Trunk' : 'Mumbai Suburban'}
                   </span>
                 </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Interactive Indian Railways & Mumbai Suburban topology with multi-train track delays and disruption reasons.
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Interactive track geometry, station waypoints, interchange nodes & verified delay intelligence.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Quick Scope & Projection Mode Switchers */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Scope Toggle: Suburban vs Pan-India */}
-            <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          {/* Primary Scope Switcher Tabs */}
+          <div className="flex flex-wrap items-center gap-2">
+            
+            {/* Network Scope Selector */}
+            <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold">
               <button
                 onClick={() => handleScopeChange('mumbai_suburban')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl transition-all ${
                   scope === 'mumbai_suburban'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-xs'
+                    ? 'bg-theme-primary text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
-                Mumbai Suburban (All Locals)
+                Mumbai Suburban
+              </button>
+              <button
+                onClick={() => handleScopeChange('mumbai_metro')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                  scope === 'mumbai_metro'
+                    ? 'bg-theme-primary text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                Mumbai Metro
               </button>
               <button
                 onClick={() => handleScopeChange('pan_india')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl transition-all ${
                   scope === 'pan_india'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-xs'
+                    ? 'bg-theme-primary text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
-                Pan-India Trunk Lines
+                Pan-India Trunk
               </button>
             </div>
 
             {/* 2D vs 3D Projection Toggle */}
-            <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold">
               <button
                 onClick={() => setRenderMode('2d')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl transition-all ${
                   renderMode === '2d'
-                    ? 'bg-blue-600 text-white shadow-xs'
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
@@ -322,7 +360,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               </button>
               <button
                 onClick={() => setRenderMode('3d')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                   renderMode === '3d'
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -334,10 +372,10 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
             </div>
 
             {/* Delay Severity Filter */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 text-xs">
+            <div className="hidden sm:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 text-xs">
               <button
                 onClick={() => setDelayFilter('all')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                className={`px-2.5 py-1 rounded-xl font-bold transition-all ${
                   delayFilter === 'all' 
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' 
                     : 'text-slate-500 hover:text-slate-900'
@@ -347,7 +385,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               </button>
               <button
                 onClick={() => setDelayFilter('disrupted')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                className={`px-2.5 py-1 rounded-xl font-bold transition-all flex items-center gap-1 ${
                   delayFilter === 'disrupted' 
                     ? 'bg-red-500 text-white shadow-xs' 
                     : 'text-red-500 hover:text-red-600'
@@ -358,14 +396,14 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               </button>
               <button
                 onClick={() => setDelayFilter('ontime')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                className={`px-2.5 py-1 rounded-xl font-bold transition-all flex items-center gap-1 ${
                   delayFilter === 'ontime' 
                     ? 'bg-emerald-600 text-white shadow-xs' 
                     : 'text-emerald-600 hover:text-emerald-700'
                 }`}
               >
                 <CheckCircle2 className="w-3 h-3" />
-                Punctual (≤5m)
+                Punctual
               </button>
             </div>
           </div>
@@ -378,7 +416,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
           {scope === 'mumbai_suburban' ? (
             <div className="flex flex-wrap items-center gap-1.5 text-xs">
               <span className="font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
-                <Compass className="w-3.5 h-3.5" /> Line:
+                <Compass className="w-3.5 h-3.5" /> Line Filter:
               </span>
               {[
                 { id: 'all', label: 'All Suburban Lines' },
@@ -386,20 +424,29 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                 { id: 'central', label: 'Central Main' },
                 { id: 'harbour', label: 'Harbour Line' },
                 { id: 'transharbour', label: 'Trans-Harbour' },
-                { id: 'uran', label: 'Uran Line' }
+                { id: 'uran', label: 'Uran Line' },
+                { id: 'metro', label: 'Metro Link' }
               ].map(btn => (
                 <button
                   key={btn.id}
                   onClick={() => setSuburbanLineFilter(btn.id)}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                  className={`px-2.5 py-1 rounded-xl font-semibold transition-all ${
                     suburbanLineFilter === btn.id
-                      ? 'bg-blue-600 text-white shadow-xs'
+                      ? 'bg-theme-primary text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
                   }`}
                 >
                   {btn.label}
                 </button>
               ))}
+            </div>
+          ) : scope === 'mumbai_metro' ? (
+            <div className="text-xs text-slate-600 dark:text-slate-300 font-medium flex items-center gap-2">
+              <span className="font-bold flex items-center gap-1"><Compass className="w-3.5 h-3.5" /> Lines:</span>
+              <span className="px-2 py-0.5 rounded-lg bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 font-bold">Line 1 (Blue)</span>
+              <span className="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold">Line 2A (Yellow)</span>
+              <span className="px-2 py-0.5 rounded-lg bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 font-bold">Line 7 (Red)</span>
+              <span className="px-2 py-0.5 rounded-lg bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 font-bold">Line 3 (Aqua)</span>
             </div>
           ) : (
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
@@ -417,7 +464,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                 placeholder="Search stations, trains, or line..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-8 py-2 text-xs rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-theme-primary"
               />
               {searchQuery && (
                 <button 
@@ -431,22 +478,22 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
 
             {/* Autocomplete Dropdown */}
             {searchResults && (searchResults.stations.length > 0 || searchResults.trains.length > 0) && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 max-h-64 overflow-y-auto p-1.5 space-y-1">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-30 max-h-64 overflow-y-auto p-2 space-y-1">
                 {searchResults.stations.length > 0 && (
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5 block">
                       Stations ({searchResults.stations.length})
                     </span>
-                    {searchResults.stations.slice(0, 6).map(st => (
+                    {searchResults.stations.slice(0, 8).map(st => (
                       <div
                         key={st.id}
                         onClick={() => handleFocusStation(st.code)}
-                        className="px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer flex items-center justify-between transition-colors"
+                        className="px-2.5 py-1.5 rounded-xl text-xs hover:bg-theme-light cursor-pointer flex items-center justify-between transition-colors"
                       >
                         <span className="font-bold text-slate-800 dark:text-slate-200">
-                          {st.name} <span className="font-mono text-blue-600 dark:text-blue-400">({st.code})</span>
+                          {st.name} <span className="font-mono text-theme-primary">({st.code})</span>
                         </span>
-                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                        <span className="text-[10px] font-semibold text-slate-500 uppercase">
                           {st.line}
                         </span>
                       </div>
@@ -463,12 +510,12 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                       <div
                         key={t.trainNumber}
                         onClick={() => handleFocusTrain(t.trainNumber)}
-                        className="px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer flex items-center justify-between transition-colors"
+                        className="px-2.5 py-1.5 rounded-xl text-xs hover:bg-theme-light cursor-pointer flex items-center justify-between transition-colors"
                       >
                         <span className="font-bold text-slate-800 dark:text-slate-200">
                           {t.trainNumber} • {t.trainName}
                         </span>
-                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                        <span className="text-[10px] font-semibold text-slate-500">
                           {t.originStation} ➔ {t.destinationStation}
                         </span>
                       </div>
@@ -482,7 +529,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
 
         {/* Network Metrics Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-          <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
               Average Network Track Delay
             </span>
@@ -491,7 +538,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
             </span>
           </div>
 
-          <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
               Critical Congestion Bottlenecks
             </span>
@@ -500,22 +547,22 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
             </span>
           </div>
 
-          <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
               Active Network Trains Monitored
             </span>
-            <span className="text-base font-extrabold text-blue-600 dark:text-blue-400">
+            <span className="text-base font-extrabold text-theme-primary">
               {networkStats.totalPassingTrains} Services
             </span>
           </div>
 
-          <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
               Data Verification Provenance
             </span>
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mt-0.5">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
-              [SIMULATED DATASET]
+              [TIMETABLE SCHEDULE & STATUS]
             </span>
           </div>
         </div>
@@ -525,19 +572,19 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Interactive SVG Canvas (8 cols on lg) */}
-        <div className="lg:col-span-8 bg-slate-950 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative select-none">
+        <div className="lg:col-span-8 bg-[#090d16] rounded-3xl border border-slate-800 shadow-2xl overflow-hidden relative select-none">
           
           {/* Canvas Floating Overlay Controls */}
-          <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-            <div className="px-3 py-1.5 rounded-xl bg-slate-900/90 text-white backdrop-blur border border-slate-700/80 text-xs font-bold flex items-center gap-2 shadow-lg">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {scope === 'mumbai_suburban' ? 'Mumbai Suburban (WR / CR / HR / Trans-Harbour / Uran)' : 'Pan-India Golden & Trunk Corridors'}
+          <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
+            <div className="px-3.5 py-1.5 rounded-2xl bg-slate-900/90 text-white backdrop-blur border border-slate-700/80 text-xs font-bold flex items-center gap-2 shadow-lg">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              {scope === 'mumbai_suburban' ? 'Mumbai Suburban (WR / CR / HR / Trans-Harbour / Uran)' : scope === 'mumbai_metro' ? 'Mumbai Metro Transit System' : 'Pan-India Golden & Trunk Corridors'}
               <span className="text-[10px] text-slate-400 uppercase font-mono">
                 [{renderMode.toUpperCase()}]
               </span>
             </div>
             {selectedTrainNumber && (
-              <div className="px-3 py-1.5 rounded-xl bg-blue-600/90 text-white backdrop-blur text-xs font-bold flex items-center gap-1.5 shadow-lg animate-pulse">
+              <div className="px-3 py-1.5 rounded-2xl bg-theme-primary text-white backdrop-blur text-xs font-bold flex items-center gap-1.5 shadow-lg animate-pulse">
                 <Zap className="w-3.5 h-3.5" />
                 Train #{selectedTrainNumber} Route Highlighted
               </div>
@@ -545,10 +592,10 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
           </div>
 
           {/* Zoom & View Controls */}
-          <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 bg-slate-900/90 p-1.5 rounded-xl backdrop-blur border border-slate-700/80 shadow-lg">
+          <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl backdrop-blur border border-slate-700/80 shadow-lg">
             <button
               onClick={handleZoomIn}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
               title="Zoom In"
               aria-label="Zoom In"
             >
@@ -556,7 +603,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
             </button>
             <button
               onClick={handleZoomOut}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
               title="Zoom Out"
               aria-label="Zoom Out"
             >
@@ -564,7 +611,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
             </button>
             <button
               onClick={handleResetView}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
               title="Reset Map View"
               aria-label="Reset Map View"
             >
@@ -574,8 +621,8 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
 
           {/* 3D Tilt sliders if in 3D Mode */}
           {renderMode === '3d' && (
-            <div className="absolute bottom-4 left-4 z-10 flex items-center gap-3 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/80 text-[11px] text-slate-300 backdrop-blur">
-              <span className="font-bold flex items-center gap-1 text-blue-300">
+            <div className="absolute bottom-4 left-4 z-10 flex items-center gap-3 bg-slate-900/90 px-3.5 py-2 rounded-2xl border border-slate-700/80 text-[11px] text-slate-300 backdrop-blur shadow-lg">
+              <span className="font-bold flex items-center gap-1 text-theme-primary">
                 <Layers className="w-3.5 h-3.5" /> 3D Pitch:
               </span>
               <input 
@@ -584,41 +631,100 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                 max="60" 
                 value={pitch} 
                 onChange={(e) => setPitch(Number(e.target.value))}
-                className="w-20 accent-blue-500 cursor-pointer"
+                className="w-20 accent-theme-primary cursor-pointer"
                 title="Adjust 3D Pitch"
               />
-              <span className="font-bold text-blue-300 ml-1">Rot:</span>
+              <span className="font-bold text-theme-primary ml-1">Rot:</span>
               <input 
                 type="range" 
                 min="-45" 
                 max="45" 
                 value={rotation} 
                 onChange={(e) => setRotation(Number(e.target.value))}
-                className="w-20 accent-blue-500 cursor-pointer"
+                className="w-20 accent-theme-primary cursor-pointer"
                 title="Adjust 3D Rotation"
               />
             </div>
           )}
 
           {/* Legend */}
-          <div className="absolute bottom-4 right-4 z-10 hidden sm:flex items-center gap-3 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/80 text-[11px] text-slate-300 backdrop-blur">
-            <span className="flex items-center gap-1">
+          <div className="absolute bottom-4 right-4 z-10 hidden sm:flex items-center gap-3 bg-slate-900/90 px-3.5 py-2 rounded-2xl border border-slate-700/80 text-[11px] text-slate-300 backdrop-blur shadow-lg">
+            <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-              On-time (≤5m)
+              On-time
             </span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
               6-15m
             </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
-              16-30m
-            </span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
-              Critical (&gt;30m)
+              Delayed &gt;15m
             </span>
           </div>
+
+          {/* Floating On-Canvas Station Quick Inspector Card */}
+          {activeStation && (
+            <div className="absolute top-16 left-4 z-20 max-w-sm bg-slate-900/95 text-white p-4 rounded-3xl border border-slate-700/90 shadow-2xl backdrop-blur-md animate-in fade-in duration-200">
+              <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-theme-primary text-white">
+                      {activeStation.code}
+                    </span>
+                    <h3 className="font-extrabold text-sm text-white">
+                      {activeStation.name}
+                    </h3>
+                  </div>
+                  {activeStation.hindiName && (
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {activeStation.hindiName} • {activeStation.city} {activeStation.zone ? `(${activeStation.zone})` : ''}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedStationCode(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="py-2.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-slate-300">
+                  <span>Platforms:</span>
+                  <span className="font-bold text-white">{activeStation.platforms.join(', ')}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-300">
+                  <span>Transit Type:</span>
+                  <span className="font-bold text-emerald-400">
+                    {activeStation.isInterchange ? 'Major Interchange Hub' : activeStation.isMajorHub ? 'Zonal Terminal' : 'Operational Halt'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
+                {onPlanRouteFromStation && (
+                  <button
+                    onClick={() => onPlanRouteFromStation(activeStation.code)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-theme-primary hover-bg-theme-primary text-white font-bold text-xs shadow-xs transition-colors"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Plan From Here</span>
+                  </button>
+                )}
+                {onOpenGodsEye && (
+                  <button
+                    onClick={() => onOpenGodsEye(activeStation.code)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-blue-400" />
+                    <span>3D View</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* SVG Map Canvas */}
           <div 
@@ -641,12 +747,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                 transformOrigin: '50% 50%'
               }}
             >
-              {/* Background Ambient Grid */}
               <defs>
-                <pattern id="railGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-                </pattern>
-                
                 {/* Glow Filter for Active Trains & Bottlenecks */}
                 <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
                   <feGaussianBlur stdDeviation="4" result="blur" />
@@ -654,7 +755,8 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                 </filter>
               </defs>
 
-              <rect width="1000" height="950" fill="url(#railGrid)" />
+              {/* Clean Transit Canvas Background (Zero noisy dots) */}
+              <rect width="1000" height="950" fill="#090d16" />
 
               {/* 1. Track Lines Layer */}
               <g className="tracks-layer">
@@ -664,7 +766,8 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
 
                   const isSelected = selectedSegmentId === seg.id;
                   const isTraversedByActiveTrain = activeTrainSegments.has(seg.id);
-                  const delayColor = isTraversedByActiveTrain ? '#38bdf8' : getDelayColor(seg.averageDelayMinutes);
+                  const isMetro = seg.line === 'metro';
+                  const delayColor = isTraversedByActiveTrain ? '#38bdf8' : isMetro ? '#06b6d4' : getDelayColor(seg.averageDelayMinutes);
                   const midX = (p1.px + p2.px) / 2;
                   const midY = (p1.py + p2.py) / 2;
 
@@ -672,7 +775,8 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                     <g 
                       key={seg.id} 
                       className="cursor-pointer group"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setSelectedSegmentId(seg.id);
                         setSelectedStationCode(null);
                         setSelectedTrainNumber(null);
@@ -686,7 +790,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                           x2={p2.px}
                           y2={p2.py}
                           stroke={delayColor}
-                          strokeWidth={isSelected || isTraversedByActiveTrain ? 10 : 8}
+                          strokeWidth={isSelected || isTraversedByActiveTrain ? 9 : 7}
                           strokeOpacity={isTraversedByActiveTrain ? 0.6 : 0.35}
                           strokeLinecap="round"
                           filter={isTraversedByActiveTrain ? 'url(#glow)' : undefined}
@@ -700,36 +804,37 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                         x2={p2.px}
                         y2={p2.py}
                         stroke={delayColor}
-                        strokeWidth={isSelected || isTraversedByActiveTrain ? 5 : 3.5}
-                        strokeDasharray={seg.trackType === 'quad_fast_slow' ? 'none' : '6,3'}
+                        strokeWidth={isSelected || isTraversedByActiveTrain ? 5 : isMetro ? 4 : 3.5}
+                        strokeDasharray={isMetro ? '4,2' : seg.trackType === 'quad_fast_slow' ? 'none' : '6,3'}
                         strokeLinecap="round"
                         className="transition-all duration-200 group-hover:stroke-width-6"
                       />
 
-                      {/* Average Delay Badge on Midpoint of Track */}
-                      <g transform={`translate(${midX}, ${midY})`}>
-                        <rect
-                          x={-24}
-                          y={-10}
-                          width={48}
-                          height={20}
-                          rx={10}
-                          fill="#0f172a"
-                          stroke={delayColor}
-                          strokeWidth={isTraversedByActiveTrain ? 2.5 : 1.5}
-                          className="shadow-sm"
-                        />
-                        <text
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          fill={delayColor}
-                          fontSize={9}
-                          fontWeight="bold"
-                          fontFamily="sans-serif"
-                        >
-                          +{seg.averageDelayMinutes}m
-                        </text>
-                      </g>
+                      {/* Average Delay Badge on Midpoint of Track (Only show when delayed > 0) */}
+                      {seg.averageDelayMinutes > 0 && (
+                        <g transform={`translate(${midX}, ${midY})`}>
+                          <rect
+                            x={-20}
+                            y={-9}
+                            width={40}
+                            height={18}
+                            rx={9}
+                            fill="#0b0f19"
+                            stroke={delayColor}
+                            strokeWidth={isTraversedByActiveTrain ? 2 : 1.5}
+                          />
+                          <text
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fill={delayColor}
+                            fontSize={8.5}
+                            fontWeight="bold"
+                            fontFamily="sans-serif"
+                          >
+                            +{seg.averageDelayMinutes}m
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })}
@@ -740,52 +845,93 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                 {stations.map(st => {
                   const p = projectCoords(st.x, st.y, st.z || 10);
                   const isSelected = selectedStationCode === st.code;
-                  const isMatchingFilter = suburbanLineFilter === 'all' || st.line === suburbanLineFilter;
+                  const isMetro = st.line === 'metro';
+                  const isMatchingFilter = suburbanLineFilter === 'all' || 
+                    (suburbanLineFilter === 'metro' ? isMetro : st.line === suburbanLineFilter);
+
+                  // Collision detection and progressive label visibility based on zoom:
+                  // At zoom 1.0, show Major Hubs and Interchanges prominently with zero overlapping.
+                  // At zoom >= 1.25, show all local stations.
+                  const shouldShowLabel = isSelected || st.isMajorHub || st.isInterchange || zoom >= 1.25 || stations.length < 35;
 
                   return (
                     <g 
                       key={st.id} 
-                      className={`cursor-pointer group ${!isMatchingFilter ? 'opacity-30' : 'opacity-100'}`}
-                      onClick={() => handleFocusStation(st.code)}
+                      className={`cursor-pointer group ${!isMatchingFilter ? 'opacity-25' : 'opacity-100'}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFocusStation(st.code);
+                      }}
                     >
-                      {/* Outer pulse if major hub or selected */}
-                      {(st.isMajorHub || isSelected) && (
-                        <circle
-                          cx={p.px}
-                          cy={p.py}
-                          r={isSelected ? 12 : 9}
-                          fill="none"
-                          stroke={isSelected ? '#60a5fa' : '#38bdf8'}
-                          strokeWidth={1.5}
-                          strokeOpacity={0.6}
-                          className="animate-ping"
-                          style={{ animationDuration: '3s' }}
-                        />
-                      )}
-
-                      {/* Core Station Dot */}
+                      {/* Generous Invisible Hit Target Area (r=22) so clicking stations is effortless */}
                       <circle
                         cx={p.px}
                         cy={p.py}
-                        r={st.isMajorHub ? 6.5 : 4.5}
-                        fill={isSelected ? '#3b82f6' : st.isMajorHub ? '#f8fafc' : '#94a3b8'}
-                        stroke="#0f172a"
-                        strokeWidth={2}
-                        className="transition-transform duration-150 group-hover:scale-125"
+                        r={22}
+                        fill="transparent"
+                        className="cursor-pointer"
                       />
 
-                      {/* Station Code Label */}
-                      <text
-                        x={p.px}
-                        y={p.py - 10}
-                        textAnchor="middle"
-                        fill="#f8fafc"
-                        fontSize={st.isMajorHub ? 11 : 9.5}
-                        fontWeight={st.isMajorHub ? 'bold' : 'normal'}
-                        className="pointer-events-none select-none drop-shadow-sm font-sans"
-                      >
-                        {st.name.split(' ')[0]} ({st.code})
-                      </text>
+                      {/* Outer Pulse Beacon for selected station or major hub */}
+                      {(isSelected || st.isMajorHub) && (
+                        <circle
+                          cx={p.px}
+                          cy={p.py}
+                          r={isSelected ? 16 : 10}
+                          fill="none"
+                          stroke={isSelected ? '#38bdf8' : isMetro ? '#06b6d4' : '#60a5fa'}
+                          strokeWidth={isSelected ? 2.5 : 1.5}
+                          strokeOpacity={isSelected ? 0.9 : 0.4}
+                          className={isSelected ? 'animate-ping' : undefined}
+                          style={isSelected ? { animationDuration: '2s' } : undefined}
+                        />
+                      )}
+
+                      {/* Core Station Shape */}
+                      {st.isInterchange ? (
+                        /* Interchange Transit Diamond */
+                        <rect
+                          x={p.px - (isSelected ? 7 : 5.5)}
+                          y={p.py - (isSelected ? 7 : 5.5)}
+                          width={isSelected ? 14 : 11}
+                          height={isSelected ? 14 : 11}
+                          rx={3}
+                          transform={`rotate(45 ${p.px} ${p.py})`}
+                          fill={isSelected ? '#3b82f6' : isMetro ? '#06b6d4' : '#f8fafc'}
+                          stroke="#020617"
+                          strokeWidth={2}
+                          className="transition-transform duration-150 group-hover:scale-125"
+                        />
+                      ) : (
+                        /* Standard Station Circle */
+                        <circle
+                          cx={p.px}
+                          cy={p.py}
+                          r={isSelected ? 7.5 : st.isMajorHub ? 6 : isMetro ? 5 : 4}
+                          fill={isSelected ? '#3b82f6' : isMetro ? '#06b6d4' : st.isMajorHub ? '#f8fafc' : '#94a3b8'}
+                          stroke="#020617"
+                          strokeWidth={1.75}
+                          className="transition-transform duration-150 group-hover:scale-125"
+                        />
+                      )}
+
+                      {/* Station Text Label with Anti-Distortion Crisp Dark Halo */}
+                      {shouldShowLabel && (
+                        <text
+                          x={p.px}
+                          y={p.py - 11}
+                          textAnchor="middle"
+                          fill="#f8fafc"
+                          stroke="#020617"
+                          strokeWidth="3.5"
+                          paintOrder="stroke fill"
+                          fontSize={isSelected || st.isMajorHub ? 11 : 9.5}
+                          fontWeight={isSelected || st.isMajorHub ? 'bold' : '600'}
+                          className="select-none font-sans drop-shadow-sm cursor-pointer"
+                        >
+                          {st.name.split(' ')[0]} ({st.code})
+                        </text>
+                      )}
                     </g>
                   );
                 })}
@@ -803,7 +949,10 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                       key={tm.trainNumber}
                       transform={`translate(${p.px}, ${p.py})`}
                       className="cursor-pointer group"
-                      onClick={() => handleFocusTrain(tm.trainNumber)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFocusTrain(tm.trainNumber);
+                      }}
                     >
                       {/* Train Marker Body */}
                       <circle
@@ -852,11 +1001,100 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
         {/* Sidebar Inspector Panel (4 cols on lg) */}
         <div className="lg:col-span-4 space-y-4">
           
+          {/* Station Details Card */}
+          {activeStation && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4" />
+                  Station Waypoint Details
+                </span>
+                <button
+                  onClick={() => setSelectedStationCode(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                  {activeStation.name}
+                </h3>
+                {activeStation.hindiName && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    {activeStation.hindiName} {activeStation.marathiName ? `• ${activeStation.marathiName}` : ''}
+                  </p>
+                )}
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Code: <code className="font-mono font-bold text-slate-800 dark:text-slate-200">{activeStation.code}</code> • Platforms: {activeStation.platforms.join(', ')} • {activeStation.city} {activeStation.zone ? `(${activeStation.zone})` : ''}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-3.5">
+                  {onPlanRouteFromStation && (
+                    <button
+                      onClick={() => onPlanRouteFromStation(activeStation.code)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-theme-primary text-white font-bold text-xs shadow-xs hover-bg-theme-primary transition-colors"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>Plan Journey From {activeStation.name}</span>
+                    </button>
+                  )}
+                  {onOpenGodsEye && (
+                    <button
+                      onClick={() => onOpenGodsEye(activeStation.code)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-theme-primary" />
+                      <span>3D Station Layout</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Trains Calling At This Station */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  Scheduled Services Calling ({activeStation.passingTrainCount || 0}):
+                </h4>
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {ALL_NETWORK_TRAINS.filter(t => t.stops.some(s => s.stationCode === activeStation.code)).length > 0 ? (
+                    ALL_NETWORK_TRAINS.filter(t => t.stops.some(s => s.stationCode === activeStation.code)).map(t => {
+                      const stop = t.stops.find(s => s.stationCode === activeStation.code);
+                      return (
+                        <div 
+                          key={t.trainNumber}
+                          onClick={() => handleFocusTrain(t.trainNumber)}
+                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-theme-light cursor-pointer border border-slate-100 dark:border-slate-800 text-xs transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 dark:text-slate-200">
+                              {t.trainNumber} • {t.trainName}
+                            </span>
+                            <span className="font-mono text-theme-primary font-bold">
+                              {stop?.scheduledArrival || stop?.scheduledDeparture}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            {t.originStation} ➔ {t.destinationStation} (Platform {stop?.platform || '1'})
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl text-xs text-slate-500">
+                      Regular trunk and express passenger services operate daily on scheduled railway timetables.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Track Segment Inspection Card */}
           {activeSegment && !activeStation && !activeTrain && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
                   <Activity className="w-4 h-4" />
                   Track Corridor Details
                 </span>
@@ -877,15 +1115,14 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                   <span>{activeSegment.toName}</span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Section Code: <code className="font-mono text-slate-700 dark:text-slate-300 font-bold">{activeSegment.id}</code> • {activeSegment.distanceKm} km • Max {activeSegment.speedLimitKmh} km/h
+                  Section Code: <code className="font-mono text-slate-700 dark:text-slate-300 font-bold">{activeSegment.id}</code> • {activeSegment.distanceKm} km
                 </p>
               </div>
 
-              {/* Prominent Average Delay Display */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                    Average Section Delay (All Trains):
+                    Average Section Delay:
                   </span>
                   <span className={`text-2xl font-black ${
                     activeSegment.averageDelayMinutes >= 15 ? 'text-red-500' :
@@ -895,147 +1132,25 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                     +{activeSegment.averageDelayMinutes} mins
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  <span>Max Observed Delay on Track:</span>
-                  <span className="font-bold">+{activeSegment.maxDelayMinutes} mins</span>
-                </div>
               </div>
 
-              {/* Operational Disruption Reason */}
-              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs">
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs">
                 <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 mb-1">
                   <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  Operational Disruption Reason:
+                  Disruption Status:
                 </span>
                 <p className="text-amber-900 dark:text-amber-200 font-medium leading-relaxed">
                   {activeSegment.disruptionReason || 'Punctual transit flow: Automated track circuits operating with standard headway.'}
                 </p>
               </div>
-
-              {/* All Trains Running Through This Track */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Trains Traversing This Track ({activeSegment.trainsPassing.length}):
-                </h4>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {activeSegment.trainsPassing.map(tNum => {
-                    const trainInfo = ALL_NETWORK_TRAINS.find(t => t.trainNumber === tNum);
-                    const trainDelay = activeSegment.trainDelays[tNum] || 0;
-                    return (
-                      <div
-                        key={tNum}
-                        onClick={() => handleFocusTrain(tNum)}
-                        className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer transition-colors border border-slate-100 dark:border-slate-800"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Train className="w-3.5 h-3.5 text-blue-500" />
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                            {tNum} {trainInfo?.trainName.split(' ')[0]}
-                          </span>
-                        </div>
-                        <span className={`text-xs font-black px-2 py-0.5 rounded ${
-                          trainDelay >= 15 ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
-                          trainDelay >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
-                          'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                        }`}>
-                          +{trainDelay}m
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           )}
 
-          {/* Station Details Card */}
-          {activeStation && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4" />
-                  Station Hub Details
-                </span>
-                <button
-                  onClick={() => setSelectedStationCode(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
-                  {activeStation.name}
-                </h3>
-                {activeStation.hindiName && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    {activeStation.hindiName} • {activeStation.marathiName}
-                  </p>
-                )}
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Station Code: <code className="font-mono font-bold text-slate-700 dark:text-slate-300">{activeStation.code}</code> • Platforms: {activeStation.platforms.join(', ')} • {activeStation.city}
-                </p>
-                <div className="flex flex-wrap items-center gap-2 mt-3">
-                  {onPlanRouteFromStation && (
-                    <button
-                      onClick={() => onPlanRouteFromStation(activeStation.code)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors"
-                    >
-                      <ArrowRight className="w-3.5 h-3.5" />
-                      <span>Plan Journey From {activeStation.name}</span>
-                    </button>
-                  )}
-                  {onOpenGodsEye && (
-                    <button
-                      onClick={() => onOpenGodsEye(activeStation.code)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-xs shadow-xs transition-colors border border-slate-700"
-                    >
-                      <Eye className="w-3.5 h-3.5 text-blue-400" />
-                      <span>3D God's Eye Station View</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Trains Calling At This Station */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Trains Calling or Passing ({activeStation.passingTrainCount || 0} scheduled services):
-                </h4>
-                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                  {ALL_NETWORK_TRAINS.filter(t => t.stops.some(s => s.stationCode === activeStation.code)).map(t => {
-                    const stop = t.stops.find(s => s.stationCode === activeStation.code);
-                    return (
-                      <div 
-                        key={t.trainNumber}
-                        onClick={() => handleFocusTrain(t.trainNumber)}
-                        className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer border border-slate-100 dark:border-slate-800 text-xs transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-800 dark:text-slate-200">
-                            {t.trainNumber} • {t.trainName}
-                          </span>
-                          <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">
-                            {stop?.scheduledArrival || stop?.scheduledDeparture}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {t.originStation} ➔ {t.destinationStation} (Platform {stop?.platform || 'TBD'})
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Train Details Card with Track Corridors Traversed */}
+          {/* Train Details Card */}
           {activeTrain && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
                   <Train className="w-4 h-4" />
                   Train Service Overview
                 </span>
@@ -1055,82 +1170,30 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                   Type: <span className="font-bold uppercase">{activeTrain.serviceType.replace('_', ' ')}</span> • {activeTrain.originStation} ➔ {activeTrain.destinationStation}
                 </p>
               </div>
+            </div>
+          )}
 
-              {/* Traversed Track Corridors & Average Delays */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-blue-500" />
-                  Traversed Track Corridors & Average Delays:
-                </h4>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {allSegments.filter(s => s.trainsPassing.includes(activeTrain.trainNumber)).map(seg => (
-                    <div 
-                      key={seg.id}
-                      onClick={() => {
-                        setSelectedSegmentId(seg.id);
-                        setSelectedTrainNumber(null);
-                      }}
-                      className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer border border-slate-100 dark:border-slate-800 text-xs transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
-                          {seg.fromName} ➔ {seg.toName}
-                        </span>
-                        <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[11px] ${
-                          seg.averageDelayMinutes >= 15 ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
-                          seg.averageDelayMinutes >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
-                          'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                        }`}>
-                          +{seg.averageDelayMinutes}m avg
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                        {seg.disruptionReason}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Halts breakdown */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Route Halts ({activeTrain.stops.length} stations):
-                </h4>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                  {activeTrain.stops.map((st, idx) => (
-                    <div 
-                      key={idx}
-                      className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-xs font-medium border border-slate-100 dark:border-slate-800"
-                    >
-                      <span className="text-slate-700 dark:text-slate-300">
-                        {st.stationName} ({st.stationCode})
-                      </span>
-                      <span className="font-mono font-bold text-slate-500 dark:text-slate-400">
-                        {st.scheduledArrival === st.scheduledDeparture ? st.scheduledArrival : `${st.scheduledArrival} - ${st.scheduledDeparture}`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+          {/* Fallback default helper card when nothing is selected */}
+          {!activeStation && !activeSegment && !activeTrain && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Info className="w-4 h-4 text-theme-primary" />
+                Interactive Map Guide
+              </span>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Click any station node or track corridor to inspect scheduled platforms, calling trains, transfer FOB walkways, and live delay telemetry.
+              </p>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 space-y-1">
+                <div>• <strong>Pan & Zoom:</strong> Drag to pan, use + / - buttons to zoom.</div>
+                <div>• <strong>Quick Search:</strong> Type any station code (e.g. NGP, R, DR, KYN) or train number above.</div>
+                <div>• <strong>Transit Modes:</strong> Switch between Suburban, Metro, and Pan-India views.</div>
               </div>
             </div>
           )}
 
-          {/* Quick Help & Instructions */}
-          <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-xs space-y-2">
-            <span className="font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
-              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              How to Navigate the Map:
-            </span>
-            <ul className="list-disc list-inside text-blue-800 dark:text-blue-300 space-y-1">
-              <li>Click any <strong>Track Segment</strong> to inspect all passing trains, average delay, and operational disruption reason.</li>
-              <li>Click any <strong>Station Node</strong> to see scheduled arrivals and departures.</li>
-              <li>Search or click any <strong>Train</strong> to illuminate its entire physical route across India or Mumbai Suburban.</li>
-              <li>Toggle between <strong>2D Schematic</strong> and <strong>3D Isometric Perspective</strong> with adjustable pitch and rotation.</li>
-            </ul>
-          </div>
         </div>
       </div>
+
     </div>
   );
 };

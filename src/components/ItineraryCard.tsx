@@ -73,7 +73,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
       aria-label={`Journey via ${primaryLeg.train.trainName}`}
       className={`rounded-2xl border transition-all ${
         itinerary.isRecommended 
-          ? 'border-blue-500/80 bg-white dark:bg-slate-900 shadow-md ring-1 ring-blue-500/20' 
+          ? 'border-theme-primary bg-white dark:bg-slate-900 shadow-md ring-1 ring-theme-primary/20' 
           : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
       }`}
     >
@@ -84,12 +84,12 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
           <span>{itinerary.delayInversionNote}</span>
         </div>
       ) : itinerary.isRecommended ? (
-        <div className="bg-blue-50 dark:bg-blue-950/60 border-b border-blue-100 dark:border-blue-900 px-4 py-2 flex items-center justify-between text-xs text-blue-800 dark:text-blue-300 font-medium">
+        <div className="bg-theme-light border-b border-theme-border px-4 py-2 flex items-center justify-between text-xs text-theme-text font-medium">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400" />
+            <span className="w-2 h-2 rounded-full bg-theme-primary" />
             <span>Optimal Choice: {itinerary.rankReason}</span>
           </div>
-          <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+          <span className="text-[11px] font-bold text-theme-primary uppercase tracking-wide">
             Rank #1
           </span>
         </div>
@@ -224,7 +224,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
                   onClick={() => setSelectedClass(cls)}
                   className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-colors border ${
                     isSelected 
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
+                      ? 'bg-theme-primary text-white border-theme-primary shadow-xs' 
                       : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                   }`}
                 >
@@ -237,7 +237,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => onInspectTrain(primaryLeg.train.trainNumber)}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 font-medium"
+              className="text-xs text-theme-primary hover:underline px-2 py-1 font-semibold"
             >
               Live Running
             </button>
@@ -254,7 +254,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors min-h-[38px] ${
                 itinerary.eligibility.status === 'PROHIBITED'
                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-theme-primary hover-bg-theme-primary text-white'
               }`}
             >
               <Ticket className="w-3.5 h-3.5" />

@@ -1,192 +1,239 @@
 @import "tailwindcss";
 
 @layer base {
-  :root {
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --primary-light: #eff6ff;
-    --primary-border: #bfdbfe;
-    --primary-text: #1e40af;
-    --accent-glow: rgba(37, 99, 235, 0.25);
-  }
-
+  :root,
   .theme-ocean {
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --primary-light: #eff6ff;
-    --primary-border: #bfdbfe;
-    --primary-text: #1e40af;
-    --accent-glow: rgba(37, 99, 235, 0.25);
+    --theme-primary: #2563eb;
+    --theme-primary-hover: #1d4ed8;
+    --theme-primary-light: #eff6ff;
+    --theme-primary-border: #bfdbfe;
+    --theme-primary-text: #1e40af;
+    --theme-accent-glow: rgba(37, 99, 235, 0.25);
   }
 
   .theme-forest {
-    --primary: #059669;
-    --primary-hover: #047857;
-    --primary-light: #ecfdf5;
-    --primary-border: #a7f3d0;
-    --primary-text: #065f46;
-    --accent-glow: rgba(5, 150, 105, 0.25);
+    --theme-primary: #059669;
+    --theme-primary-hover: #047857;
+    --theme-primary-light: #ecfdf5;
+    --theme-primary-border: #a7f3d0;
+    --theme-primary-text: #065f46;
+    --theme-accent-glow: rgba(5, 150, 105, 0.25);
   }
 
   .theme-violet {
-    --primary: #7c3aed;
-    --primary-hover: #6d28d9;
-    --primary-light: #f5f3ff;
-    --primary-border: #ddd6fe;
-    --primary-text: #5b21b6;
-    --accent-glow: rgba(124, 58, 237, 0.25);
+    --theme-primary: #7c3aed;
+    --theme-primary-hover: #6d28d9;
+    --theme-primary-light: #f5f3ff;
+    --theme-primary-border: #ddd6fe;
+    --theme-primary-text: #5b21b6;
+    --theme-accent-glow: rgba(124, 58, 237, 0.25);
   }
 
   .theme-sunset {
-    --primary: #ea580c;
-    --primary-hover: #c2410c;
-    --primary-light: #fff7ed;
-    --primary-border: #fed7aa;
-    --primary-text: #9a3412;
-    --accent-glow: rgba(234, 88, 12, 0.25);
+    --theme-primary: #ea580c;
+    --theme-primary-hover: #c2410c;
+    --theme-primary-light: #fff7ed;
+    --theme-primary-border: #fed7aa;
+    --theme-primary-text: #9a3412;
+    --theme-accent-glow: rgba(234, 88, 12, 0.25);
   }
 
   .theme-cyber {
-    --primary: #0891b2;
-    --primary-hover: #0e7490;
-    --primary-light: #ecfeff;
-    --primary-border: #a5f3fc;
-    --primary-text: #155e75;
-    --accent-glow: rgba(8, 145, 178, 0.25);
+    --theme-primary: #0891b2;
+    --theme-primary-hover: #0e7490;
+    --theme-primary-light: #ecfeff;
+    --theme-primary-border: #a5f3fc;
+    --theme-primary-text: #155e75;
+    --theme-accent-glow: rgba(8, 145, 178, 0.25);
   }
 
   .theme-crimson {
-    --primary: #dc2626;
-    --primary-hover: #b91c1c;
-    --primary-light: #fef2f2;
-    --primary-border: #fecaca;
-    --primary-text: #991b1b;
-    --accent-glow: rgba(220, 38, 38, 0.25);
+    --theme-primary: #dc2626;
+    --theme-primary-hover: #b91c1c;
+    --theme-primary-light: #fef2f2;
+    --theme-primary-border: #fecaca;
+    --theme-primary-text: #991b1b;
+    --theme-accent-glow: rgba(220, 38, 38, 0.25);
   }
 
   .theme-gold {
-    --primary: #ca8a04;
-    --primary-hover: #a16207;
-    --primary-light: #fefce8;
-    --primary-border: #fef08a;
-    --primary-text: #854d0e;
-    --accent-glow: rgba(202, 138, 4, 0.25);
+    --theme-primary: #ca8a04;
+    --theme-primary-hover: #a16207;
+    --theme-primary-light: #fefce8;
+    --theme-primary-border: #fef08a;
+    --theme-primary-text: #854d0e;
+    --theme-accent-glow: rgba(202, 138, 4, 0.25);
   }
 
   .theme-contrast {
-    --primary: #0f172a;
-    --primary-hover: #000000;
-    --primary-light: #f8fafc;
-    --primary-border: #cbd5e1;
-    --primary-text: #020617;
-    --accent-glow: rgba(15, 23, 42, 0.35);
+    --theme-primary: #0f172a;
+    --theme-primary-hover: #000000;
+    --theme-primary-light: #f8fafc;
+    --theme-primary-border: #94a3b8;
+    --theme-primary-text: #020617;
+    --theme-accent-glow: rgba(15, 23, 42, 0.35);
   }
 
   /* Dark mode overrides */
-  .dark.theme-ocean {
-    --primary: #3b82f6;
-    --primary-hover: #60a5fa;
-    --primary-light: rgba(59, 130, 246, 0.15);
-    --primary-border: rgba(59, 130, 246, 0.3);
-    --primary-text: #93c5fd;
-    --accent-glow: rgba(59, 130, 246, 0.35);
+  .dark.theme-ocean,
+  .dark [data-theme="ocean"] {
+    --theme-primary: #3b82f6;
+    --theme-primary-hover: #60a5fa;
+    --theme-primary-light: rgba(59, 130, 246, 0.18);
+    --theme-primary-border: rgba(59, 130, 246, 0.35);
+    --theme-primary-text: #93c5fd;
+    --theme-accent-glow: rgba(59, 130, 246, 0.35);
   }
 
-  .dark.theme-forest {
-    --primary: #10b981;
-    --primary-hover: #34d399;
-    --primary-light: rgba(16, 185, 129, 0.15);
-    --primary-border: rgba(16, 185, 129, 0.3);
-    --primary-text: #6ee7b7;
-    --accent-glow: rgba(16, 185, 129, 0.35);
+  .dark.theme-forest,
+  .dark [data-theme="forest"] {
+    --theme-primary: #10b981;
+    --theme-primary-hover: #34d399;
+    --theme-primary-light: rgba(16, 185, 129, 0.18);
+    --theme-primary-border: rgba(16, 185, 129, 0.35);
+    --theme-primary-text: #6ee7b7;
+    --theme-accent-glow: rgba(16, 185, 129, 0.35);
   }
 
-  .dark.theme-violet {
-    --primary: #8b5cf6;
-    --primary-hover: #a78bfa;
-    --primary-light: rgba(139, 92, 246, 0.15);
-    --primary-border: rgba(139, 92, 246, 0.3);
-    --primary-text: #c4b5fd;
-    --accent-glow: rgba(139, 92, 246, 0.35);
+  .dark.theme-violet,
+  .dark [data-theme="violet"] {
+    --theme-primary: #8b5cf6;
+    --theme-primary-hover: #a78bfa;
+    --theme-primary-light: rgba(139, 92, 246, 0.18);
+    --theme-primary-border: rgba(139, 92, 246, 0.35);
+    --theme-primary-text: #c4b5fd;
+    --theme-accent-glow: rgba(139, 92, 246, 0.35);
   }
 
-  .dark.theme-sunset {
-    --primary: #f97316;
-    --primary-hover: #fb923c;
-    --primary-light: rgba(249, 115, 22, 0.15);
-    --primary-border: rgba(249, 115, 22, 0.3);
-    --primary-text: #fdba74;
-    --accent-glow: rgba(249, 115, 22, 0.35);
+  .dark.theme-sunset,
+  .dark [data-theme="sunset"] {
+    --theme-primary: #f97316;
+    --theme-primary-hover: #fb923c;
+    --theme-primary-light: rgba(249, 115, 22, 0.18);
+    --theme-primary-border: rgba(249, 115, 22, 0.35);
+    --theme-primary-text: #fdba74;
+    --theme-accent-glow: rgba(249, 115, 22, 0.35);
   }
 
-  .dark.theme-cyber {
-    --primary: #06b6d4;
-    --primary-hover: #22d3ee;
-    --primary-light: rgba(6, 182, 212, 0.15);
-    --primary-border: rgba(6, 182, 212, 0.3);
-    --primary-text: #67e8f9;
-    --accent-glow: rgba(6, 182, 212, 0.35);
+  .dark.theme-cyber,
+  .dark [data-theme="cyber"] {
+    --theme-primary: #06b6d4;
+    --theme-primary-hover: #22d3ee;
+    --theme-primary-light: rgba(6, 182, 212, 0.18);
+    --theme-primary-border: rgba(6, 182, 212, 0.35);
+    --theme-primary-text: #67e8f9;
+    --theme-accent-glow: rgba(6, 182, 212, 0.35);
   }
 
-  .dark.theme-crimson {
-    --primary: #ef4444;
-    --primary-hover: #f87171;
-    --primary-light: rgba(239, 68, 68, 0.15);
-    --primary-border: rgba(239, 68, 68, 0.3);
-    --primary-text: #fca5a5;
-    --accent-glow: rgba(239, 68, 68, 0.35);
+  .dark.theme-crimson,
+  .dark [data-theme="crimson"] {
+    --theme-primary: #ef4444;
+    --theme-primary-hover: #f87171;
+    --theme-primary-light: rgba(239, 68, 68, 0.18);
+    --theme-primary-border: rgba(239, 68, 68, 0.35);
+    --theme-primary-text: #fca5a5;
+    --theme-accent-glow: rgba(239, 68, 68, 0.35);
   }
 
-  .dark.theme-gold {
-    --primary: #eab308;
-    --primary-hover: #facc15;
-    --primary-light: rgba(234, 179, 8, 0.15);
-    --primary-border: rgba(234, 179, 8, 0.3);
-    --primary-text: #fde047;
-    --accent-glow: rgba(234, 179, 8, 0.35);
+  .dark.theme-gold,
+  .dark [data-theme="gold"] {
+    --theme-primary: #eab308;
+    --theme-primary-hover: #facc15;
+    --theme-primary-light: rgba(234, 179, 8, 0.18);
+    --theme-primary-border: rgba(234, 179, 8, 0.35);
+    --theme-primary-text: #fde047;
+    --theme-accent-glow: rgba(234, 179, 8, 0.35);
   }
 
-  .dark.theme-contrast {
-    --primary: #ffffff;
-    --primary-hover: #f1f5f9;
-    --primary-light: rgba(255, 255, 255, 0.1);
-    --primary-border: #ffffff;
-    --primary-text: #ffffff;
-    --accent-glow: rgba(255, 255, 255, 0.4);
+  .dark.theme-contrast,
+  .dark [data-theme="contrast"] {
+    --theme-primary: #ffffff;
+    --theme-primary-hover: #f1f5f9;
+    --theme-primary-light: rgba(255, 255, 255, 0.18);
+    --theme-primary-border: rgba(255, 255, 255, 0.5);
+    --theme-primary-text: #ffffff;
+    --theme-accent-glow: rgba(255, 255, 255, 0.4);
   }
 }
 
-/* Custom Theme Dynamic Utility Classes */
+/* Custom Semantic Theme Utilities */
+.bg-theme-primary {
+  background-color: var(--theme-primary) !important;
+  color: #ffffff !important;
+}
+
+.theme-contrast .bg-theme-primary {
+  color: #ffffff !important;
+}
+.dark.theme-contrast .bg-theme-primary,
+.dark [data-theme="contrast"] .bg-theme-primary {
+  color: #0f172a !important;
+}
+
+.hover-bg-theme-primary:hover {
+  background-color: var(--theme-primary-hover) !important;
+}
+
+.text-theme-primary {
+  color: var(--theme-primary) !important;
+}
+
+.border-theme-primary {
+  border-color: var(--theme-primary) !important;
+}
+
+.border-theme-border {
+  border-color: var(--theme-primary-border) !important;
+}
+
+.bg-theme-light {
+  background-color: var(--theme-primary-light) !important;
+}
+
+.text-theme-text {
+  color: var(--theme-primary-text) !important;
+}
+
 .theme-btn-primary {
-  background-color: var(--primary);
+  background-color: var(--theme-primary);
   color: #ffffff;
   transition: all 0.2s ease;
 }
 .theme-btn-primary:hover {
-  background-color: var(--primary-hover);
-  box-shadow: 0 4px 14px var(--accent-glow);
+  background-color: var(--theme-primary-hover);
+  box-shadow: 0 4px 14px var(--theme-accent-glow);
 }
 
 .theme-card-accent {
-  border-color: var(--primary-border);
+  border-color: var(--theme-primary-border);
 }
 
 .theme-badge-subtle {
-  background-color: var(--primary-light);
-  color: var(--primary-text);
-  border: 1px solid var(--primary-border);
+  background-color: var(--theme-primary-light);
+  color: var(--theme-primary-text);
+  border: 1px solid var(--theme-primary-border);
 }
 
 .theme-highlight-text {
-  color: var(--primary);
+  color: var(--theme-primary);
 }
 
 .theme-ring-focus:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  box-shadow: 0 0 0 3px var(--theme-accent-glow);
 }
 
-/* Custom animations for train simulation and signal indicators */
+/* Authentic Indian Railways Transit Signage & Departure Clock Utilities */
+.ir-platform-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.ir-clock-numeral {
+  font-variant-numeric: tabular-nums;
+}
+
 @keyframes trackScrollFast {
   0% { background-position: 0 0, 0 0; }
   100% { background-position: 0 0, 0 80px; }
@@ -200,32 +247,4 @@
 @keyframes signalPulseRed {
   0%, 100% { box-shadow: 0 0 10px #ef4444, 0 0 20px #dc2626; }
   50% { box-shadow: 0 0 4px #ef4444; }
-}
-
-@keyframes pantographSpark {
-  0%, 90%, 100% { opacity: 0; transform: scale(0.5); }
-  92%, 96% { opacity: 1; transform: scale(1.3); }
-}
-
-.animate-spark {
-  animation: pantographSpark 3s infinite;
-}
-
-.animate-signal-green {
-  animation: signalPulseGreen 2s infinite ease-in-out;
-}
-
-.animate-signal-red {
-  animation: signalPulseRed 1.2s infinite ease-in-out;
-}
-
-/* Authentic Indian Railways Transit Signage & Departure Clock Utilities */
-.ir-platform-badge {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
-.ir-clock-numeral {
-  font-variant-numeric: tabular-nums;
 }

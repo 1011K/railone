@@ -30,8 +30,8 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
   onBookingCreated
 }) => {
   const [step, setStep] = useState<'details' | 'otp' | 'payment' | 'confirmed'>('details');
-  const [passengerName, setPassengerName] = useState('Krishiv Ramchandani');
-  const [passengerAge, setPassengerAge] = useState(21);
+  const [passengerName, setPassengerName] = useState('Suburban Passenger');
+  const [passengerAge, setPassengerAge] = useState(28);
   const [passengerGender, setPassengerGender] = useState('M');
   const [otpCode, setOtpCode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('RailWallet (Simulated)');
