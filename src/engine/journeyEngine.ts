@@ -347,7 +347,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         });
 
         candidateItineraries.push({
-          id: `transfer-${train1.trainNumber}-${train2.trainNumber}`,
+          id: `transfer-${train1.trainNumber}-${leg1.scheduledDep.replace(':', '')}-${train2.trainNumber}-${leg2.scheduledDep.replace(':', '')}`,
           legs: [leg1, leg2],
           transfers: [transfer],
           totalDurationMinutes,
