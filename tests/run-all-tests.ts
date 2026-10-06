@@ -568,6 +568,39 @@ console.log('\nTest Suite 17: Interactive 2D/3D Network Map Engine & Multi-Train
   const isoResult = project3DIsometric(400, 300, 20, 38, -15);
   assert(!isNaN(isoResult.projX) && !isNaN(isoResult.projY), '17.22: 3D Isometric projection computes valid numerical coordinates');
   assert(isoResult.projX > 0 && isoResult.projY > 0, '17.23: 3D Projection lies within valid positive canvas space');
+
+  // 17.7 Full Mumbai Suburban network coverage across Western, Central, Harbour, Trans-Harbour, and Uran lines
+  const hasWestern = subStations.some(s => s.line === 'western');
+  const hasCentral = subStations.some(s => s.line === 'central');
+  const hasHarbour = subStations.some(s => s.line === 'harbour');
+  const hasTransHarbour = subStations.some(s => s.line === 'transharbour');
+  const hasUran = subStations.some(s => s.line === 'uran');
+  assert(subStations.length >= 70 && hasWestern && hasCentral && hasHarbour && hasTransHarbour && hasUran, 
+    '17.24: Complete Mumbai suburban coverage (70+ stations across WR, CR, HR, Trans-Harbour, Uran)');
+
+  // 17.8 Pan-India network trunk hub breadth
+  assert(natStations.length >= 30, '17.25: Pan-India network includes 30+ major national trunk hubs across all zones');
+
+  // 17.9 Train route illumination engine
+  const { getRouteSegmentsForTrain, searchNetworkMap } = await import('../src/engine/networkMapEngine');
+  const fastLocalRoutes = getRouteSegmentsForTrain('95112', 'mumbai_suburban');
+  assert(fastLocalRoutes.length > 0 && fastLocalRoutes.includes('CLA-DR'), 
+    '17.26: Train route illumination identifies all segments traversed by Fast Local 95112');
+
+  // 17.10 Intermediate slow line track segment exists and carries delay data
+  const tnaMlndSeg = subSegments.find(s => s.id === 'MLND-TNA' || s.id === 'TNA-MLND');
+  assert(tnaMlndSeg !== undefined && tnaMlndSeg.fromName.length > 0, 
+    '17.27: Intermediate local slow line track segment (Thane-Mulund) generated');
+
+  // 17.11 Multilingual station search
+  const hindiSearch = searchNetworkMap('कल्याण', 'mumbai_suburban');
+  assert(hindiSearch.stations.some(s => s.code === 'KYN'), 
+    '17.28: Multilingual network map search resolves Devanagari "कल्याण" to Kalyan Jn');
+
+  // 17.12 Train number search across Pan-India
+  const trainSearch = searchNetworkMap('12951', 'pan_india');
+  assert(trainSearch.trains.some(t => t.trainNumber === '12951'), 
+    '17.29: Network map search finds Mumbai Rajdhani by train number 12951');
 }
 
 console.log('\n====================================================');

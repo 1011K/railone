@@ -97,16 +97,18 @@ npm test
     - Operational disruption reason attribution
     - 3D Isometric projection coordinate mathematics
 
-**Total**: **107/107 Automated Tests Passing (0 Failed)**.
+**Total**: **113/113 Automated Tests Passing (0 Failed)**.
 
 ---
 
 ## 6. Interactive 2D & 3D Rail Network Map
 
 RailOne Next includes an interactive visual network map:
-- **Mumbai Suburban Network**: Complete topology across Western Line (Churchgate to Dahanu Road / Virar), Central Main Line (CSMT to Kasara / Karjat), Harbour Line (CSMT to Panvel), and Trans-Harbour Line (Thane to Panvel).
-- **Pan-India National Rail Network**: Key trunk corridors connecting New Delhi, Mumbai, Howrah, Chennai Central, Bengaluru, Secunderabad, Ahmedabad, Pune, Nagpur, Kanpur, and Varanasi.
-- **Track Delay Intelligence**: Computes average delays across all trains traversing physical tracks and displays root-cause operational disruption reasons (fog, OHE faults, signal point locks, caution orders).
+- **Mumbai Suburban Local Network**: Complete coverage of all 80+ real suburban stations across Western Line (Churchgate to Dahanu Road), Central Main Line (CSMT to Kasara / Karjat / Khopoli), Harbour Line (CSMT to Panvel & Wadala-Andheri branch), Trans-Harbour Line (Thane to Turbhe/Panvel), and Uran Line (Nerul to Uran).
+- **Pan-India National Rail Network**: 40+ national railway hubs and trunk corridors connecting New Delhi, Mumbai, Howrah (Kolkata), Chennai Central, KSR Bengaluru, Secunderabad, Ahmedabad, Pune, Nagpur, Kanpur, Prayagraj, Varanasi, Raipur, Bilaspur, Tatanagar, and Jammu Tawi.
+- **Track Delay Intelligence**: Computes average delays across all trains traversing physical tracks and displays root-cause operational disruption reasons (fog, OHE faults, signal point locks, cautionary speed orders).
+- **Train Route Illumination**: Click or search any train to illuminate its entire physical route across India or Mumbai Suburban with glowing visual paths.
+- **Live Autocomplete Search & Line Filtering**: Search by station name, English/Devanagari spellings, or train numbers, and filter by suburban line (Western, Central, Harbour, Trans-Harbour, Uran).
 - **2D Schematic & 3D Isometric Projection**: Switch seamlessly between crisp transit schematic and isometric 3D perspective with pitch/rotation controls.
 
 ---
@@ -117,7 +119,7 @@ RailOne Next includes an interactive visual network map:
 # Install dependencies
 npm install
 
-# Run automated verification suite (107 tests)
+# Run automated verification suite (113 tests)
 npm test
 
 # Typecheck and lint

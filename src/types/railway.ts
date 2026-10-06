@@ -18,6 +18,7 @@ export type RegionalLine =
   | 'western'
   | 'harbour'
   | 'transharbour'
+  | 'uran'
   | 'national';
 
 export interface Station {

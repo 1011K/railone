@@ -165,6 +165,63 @@ export const PAN_INDIA_TRAINS: TrainTrip[] = [
       { stationCode: 'BRC', stationName: 'Vadodara Jn', scheduledArrival: '10:35', scheduledDeparture: '10:40', platform: '3', distanceKm: 392, isHalt: true },
       { stationCode: 'ADI', stationName: 'Ahmedabad Jn', scheduledArrival: '12:45', scheduledDeparture: '12:45', platform: '1', distanceKm: 492, isHalt: true }
     ]
+  },
+
+  // 9. Gitanjali Express (CSMT -> HWH via Nagpur, Raipur, Tatanagar)
+  {
+    trainNumber: '12859',
+    trainName: 'Gitanjali Express',
+    hindiName: 'गीतांजलि एक्सप्रेस',
+    originStation: 'CSMT',
+    destinationStation: 'HWH',
+    serviceType: 'superfast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: 'lhb_express',
+    availableClasses: ['SL', '3A', '2A'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'Mumbai CSMT', scheduledArrival: '06:00', scheduledDeparture: '06:00', platform: '18', distanceKm: 0, isHalt: true },
+      { stationCode: 'KYN', stationName: 'Kalyan Jn', scheduledArrival: '06:52', scheduledDeparture: '06:55', platform: '4', distanceKm: 54, isHalt: true },
+      { stationCode: 'NGP', stationName: 'Nagpur Jn', scheduledArrival: '18:55', scheduledDeparture: '19:00', platform: '3', distanceKm: 837, isHalt: true },
+      { stationCode: 'R', stationName: 'Raipur Jn', scheduledArrival: '23:30', scheduledDeparture: '23:35', platform: '1', distanceKm: 1118, isHalt: true },
+      { stationCode: 'BSP', stationName: 'Bilaspur Jn', scheduledArrival: '01:25', scheduledDeparture: '01:35', platform: '1', distanceKm: 1229, isHalt: true, dayOffset: 1 },
+      { stationCode: 'TATA', stationName: 'Tatanagar Jn', scheduledArrival: '08:05', scheduledDeparture: '08:15', platform: '4', distanceKm: 1697, isHalt: true, dayOffset: 1 },
+      { stationCode: 'HWH', stationName: 'Howrah Jn', scheduledArrival: '12:30', scheduledDeparture: '12:30', platform: '21', distanceKm: 1968, isHalt: true, dayOffset: 1 }
+    ]
+  },
+
+  // 10. Konkan Kanya Express (CSMT -> MAO)
+  {
+    trainNumber: '10111',
+    trainName: 'Konkan Kanya Express',
+    hindiName: 'कोंकण कन्या एक्सप्रेस',
+    originStation: 'CSMT',
+    destinationStation: 'MAO',
+    serviceType: 'superfast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: 'lhb_express',
+    availableClasses: ['SL', '3A', '2A', '1A'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'Mumbai CSMT', scheduledArrival: '23:05', scheduledDeparture: '23:05', platform: '16', distanceKm: 0, isHalt: true },
+      { stationCode: 'PNVL', stationName: 'Panvel Jn', scheduledArrival: '00:20', scheduledDeparture: '00:25', platform: '7', distanceKm: 49, isHalt: true, dayOffset: 1 },
+      { stationCode: 'MAO', stationName: 'Madgaon Jn', scheduledArrival: '10:45', scheduledDeparture: '10:45', platform: '2', distanceKm: 753, isHalt: true, dayOffset: 1 }
+    ]
+  },
+
+  // 11. Vande Bharat Express (MAS -> SBC)
+  {
+    trainNumber: '20607',
+    trainName: 'Chennai - Mysuru Vande Bharat',
+    hindiName: 'चेन्नई - मैसूरु वंदे भारत',
+    originStation: 'MAS',
+    destinationStation: 'SBC',
+    serviceType: 'vande_bharat_tejas',
+    runningDays: [1, 2, 3, 4, 5, 6],
+    rakeType: 'vande_bharat',
+    availableClasses: ['CC', 'EC'],
+    stops: [
+      { stationCode: 'MAS', stationName: 'Chennai Central', scheduledArrival: '05:50', scheduledDeparture: '05:50', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'SBC', stationName: 'KSR Bengaluru', scheduledArrival: '10:20', scheduledDeparture: '10:25', platform: '7', distanceKm: 362, isHalt: true }
+    ]
   }
 ];
 
@@ -309,5 +366,59 @@ export const PAN_INDIA_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     dataSource: 'WR Vadodara Control',
     dataRetrievedAt: '10:40',
     uncertaintyMarginMinutes: 1
+  },
+
+  // Gitanjali Express: Delayed +24 min in Raipur section
+  '12859': {
+    trainNumber: '12859',
+    serviceDate: '2026-10-06',
+    currentStationCode: 'R',
+    lastReportedStationCode: 'NGP',
+    lastReportedTimestamp: '23:54',
+    hasDepartedOrigin: true,
+    actualOriginDeparture: '06:00',
+    delayMinutesAtCurrent: 24,
+    isCanceled: false,
+    disruptionReason: 'SECR coal corridor freight crossing & freight rake precedence',
+    dataStatus: 'DEMO',
+    dataSource: 'SECR Control Office',
+    dataRetrievedAt: '23:55',
+    uncertaintyMarginMinutes: 3
+  },
+
+  // Konkan Kanya Express: Delayed +55 min on Konkan single line
+  '10111': {
+    trainNumber: '10111',
+    serviceDate: '2026-10-06',
+    currentStationCode: 'PNVL',
+    lastReportedStationCode: 'CSMT',
+    lastReportedTimestamp: '01:20',
+    hasDepartedOrigin: true,
+    actualOriginDeparture: '23:05',
+    delayMinutesAtCurrent: 55,
+    isCanceled: false,
+    disruptionReason: 'Konkan railway single-line crossing wait and monsoon tunnel speed order',
+    dataStatus: 'DEMO',
+    dataSource: 'KRCL Central Telemetry',
+    dataRetrievedAt: '01:22',
+    uncertaintyMarginMinutes: 5
+  },
+
+  // Vande Bharat Express: Punctual +0 min
+  '20607': {
+    trainNumber: '20607',
+    serviceDate: '2026-10-06',
+    currentStationCode: 'SBC',
+    lastReportedStationCode: 'MAS',
+    lastReportedTimestamp: '10:20',
+    hasDepartedOrigin: true,
+    actualOriginDeparture: '05:50',
+    delayMinutesAtCurrent: 0,
+    isCanceled: false,
+    disruptionReason: 'Punctual transit flow: Automated track circuits operating with standard headway',
+    dataStatus: 'DEMO',
+    dataSource: 'SR High-Speed Telemetry',
+    dataRetrievedAt: '10:21',
+    uncertaintyMarginMinutes: 0
   }
 };

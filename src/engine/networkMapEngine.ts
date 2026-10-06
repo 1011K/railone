@@ -10,6 +10,9 @@ import {
 import { 
   MUMBAI_SUBURBAN_NODES, 
   PAN_INDIA_NODES, 
+  SUBURBAN_CORRIDOR_CHAINS,
+  SUBURBAN_FAST_CORRIDORS,
+  PAN_INDIA_CORRIDORS,
   KNOWN_DISRUPTION_RULES 
 } from '../fixtures/networkMapData';
 import { TRAIN_TRIPS, INITIAL_OBSERVATIONS } from '../fixtures/railwayData';
@@ -29,23 +32,8 @@ export const ALL_NETWORK_OBSERVATIONS: Record<string, TrainRunningObservation> =
 /**
  * Normalizes bidirectional track segment key (e.g. 'CLA-DR' or 'DR-CLA' -> 'CLA-DR')
  */
-function makeSegmentKey(codeA: string, codeB: string): string {
+export function makeSegmentKey(codeA: string, codeB: string): string {
   return [codeA, codeB].sort().join('-');
-}
-
-/**
- * Checks if a train runs across a specific track segment between codeA and codeB
- */
-function doesTrainTraverseSegment(train: TrainTrip, codeA: string, codeB: string): boolean {
-  const stopCodes = train.stops.map(s => s.stationCode);
-  for (let i = 0; i < stopCodes.length - 1; i++) {
-    const from = stopCodes[i];
-    const to = stopCodes[i + 1];
-    if ((from === codeA && to === codeB) || (from === codeB && to === codeA)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 /**
@@ -80,28 +68,137 @@ export function getTrackSegmentsForScope(scope: MapScope): MapTrackSegment[] {
   const trains = scope === 'mumbai_suburban' ? TRAIN_TRIPS : ALL_NETWORK_TRAINS;
   const segmentsMap = new Map<string, MapTrackSegment>();
 
-  // Extract all contiguous station hops traversed by any train in the catalog
+  // 1. Seed predefined physical corridor chains
+  if (scope === 'mumbai_suburban') {
+    // Add sequential local track segments connecting consecutive stations
+    Object.entries(SUBURBAN_CORRIDOR_CHAINS).forEach(([chainKey, chainCodes]) => {
+      let chainLine: RegionalLine = 'central';
+      if (chainKey.startsWith('western')) chainLine = 'western';
+      else if (chainKey.startsWith('harbour')) chainLine = 'harbour';
+      else if (chainKey.startsWith('transharbour')) chainLine = 'transharbour';
+      else if (chainKey.startsWith('uran')) chainLine = 'uran';
+
+      for (let i = 0; i < chainCodes.length - 1; i++) {
+        const fromCode = chainCodes[i];
+        const toCode = chainCodes[i + 1];
+        const fromNode = stationMap.get(fromCode);
+        const toNode = stationMap.get(toCode);
+        if (!fromNode || !toNode) continue;
+
+        const segKey = makeSegmentKey(fromCode, toCode);
+        if (!segmentsMap.has(segKey)) {
+          segmentsMap.set(segKey, {
+            id: segKey,
+            fromCode,
+            toCode,
+            fromName: fromNode.name,
+            toName: toNode.name,
+            distanceKm: 2.4,
+            line: chainLine,
+            zone: 'CR',
+            trackType: 'quad_fast_slow',
+            speedLimitKmh: 100,
+            trainsPassing: [],
+            averageDelayMinutes: 0,
+            maxDelayMinutes: 0,
+            trainDelays: {},
+            congestionLevel: 'LOW',
+            isBottleneck: false,
+            coordinates: {
+              x1: fromNode.x,
+              y1: fromNode.y,
+              x2: toNode.x,
+              y2: toNode.y
+            }
+          });
+        }
+      }
+    });
+
+    // Add dedicated Suburban Fast Corridors / Express By-pass lines
+    SUBURBAN_FAST_CORRIDORS.forEach(fastSeg => {
+      const fromNode = stationMap.get(fastSeg.fromCode);
+      const toNode = stationMap.get(fastSeg.toCode);
+      if (!fromNode || !toNode) return;
+
+      const segKey = makeSegmentKey(fastSeg.fromCode, fastSeg.toCode);
+      if (!segmentsMap.has(segKey)) {
+        segmentsMap.set(segKey, {
+          id: segKey,
+          fromCode: fastSeg.fromCode,
+          toCode: fastSeg.toCode,
+          fromName: fromNode.name,
+          toName: toNode.name,
+          distanceKm: fastSeg.distKm,
+          line: fastSeg.line,
+          zone: 'CR',
+          trackType: fastSeg.type,
+          speedLimitKmh: 105,
+          trainsPassing: [],
+          averageDelayMinutes: 0,
+          maxDelayMinutes: 0,
+          trainDelays: {},
+          congestionLevel: 'LOW',
+          isBottleneck: false,
+          coordinates: {
+            x1: fromNode.x,
+            y1: fromNode.y,
+            x2: toNode.x,
+            y2: toNode.y
+          }
+        });
+      }
+    });
+  } else {
+    // Pan-India Corridors
+    PAN_INDIA_CORRIDORS.forEach(corridor => {
+      const fromNode = stationMap.get(corridor.fromCode);
+      const toNode = stationMap.get(corridor.toCode);
+      if (!fromNode || !toNode) return;
+
+      const segKey = makeSegmentKey(corridor.fromCode, corridor.toCode);
+      if (!segmentsMap.has(segKey)) {
+        segmentsMap.set(segKey, {
+          id: segKey,
+          fromCode: corridor.fromCode,
+          toCode: corridor.toCode,
+          fromName: fromNode.name,
+          toName: toNode.name,
+          distanceKm: corridor.distKm,
+          line: 'national',
+          zone: fromNode.zone || 'IR',
+          trackType: corridor.type,
+          speedLimitKmh: 130,
+          trainsPassing: [],
+          averageDelayMinutes: 0,
+          maxDelayMinutes: 0,
+          trainDelays: {},
+          congestionLevel: 'LOW',
+          isBottleneck: false,
+          coordinates: {
+            x1: fromNode.x,
+            y1: fromNode.y,
+            x2: toNode.x,
+            y2: toNode.y
+          }
+        });
+      }
+    });
+  }
+
+  // 2. Also ensure every contiguous stop hop from train schedules is mapped
   trains.forEach(train => {
     const stops = train.stops;
     for (let i = 0; i < stops.length - 1; i++) {
       const fromCode = stops[i].stationCode;
       const toCode = stops[i + 1].stationCode;
-
       const fromNode = stationMap.get(fromCode);
       const toNode = stationMap.get(toCode);
-
-      // Only create segment if both stations exist in the active scope
       if (!fromNode || !toNode) continue;
 
       const segKey = makeSegmentKey(fromCode, toCode);
       if (!segmentsMap.has(segKey)) {
         const dist = Math.abs((stops[i + 1].distanceKm || 0) - (stops[i].distanceKm || 0)) || 12;
-
-        let lineType: RegionalLine = fromNode.line;
-        if (scope === 'pan_india') {
-          lineType = 'national';
-        }
-
         segmentsMap.set(segKey, {
           id: segKey,
           fromCode,
@@ -109,7 +206,7 @@ export function getTrackSegmentsForScope(scope: MapScope): MapTrackSegment[] {
           fromName: fromNode.name,
           toName: toNode.name,
           distanceKm: dist,
-          line: lineType,
+          line: scope === 'pan_india' ? 'national' : fromNode.line,
           zone: fromNode.zone || 'CR',
           trackType: dist > 100 ? 'trunk_double' : 'quad_fast_slow',
           speedLimitKmh: dist > 100 ? 130 : 100,
@@ -127,19 +224,106 @@ export function getTrackSegmentsForScope(scope: MapScope): MapTrackSegment[] {
           }
         });
       }
-
-      // Add train to this segment's passing list if not already present
-      const seg = segmentsMap.get(segKey)!;
-      if (!seg.trainsPassing.includes(train.trainNumber)) {
-        seg.trainsPassing.push(train.trainNumber);
-      }
     }
   });
 
-  // Now compute for every track segment:
-  // 1. Train-specific delays
-  // 2. Average delay across all trains on this track
-  // 3. Operational disruption reason
+  // 3. Resolve which trains traverse each physical segment
+  // A train traverses a segment if:
+  // a) It has consecutive stops between fromCode and toCode, OR
+  // b) Both stations lie within the train's route path along the same corridor
+  trains.forEach(train => {
+    const stopCodes = train.stops.map(s => s.stationCode);
+    const origin = train.originStation;
+    const dest = train.destinationStation;
+
+    segmentsMap.forEach(seg => {
+      let traverses = false;
+
+      // Direct stop pair hop
+      for (let i = 0; i < stopCodes.length - 1; i++) {
+        const s1 = stopCodes[i];
+        const s2 = stopCodes[i + 1];
+        if ((s1 === seg.fromCode && s2 === seg.toCode) || (s1 === seg.toCode && s2 === seg.fromCode)) {
+          traverses = true;
+          break;
+        }
+      }
+
+      // Check if physical segment lies along the corridor connecting origin and destination
+      if (!traverses && scope === 'mumbai_suburban') {
+        const isCentralTrain = ['KYN', 'TNA', 'CSMT', 'BY', 'DR', 'CLA', 'GC'].includes(origin) && 
+                               ['KYN', 'TNA', 'CSMT', 'BY', 'DR', 'CLA', 'GC'].includes(dest);
+        const isWesternTrain = ['CCG', 'VR', 'BVI', 'ADH', 'BA', 'MMCT'].includes(origin) && 
+                               ['CCG', 'VR', 'BVI', 'ADH', 'BA', 'MMCT'].includes(dest);
+        const isHarbourTrain = ['CSMT', 'PNVL', 'VSH', 'VDLR'].includes(origin) && 
+                               ['CSMT', 'PNVL', 'VSH', 'VDLR'].includes(dest);
+
+        if (isCentralTrain && seg.line === 'central') {
+          // If both stations are on central main line
+          const cChain = SUBURBAN_CORRIDOR_CHAINS.central_main;
+          const idxFrom = cChain.indexOf(seg.fromCode);
+          const idxTo = cChain.indexOf(seg.toCode);
+          const idxOrig = cChain.indexOf(origin);
+          const idxDest = cChain.indexOf(dest);
+          if (idxFrom >= 0 && idxTo >= 0 && idxOrig >= 0 && idxDest >= 0) {
+            const minTr = Math.min(idxOrig, idxDest);
+            const maxTr = Math.max(idxOrig, idxDest);
+            if (idxFrom >= minTr && idxFrom <= maxTr && idxTo >= minTr && idxTo <= maxTr) {
+              traverses = true;
+            }
+          }
+          // Also match fast bypass segments between Kurla and Dadar, Ghatkopar and Kurla, etc.
+          if ((seg.id === 'CLA-DR' || seg.id === 'DR-CLA') ||
+              (seg.id === 'GC-CLA' || seg.id === 'CLA-GC') ||
+              (seg.id === 'TNA-GC' || seg.id === 'GC-TNA') ||
+              (seg.id === 'DI-TNA' || seg.id === 'TNA-DI') ||
+              (seg.id === 'KYN-DI' || seg.id === 'DI-KYN') ||
+              (seg.id === 'DR-BY' || seg.id === 'BY-DR') ||
+              (seg.id === 'BY-CSMT' || seg.id === 'CSMT-BY')) {
+            traverses = true;
+          }
+        } else if (isWesternTrain && seg.line === 'western') {
+          const wChain = SUBURBAN_CORRIDOR_CHAINS.western;
+          const idxFrom = wChain.indexOf(seg.fromCode);
+          const idxTo = wChain.indexOf(seg.toCode);
+          const idxOrig = wChain.indexOf(origin);
+          const idxDest = wChain.indexOf(dest);
+          if (idxFrom >= 0 && idxTo >= 0 && idxOrig >= 0 && idxDest >= 0) {
+            const minTr = Math.min(idxOrig, idxDest);
+            const maxTr = Math.max(idxOrig, idxDest);
+            if (idxFrom >= minTr && idxFrom <= maxTr && idxTo >= minTr && idxTo <= maxTr) {
+              traverses = true;
+            }
+          }
+          if ((seg.id === 'BA-DDR' || seg.id === 'DDR-BA') ||
+              (seg.id === 'ADH-BA' || seg.id === 'BA-ADH') ||
+              (seg.id === 'BVI-ADH' || seg.id === 'ADH-BVI') ||
+              (seg.id === 'VR-BVI' || seg.id === 'BVI-VR')) {
+            traverses = true;
+          }
+        } else if (isHarbourTrain && seg.line === 'harbour') {
+          const hChain = SUBURBAN_CORRIDOR_CHAINS.harbour;
+          const idxFrom = hChain.indexOf(seg.fromCode);
+          const idxTo = hChain.indexOf(seg.toCode);
+          const idxOrig = hChain.indexOf(origin);
+          const idxDest = hChain.indexOf(dest);
+          if (idxFrom >= 0 && idxTo >= 0 && idxOrig >= 0 && idxDest >= 0) {
+            const minTr = Math.min(idxOrig, idxDest);
+            const maxTr = Math.max(idxOrig, idxDest);
+            if (idxFrom >= minTr && idxFrom <= maxTr && idxTo >= minTr && idxTo <= maxTr) {
+              traverses = true;
+            }
+          }
+        }
+      }
+
+      if (traverses && !seg.trainsPassing.includes(train.trainNumber)) {
+        seg.trainsPassing.push(train.trainNumber);
+      }
+    });
+  });
+
+  // 4. Compute train-specific delays, track average delays, and disruption reasons
   const segments = Array.from(segmentsMap.values());
 
   segments.forEach(seg => {
@@ -162,7 +346,6 @@ export function getTrackSegmentsForScope(scope: MapScope): MapTrackSegment[] {
     });
 
     const trainCount = seg.trainsPassing.length;
-    // Compute mathematical average delay across all trains traversing this track
     let avgDelay = trainCount > 0 ? Math.round(totalDelay / trainCount) : 0;
 
     // Check if there is a known track disruption rule for this segment
@@ -218,6 +401,17 @@ export function getTrackSegmentsForScope(scope: MapScope): MapTrackSegment[] {
 }
 
 /**
+ * Returns all track segment IDs traversed by a specific train.
+ * Used to illuminate and highlight the full train path across the map.
+ */
+export function getRouteSegmentsForTrain(trainNumber: string, scope: MapScope): string[] {
+  const segments = getTrackSegmentsForScope(scope);
+  return segments
+    .filter(seg => seg.trainsPassing.includes(trainNumber))
+    .map(seg => seg.id);
+}
+
+/**
  * Returns animated train markers for all active trains in the given scope
  */
 export function getTrainMarkersForScope(scope: MapScope): MapTrainMarker[] {
@@ -264,7 +458,7 @@ export function getTrainMarkersForScope(scope: MapScope): MapTrainMarker[] {
       position: { x: posX, y: posY, z: posZ },
       disruptionReason: obs?.disruptionReason,
       scheduledArrival: toStop.scheduledArrival,
-      predictedArrival: toStop.scheduledArrival, // Can be formatted
+      predictedArrival: toStop.scheduledArrival,
       availableClasses: train.availableClasses
     });
   });
@@ -273,7 +467,7 @@ export function getTrainMarkersForScope(scope: MapScope): MapTrainMarker[] {
 }
 
 /**
- * Searches stations and trains across scopes for quick autocomplete/filtering
+ * Searches stations and trains across scopes for quick autocomplete and filtering
  */
 export function searchNetworkMap(query: string, scope: MapScope): {
   stations: MapStationNode[];
@@ -289,14 +483,17 @@ export function searchNetworkMap(query: string, scope: MapScope): {
     s.code.toLowerCase().includes(q) ||
     s.name.toLowerCase().includes(q) ||
     (s.hindiName && s.hindiName.toLowerCase().includes(q)) ||
-    (s.marathiName && s.marathiName.toLowerCase().includes(q))
+    (s.marathiName && s.marathiName.toLowerCase().includes(q)) ||
+    s.city.toLowerCase().includes(q)
   );
 
   const allTrains = scope === 'mumbai_suburban' ? TRAIN_TRIPS : ALL_NETWORK_TRAINS;
   const matchedTrains = allTrains.filter(t => 
     t.trainNumber.toLowerCase().includes(q) ||
     t.trainName.toLowerCase().includes(q) ||
-    (t.hindiName && t.hindiName.toLowerCase().includes(q))
+    (t.hindiName && t.hindiName.toLowerCase().includes(q)) ||
+    t.originStation.toLowerCase().includes(q) ||
+    t.destinationStation.toLowerCase().includes(q)
   );
 
   return { stations: matchedStations, trains: matchedTrains };
@@ -316,7 +513,7 @@ export function project3DIsometric(
   const radRot = (rotationDeg * Math.PI) / 180;
   const radPitch = (pitchDeg * Math.PI) / 180;
 
-  // Center offset
+  // Center offset of viewport
   const cx = 500;
   const cy = 450;
 

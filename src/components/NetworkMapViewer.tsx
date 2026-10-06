@@ -1,16 +1,19 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   MapScope, 
   MapRenderMode, 
   MapStationNode, 
   MapTrackSegment, 
   MapTrainMarker,
-  TrainTrip 
+  TrainTrip,
+  RegionalLine 
 } from '../types/railway';
 import { 
   getStationsForScope, 
   getTrackSegmentsForScope, 
   getTrainMarkersForScope,
+  getRouteSegmentsForTrain,
+  searchNetworkMap,
   project3DIsometric,
   ALL_NETWORK_TRAINS
 } from '../engine/networkMapEngine';
@@ -18,8 +21,6 @@ import {
   Train, 
   Layers, 
   AlertTriangle, 
-  Clock, 
-  Compass, 
   ZoomIn, 
   ZoomOut, 
   RotateCcw, 
@@ -31,16 +32,16 @@ import {
   Info, 
   ShieldCheck, 
   Zap, 
-  Gauge, 
-  Filter,
   CheckCircle2,
-  Navigation
+  Navigation,
+  Compass
 } from 'lucide-react';
 
 export const NetworkMapViewer: React.FC = () => {
   const [scope, setScope] = useState<MapScope>('mumbai_suburban');
   const [renderMode, setRenderMode] = useState<MapRenderMode>('2d');
   const [delayFilter, setDelayFilter] = useState<'all' | 'disrupted' | 'ontime'>('all');
+  const [suburbanLineFilter, setSuburbanLineFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Selection states
@@ -71,18 +72,41 @@ export const NetworkMapViewer: React.FC = () => {
     setSelectedSegmentId(null);
     setSelectedStationCode(null);
     setSelectedTrainNumber(null);
+    setSearchQuery('');
+    setSuburbanLineFilter('all');
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
 
-  // Filter track segments
+  // Traversed segments for active selected train (for illuminated route highlights)
+  const activeTrainSegments = useMemo(() => {
+    if (!selectedTrainNumber) return new Set<string>();
+    return new Set(getRouteSegmentsForTrain(selectedTrainNumber, scope));
+  }, [selectedTrainNumber, scope]);
+
+  // Filter track segments by line and delay
   const filteredSegments = useMemo(() => {
     return allSegments.filter(seg => {
-      if (delayFilter === 'disrupted') return seg.averageDelayMinutes >= 15;
-      if (delayFilter === 'ontime') return seg.averageDelayMinutes <= 5;
+      // Delay filter
+      if (delayFilter === 'disrupted' && seg.averageDelayMinutes < 15) return false;
+      if (delayFilter === 'ontime' && seg.averageDelayMinutes > 5) return false;
+      
+      // Line filter for Mumbai Suburban
+      if (scope === 'mumbai_suburban' && suburbanLineFilter !== 'all') {
+        if (seg.line !== suburbanLineFilter && !activeTrainSegments.has(seg.id)) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [allSegments, delayFilter]);
+  }, [allSegments, delayFilter, suburbanLineFilter, scope, activeTrainSegments]);
+
+  // Search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    return searchNetworkMap(searchQuery, scope);
+  }, [searchQuery, scope]);
 
   // Overall network statistics
   const networkStats = useMemo(() => {
@@ -108,7 +132,7 @@ export const NetworkMapViewer: React.FC = () => {
     if (selectedSegmentId) {
       return allSegments.find(s => s.id === selectedSegmentId) || null;
     }
-    // Default to the highest delay bottleneck if none selected
+    // Default to highest delay bottleneck if none selected
     return allSegments.find(s => s.isBottleneck) || allSegments[0] || null;
   }, [selectedSegmentId, allSegments]);
 
@@ -165,6 +189,34 @@ export const NetworkMapViewer: React.FC = () => {
     return { px: iso.projX, py: iso.projY };
   };
 
+  // Focus station from search or click
+  const handleFocusStation = (code: string) => {
+    setSelectedStationCode(code);
+    setSelectedSegmentId(null);
+    setSelectedTrainNumber(null);
+    setSearchQuery('');
+    const target = stations.find(s => s.code === code);
+    if (target) {
+      const p = projectCoords(target.x, target.y, target.z || 10);
+      setPan({ x: Math.round(500 - p.px), y: Math.round(450 - p.py) });
+      setZoom(1.4);
+    }
+  };
+
+  // Focus train from search or click
+  const handleFocusTrain = (tNum: string) => {
+    setSelectedTrainNumber(tNum);
+    setSelectedSegmentId(null);
+    setSelectedStationCode(null);
+    setSearchQuery('');
+    const marker = trainMarkers.find(m => m.trainNumber === tNum);
+    if (marker) {
+      const p = projectCoords(marker.position.x, marker.position.y, (marker.position.z || 10) + 5);
+      setPan({ x: Math.round(500 - p.px), y: Math.round(450 - p.py) });
+      setZoom(1.3);
+    }
+  };
+
   // Color mapper for delay intensity
   const getDelayColor = (delayMinutes: number) => {
     if (delayMinutes >= 30) return '#ef4444'; // Red 500 (Critical)
@@ -193,7 +245,7 @@ export const NetworkMapViewer: React.FC = () => {
                   </span>
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Real-time Indian Railways & Mumbai Suburban network topology with multi-train track delays and disruption reasons.
+                  Interactive Indian Railways & Mumbai Suburban topology with multi-train track delays and disruption reasons.
                 </p>
               </div>
             </div>
@@ -211,7 +263,7 @@ export const NetworkMapViewer: React.FC = () => {
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
-                Mumbai Suburban
+                Mumbai Suburban (All Locals)
               </button>
               <button
                 onClick={() => handleScopeChange('pan_india')}
@@ -288,6 +340,115 @@ export const NetworkMapViewer: React.FC = () => {
           </div>
         </div>
 
+        {/* Secondary Filter & Search Bar */}
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          
+          {/* Suburban Lines Switcher (Only in Suburban mode) */}
+          {scope === 'mumbai_suburban' ? (
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
+                <Compass className="w-3.5 h-3.5" /> Line:
+              </span>
+              {[
+                { id: 'all', label: 'All Suburban Lines' },
+                { id: 'western', label: 'Western Line' },
+                { id: 'central', label: 'Central Main' },
+                { id: 'harbour', label: 'Harbour Line' },
+                { id: 'transharbour', label: 'Trans-Harbour' },
+                { id: 'uran', label: 'Uran Line' }
+              ].map(btn => (
+                <button
+                  key={btn.id}
+                  onClick={() => setSuburbanLineFilter(btn.id)}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                    suburbanLineFilter === btn.id
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+              Showing 40+ National Railway Hubs & High-Speed Golden Quadrilateral Corridors
+            </div>
+          )}
+
+          {/* Interactive Search Autocomplete Input */}
+          <div className="relative w-full md:w-80">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search stations, trains, or line..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Autocomplete Dropdown */}
+            {searchResults && (searchResults.stations.length > 0 || searchResults.trains.length > 0) && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 max-h-64 overflow-y-auto p-1.5 space-y-1">
+                {searchResults.stations.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5 block">
+                      Stations ({searchResults.stations.length})
+                    </span>
+                    {searchResults.stations.slice(0, 6).map(st => (
+                      <div
+                        key={st.id}
+                        onClick={() => handleFocusStation(st.code)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer flex items-center justify-between transition-colors"
+                      >
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {st.name} <span className="font-mono text-blue-600 dark:text-blue-400">({st.code})</span>
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                          {st.line}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {searchResults.trains.length > 0 && (
+                  <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5 block">
+                      Trains ({searchResults.trains.length})
+                    </span>
+                    {searchResults.trains.slice(0, 6).map(t => (
+                      <div
+                        key={t.trainNumber}
+                        onClick={() => handleFocusTrain(t.trainNumber)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer flex items-center justify-between transition-colors"
+                      >
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {t.trainNumber} • {t.trainName}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                          {t.originStation} ➔ {t.destinationStation}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Network Metrics Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
           <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
@@ -339,11 +500,17 @@ export const NetworkMapViewer: React.FC = () => {
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
             <div className="px-3 py-1.5 rounded-xl bg-slate-900/90 text-white backdrop-blur border border-slate-700/80 text-xs font-bold flex items-center gap-2 shadow-lg">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {scope === 'mumbai_suburban' ? 'Mumbai Suburban Network (WR/CR/HR)' : 'Pan-India Golden & Trunk Corridors'}
+              {scope === 'mumbai_suburban' ? 'Mumbai Suburban (WR / CR / HR / Trans-Harbour / Uran)' : 'Pan-India Golden & Trunk Corridors'}
               <span className="text-[10px] text-slate-400 uppercase font-mono">
                 [{renderMode.toUpperCase()}]
               </span>
             </div>
+            {selectedTrainNumber && (
+              <div className="px-3 py-1.5 rounded-xl bg-blue-600/90 text-white backdrop-blur text-xs font-bold flex items-center gap-1.5 shadow-lg animate-pulse">
+                <Zap className="w-3.5 h-3.5" />
+                Train #{selectedTrainNumber} Route Highlighted
+              </div>
+            )}
           </div>
 
           {/* Zoom & View Controls */}
@@ -461,7 +628,8 @@ export const NetworkMapViewer: React.FC = () => {
                   const p2 = projectCoords(seg.coordinates.x2, seg.coordinates.y2, 5);
 
                   const isSelected = selectedSegmentId === seg.id;
-                  const delayColor = getDelayColor(seg.averageDelayMinutes);
+                  const isTraversedByActiveTrain = activeTrainSegments.has(seg.id);
+                  const delayColor = isTraversedByActiveTrain ? '#38bdf8' : getDelayColor(seg.averageDelayMinutes);
                   const midX = (p1.px + p2.px) / 2;
                   const midY = (p1.py + p2.py) / 2;
 
@@ -475,17 +643,18 @@ export const NetworkMapViewer: React.FC = () => {
                         setSelectedTrainNumber(null);
                       }}
                     >
-                      {/* Track Under-Glow for Disrupted Tracks */}
-                      {seg.isBottleneck && (
+                      {/* Track Under-Glow for Disrupted Tracks or Active Train Path */}
+                      {(seg.isBottleneck || isTraversedByActiveTrain) && (
                         <line
                           x1={p1.px}
                           y1={p1.py}
                           x2={p2.px}
                           y2={p2.py}
                           stroke={delayColor}
-                          strokeWidth={isSelected ? 10 : 8}
-                          strokeOpacity={0.35}
+                          strokeWidth={isSelected || isTraversedByActiveTrain ? 10 : 8}
+                          strokeOpacity={isTraversedByActiveTrain ? 0.6 : 0.35}
                           strokeLinecap="round"
+                          filter={isTraversedByActiveTrain ? 'url(#glow)' : undefined}
                         />
                       )}
 
@@ -496,7 +665,7 @@ export const NetworkMapViewer: React.FC = () => {
                         x2={p2.px}
                         y2={p2.py}
                         stroke={delayColor}
-                        strokeWidth={isSelected ? 5 : 3.5}
+                        strokeWidth={isSelected || isTraversedByActiveTrain ? 5 : 3.5}
                         strokeDasharray={seg.trackType === 'quad_fast_slow' ? 'none' : '6,3'}
                         strokeLinecap="round"
                         className="transition-all duration-200 group-hover:stroke-width-6"
@@ -512,7 +681,7 @@ export const NetworkMapViewer: React.FC = () => {
                           rx={10}
                           fill="#0f172a"
                           stroke={delayColor}
-                          strokeWidth={1.5}
+                          strokeWidth={isTraversedByActiveTrain ? 2.5 : 1.5}
                           className="shadow-sm"
                         />
                         <text
@@ -536,16 +705,13 @@ export const NetworkMapViewer: React.FC = () => {
                 {stations.map(st => {
                   const p = projectCoords(st.x, st.y, st.z || 10);
                   const isSelected = selectedStationCode === st.code;
+                  const isMatchingFilter = suburbanLineFilter === 'all' || st.line === suburbanLineFilter;
 
                   return (
                     <g 
                       key={st.id} 
-                      className="cursor-pointer group"
-                      onClick={() => {
-                        setSelectedStationCode(st.code);
-                        setSelectedSegmentId(null);
-                        setSelectedTrainNumber(null);
-                      }}
+                      className={`cursor-pointer group ${!isMatchingFilter ? 'opacity-30' : 'opacity-100'}`}
+                      onClick={() => handleFocusStation(st.code)}
                     >
                       {/* Outer pulse if major hub or selected */}
                       {(st.isMajorHub || isSelected) && (
@@ -602,11 +768,7 @@ export const NetworkMapViewer: React.FC = () => {
                       key={tm.trainNumber}
                       transform={`translate(${p.px}, ${p.py})`}
                       className="cursor-pointer group"
-                      onClick={() => {
-                        setSelectedTrainNumber(tm.trainNumber);
-                        setSelectedSegmentId(null);
-                        setSelectedStationCode(null);
-                      }}
+                      onClick={() => handleFocusTrain(tm.trainNumber)}
                     >
                       {/* Train Marker Body */}
                       <circle
@@ -625,15 +787,15 @@ export const NetworkMapViewer: React.FC = () => {
                         <rect
                           x={0}
                           y={0}
-                          width={46}
+                          width={48}
                           height={16}
                           rx={8}
                           fill="#020617"
                           stroke={delayColor}
-                          strokeWidth={1}
+                          strokeWidth={isSelected ? 2 : 1}
                         />
                         <text
-                          x={23}
+                          x={24}
                           y={8}
                           textAnchor="middle"
                           dominantBaseline="central"
@@ -727,7 +889,7 @@ export const NetworkMapViewer: React.FC = () => {
                     return (
                       <div
                         key={tNum}
-                        onClick={() => setSelectedTrainNumber(tNum)}
+                        onClick={() => handleFocusTrain(tNum)}
                         className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer transition-colors border border-slate-100 dark:border-slate-800"
                       >
                         <div className="flex items-center gap-2">
@@ -792,7 +954,7 @@ export const NetworkMapViewer: React.FC = () => {
                     return (
                       <div 
                         key={t.trainNumber}
-                        onClick={() => setSelectedTrainNumber(t.trainNumber)}
+                        onClick={() => handleFocusTrain(t.trainNumber)}
                         className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer border border-slate-100 dark:border-slate-800 text-xs transition-colors"
                       >
                         <div className="flex items-center justify-between">
@@ -814,7 +976,7 @@ export const NetworkMapViewer: React.FC = () => {
             </div>
           )}
 
-          {/* Train Details Card */}
+          {/* Train Details Card with Track Corridors Traversed */}
           {activeTrain && (
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -839,13 +1001,38 @@ export const NetworkMapViewer: React.FC = () => {
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs">
-                <span className="text-slate-500 dark:text-slate-400 block mb-1">Available Classes:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {activeTrain.availableClasses.map(cls => (
-                    <span key={cls} className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold text-[10px]">
-                      {cls}
-                    </span>
+              {/* Traversed Track Corridors & Average Delays */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-blue-500" />
+                  Traversed Track Corridors & Average Delays:
+                </h4>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {allSegments.filter(s => s.trainsPassing.includes(activeTrain.trainNumber)).map(seg => (
+                    <div 
+                      key={seg.id}
+                      onClick={() => {
+                        setSelectedSegmentId(seg.id);
+                        setSelectedTrainNumber(null);
+                      }}
+                      className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer border border-slate-100 dark:border-slate-800 text-xs transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {seg.fromName} ➔ {seg.toName}
+                        </span>
+                        <span className={`font-mono font-bold px-1.5 py-0.5 rounded text-[11px] ${
+                          seg.averageDelayMinutes >= 15 ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
+                          seg.averageDelayMinutes >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+                          'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                        }`}>
+                          +{seg.averageDelayMinutes}m avg
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                        {seg.disruptionReason}
+                      </p>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -853,9 +1040,9 @@ export const NetworkMapViewer: React.FC = () => {
               {/* Halts breakdown */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Route Stopping Pattern ({activeTrain.stops.length} halts):
+                  Route Halts ({activeTrain.stops.length} stations):
                 </h4>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                   {activeTrain.stops.map((st, idx) => (
                     <div 
                       key={idx}
@@ -882,9 +1069,9 @@ export const NetworkMapViewer: React.FC = () => {
             </span>
             <ul className="list-disc list-inside text-blue-800 dark:text-blue-300 space-y-1">
               <li>Click any <strong>Track Segment</strong> to inspect all passing trains, average delay, and operational disruption reason.</li>
-              <li>Click any <strong>Station</strong> to see all scheduled trains stopping or passing through it.</li>
-              <li>Click any moving <strong>Train Dot</strong> to see its live position, delay, and halting timetable.</li>
-              <li>Use the <strong>2D / 3D Isometric Switcher</strong> to view layered track elevations and bridge flyovers.</li>
+              <li>Click any <strong>Station Node</strong> to see scheduled arrivals and departures.</li>
+              <li>Search or click any <strong>Train</strong> to illuminate its entire physical route across India or Mumbai Suburban.</li>
+              <li>Toggle between <strong>2D Schematic</strong> and <strong>3D Isometric Perspective</strong> with adjustable pitch and rotation.</li>
             </ul>
           </div>
         </div>
