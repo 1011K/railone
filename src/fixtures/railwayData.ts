@@ -1,4 +1,5 @@
 import { Station, TrainTrip, TrainRunningObservation, TravelClass } from '../types/railway';
+import { METRO_STATIONS } from './metroData';
 
 export const STATIONS: Record<string, Station> = {
   // Mumbai Central Line
@@ -309,8 +310,252 @@ export const STATIONS: Record<string, Station> = {
     platforms: [1, 2, 3, 4],
     isInterchange: true,
     aliases: ['madgaon', 'goa', 'margao']
+  },
+
+  // Pan-India Major Hubs & Termini
+  NGP: {
+    id: 'NGP',
+    code: 'NGP',
+    name: 'Nagpur Junction',
+    hindiName: 'नागपुर जंक्शन',
+    marathiName: 'नागपूर जंक्शन',
+    line: 'national',
+    city: 'Nagpur',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8],
+    isInterchange: true,
+    interchangeWalkMinutes: 5,
+    aliases: ['nagpur', 'ngp', 'नागपुर', 'नागपूर']
+  },
+  R: {
+    id: 'R',
+    code: 'R',
+    name: 'Raipur Junction',
+    hindiName: 'रायपुर जंक्शन',
+    marathiName: 'रायपूर जंक्शन',
+    line: 'national',
+    city: 'Raipur',
+    platforms: [1, 2, 3, 4, 5, 6, 7],
+    isInterchange: true,
+    interchangeWalkMinutes: 5,
+    aliases: ['raipur', 'r', 'रायपुर', 'रायपूर']
+  },
+  NDLS: {
+    id: 'NDLS',
+    code: 'NDLS',
+    name: 'New Delhi',
+    hindiName: 'नई दिल्ली',
+    marathiName: 'नवी दिल्ली',
+    line: 'national',
+    city: 'Delhi',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    isInterchange: true,
+    interchangeWalkMinutes: 6,
+    aliases: ['new delhi', 'ndls', 'delhi', 'नई दिल्ली']
+  },
+  HWH: {
+    id: 'HWH',
+    code: 'HWH',
+    name: 'Howrah Junction',
+    hindiName: 'हावड़ा जंक्शन',
+    marathiName: 'हावडा जंक्शन',
+    line: 'national',
+    city: 'Kolkata',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+    isInterchange: true,
+    interchangeWalkMinutes: 8,
+    aliases: ['howrah', 'hwh', 'kolkata', 'हावड़ा']
+  },
+  MAS: {
+    id: 'MAS',
+    code: 'MAS',
+    name: 'Chennai Central',
+    hindiName: 'चेन्नई सेंट्रल',
+    marathiName: 'चेन्नई सेंट्रल',
+    line: 'national',
+    city: 'Chennai',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    isInterchange: true,
+    interchangeWalkMinutes: 6,
+    aliases: ['chennai', 'mas', 'chennai central', 'चेन्नई']
+  },
+  SBC: {
+    id: 'SBC',
+    code: 'SBC',
+    name: 'KSR Bengaluru',
+    hindiName: 'केएसआर बेंगलुरु',
+    marathiName: 'केएसआर बंगळुरू',
+    line: 'national',
+    city: 'Bengaluru',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    isInterchange: true,
+    interchangeWalkMinutes: 6,
+    aliases: ['bengaluru', 'bangalore', 'sbc', 'ksr bengaluru', 'बेंगलुरु']
+  },
+  ADI: {
+    id: 'ADI',
+    code: 'ADI',
+    name: 'Ahmedabad Junction',
+    hindiName: 'अहमदाबाद जंक्शन',
+    marathiName: 'अहमदाबाद जंक्शन',
+    line: 'national',
+    city: 'Ahmedabad',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    isInterchange: true,
+    interchangeWalkMinutes: 6,
+    aliases: ['ahmedabad', 'adi', 'अहमदाबाद']
+  },
+  ST: {
+    id: 'ST',
+    code: 'ST',
+    name: 'Surat',
+    hindiName: 'सूरत',
+    marathiName: 'सुरत',
+    line: 'national',
+    city: 'Surat',
+    platforms: [1, 2, 3, 4],
+    isInterchange: false,
+    aliases: ['surat', 'st', 'सूरत']
+  },
+  BRC: {
+    id: 'BRC',
+    code: 'BRC',
+    name: 'Vadodara Junction',
+    hindiName: 'वडोदरा जंक्शन',
+    marathiName: 'वडोदरा जंक्शन',
+    line: 'national',
+    city: 'Vadodara',
+    platforms: [1, 2, 3, 4, 5, 6, 7],
+    isInterchange: true,
+    aliases: ['vadodara', 'baroda', 'brc', 'वडोदरा']
+  },
+  KOTA: {
+    id: 'KOTA',
+    code: 'KOTA',
+    name: 'Kota Junction',
+    hindiName: 'कोटा जंक्शन',
+    marathiName: 'कोटा जंक्शन',
+    line: 'national',
+    city: 'Kota',
+    platforms: [1, 2, 3, 4, 5],
+    isInterchange: true,
+    aliases: ['kota', 'कोटा']
+  },
+  BPL: {
+    id: 'BPL',
+    code: 'BPL',
+    name: 'Bhopal Junction',
+    hindiName: 'भोपाल जंक्शन',
+    marathiName: 'भोपाळ जंक्शन',
+    line: 'national',
+    city: 'Bhopal',
+    platforms: [1, 2, 3, 4, 5, 6],
+    isInterchange: true,
+    aliases: ['bhopal', 'bpl', 'भोपाल']
+  },
+  BSB: {
+    id: 'BSB',
+    code: 'BSB',
+    name: 'Varanasi Junction',
+    hindiName: 'वाराणसी जंक्शन',
+    marathiName: 'वाराणसी जंक्शन',
+    line: 'national',
+    city: 'Varanasi',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    isInterchange: true,
+    aliases: ['varanasi', 'bsb', 'banaras', 'वाराणसी']
+  },
+  CNB: {
+    id: 'CNB',
+    code: 'CNB',
+    name: 'Kanpur Central',
+    hindiName: 'कानपुर सेंट्रल',
+    marathiName: 'कानपूर सेंट्रल',
+    line: 'national',
+    city: 'Kanpur',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    isInterchange: true,
+    aliases: ['kanpur', 'cnb', 'कानपुर']
+  },
+  PRYJ: {
+    id: 'PRYJ',
+    code: 'PRYJ',
+    name: 'Prayagraj Junction',
+    hindiName: 'प्रयागराज जंक्शन',
+    marathiName: 'प्रयागराज जंक्शन',
+    line: 'national',
+    city: 'Prayagraj',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    isInterchange: true,
+    aliases: ['prayagraj', 'allahabad', 'pryj', 'प्रयागराज']
+  },
+  TATA: {
+    id: 'TATA',
+    code: 'TATA',
+    name: 'Tatanagar Junction',
+    hindiName: 'टाटानगर जंक्शन',
+    marathiName: 'टाटानगर जंक्शन',
+    line: 'national',
+    city: 'Jamshedpur',
+    platforms: [1, 2, 3, 4, 5],
+    isInterchange: true,
+    aliases: ['tatanagar', 'jamshedpur', 'tata', 'टाटानगर']
+  },
+  BSP: {
+    id: 'BSP',
+    code: 'BSP',
+    name: 'Bilaspur Junction',
+    hindiName: 'बिलासपुर जंक्शन',
+    marathiName: 'बिलासपूर जंक्शन',
+    line: 'national',
+    city: 'Bilaspur',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8],
+    isInterchange: true,
+    aliases: ['bilaspur', 'bsp', 'बिलासपुर']
+  },
+  BZA: {
+    id: 'BZA',
+    code: 'BZA',
+    name: 'Vijayawada Junction',
+    hindiName: 'विजयवाड़ा जंक्शन',
+    marathiName: 'विजयवाडा जंक्शन',
+    line: 'national',
+    city: 'Vijayawada',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    isInterchange: true,
+    aliases: ['vijayawada', 'bza', 'विजयवाड़ा']
+  },
+  SC: {
+    id: 'SC',
+    code: 'SC',
+    name: 'Secunderabad Junction',
+    hindiName: 'सिकंदराबाद जंक्शन',
+    marathiName: 'सिकंदराबाद जंक्शन',
+    line: 'national',
+    city: 'Hyderabad',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    isInterchange: true,
+    aliases: ['secunderabad', 'hyderabad', 'sc', 'सिकंदराबाद']
   }
 };
+
+// Dynamically populate Metro stations into STATIONS registry
+Object.values(METRO_STATIONS).forEach(ms => {
+  if (!STATIONS[ms.code]) {
+    STATIONS[ms.code] = {
+      id: ms.id,
+      code: ms.code,
+      name: ms.name,
+      hindiName: ms.hindiName,
+      marathiName: ms.marathiName,
+      line: 'metro',
+      city: 'Mumbai',
+      platforms: [1, 2],
+      isInterchange: ms.isInterchange,
+      interchangeWalkMinutes: ms.isInterchange ? 3 : undefined,
+      aliases: [ms.name.toLowerCase(), ms.code.toLowerCase(), ms.name.replace('Metro ', '').toLowerCase()]
+    };
+  }
+});
 
 /**
  * Stop sequence and distance lookup (Central Main Line km from CSMT)
@@ -950,6 +1195,22 @@ export function calculateSuburbanFare(distanceKm: number, travelClass: TravelCla
   }
   if (travelClass === 'EC') {
     return Math.max(250, Math.round(distanceKm * 3.5 + 80));
+  }
+  if (travelClass === 'SL') {
+    // Sleeper Mail/Express: ~₹0.48/km + ₹40 reservation/superfast
+    return Math.max(140, Math.round(distanceKm * 0.48 + 40));
+  }
+  if (travelClass === '3A') {
+    // AC 3-Tier: ~₹1.25/km + ₹90 reservation/superfast
+    return Math.max(480, Math.round(distanceKm * 1.25 + 90));
+  }
+  if (travelClass === '2A') {
+    // AC 2-Tier: ~₹1.80/km + ₹110 reservation/superfast
+    return Math.max(720, Math.round(distanceKm * 1.80 + 110));
+  }
+  if (travelClass === '1A') {
+    // AC First Class: ~₹3.10/km + ₹150 reservation/superfast
+    return Math.max(1200, Math.round(distanceKm * 3.10 + 150));
   }
   return 10;
 }

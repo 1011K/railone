@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@theme {
+  --color-theme-primary: var(--theme-primary);
+  --color-theme-hover: var(--theme-primary-hover);
+  --color-theme-light: var(--theme-primary-light);
+  --color-theme-border: var(--theme-primary-border);
+  --color-theme-text: var(--theme-primary-text);
+}
+
 @layer base {
   :root,
   .theme-ocean {

@@ -252,10 +252,10 @@ export const HomePassengerView: React.FC<HomePassengerViewProps> = ({
             className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 hover:border-theme-primary cursor-pointer transition-all space-y-3 shadow-xs hover:shadow-md group"
           >
             <div className="flex items-center justify-between">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-theme-light text-theme-primary flex items-center justify-center font-bold group-hover:scale-105 transition-transform">
                 <Navigation className="w-5 h-5" />
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-theme-primary transition-colors" />
             </div>
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
@@ -265,7 +265,7 @@ export const HomePassengerView: React.FC<HomePassengerViewProps> = ({
                 Interactive 2D & 3D Isometric schematic map with anti-distortion labels, Pan-India trunk stations, and line congestion.
               </p>
             </div>
-            <div className="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 pt-1">
+            <div className="text-[11px] font-bold text-theme-primary flex items-center gap-1 pt-1">
               <span>Inspect track bottlenecks & trains</span>
               <ArrowRight className="w-3 h-3" />
             </div>

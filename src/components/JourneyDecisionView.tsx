@@ -4,7 +4,8 @@ import {
   INITIAL_OBSERVATIONS 
 } from '../fixtures/railwayData';
 import { 
-  planJourneys 
+  planJourneys,
+  resolveStation 
 } from '../engine/journeyEngine';
 import { 
   JourneyItinerary, 
@@ -76,11 +77,15 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
   const [priority, setPriority] = useState<PassengerPreferences['priority']>('fastest');
   const [hasSeasonPass, setHasSeasonPass] = useState(false);
   const [walkMargin, setWalkMargin] = useState(12);
+  const [transitModeFilter, setTransitModeFilter] = useState<'all' | 'suburban' | 'metro' | 'national' | 'combined'>('all');
 
   // Quick preset shortcuts
   const presets = [
     { label: 'Thane ➔ Dadar', from: 'TNA', to: 'DR', time: '10:40', isArrive: false, ctx: 'waiting_at_station' as UserTravelContext, desc: 'Tests Fast vs Slow Delay Inversion' },
     { label: 'Thane ➔ Churchgate (Arrive 12:30)', from: 'TNA', to: 'CCG', time: '10:35', isArrive: true, deadline: '12:30', ctx: 'pre_departure' as UserTravelContext, desc: 'Scenario 1: Arrive-by deadline via Dadar' },
+    { label: 'Nagpur ➔ Raipur (Express)', from: 'NGP', to: 'R', time: '18:50', isArrive: false, ctx: 'waiting_at_station' as UserTravelContext, desc: '12859 Gitanjali Express Pan-India trunk' },
+    { label: 'Dahisar E ➔ Gundavali (Metro 7)', from: 'METRO_DHE', to: 'METRO_GDV', time: '08:30', isArrive: false, ctx: 'waiting_at_station' as UserTravelContext, desc: 'Mumbai Metro Line 7 Red Line' },
+    { label: 'Versova ➔ Ghatkopar (Metro 1)', from: 'METRO_VER', to: 'METRO_GHT', time: '09:00', isArrive: false, ctx: 'waiting_at_station' as UserTravelContext, desc: 'Mumbai Metro Line 1 Blue Line' },
     { label: 'Dadar ➔ Kalyan', from: 'DR', to: 'KYN', time: '10:15', isArrive: false, ctx: 'waiting_at_station' as UserTravelContext, desc: 'Tests Express Short-Hop Eligibility' },
     { label: 'Kalyan ➔ CSMT', from: 'KYN', to: 'CSMT', time: '10:20', isArrive: false, ctx: 'pre_departure' as UserTravelContext, desc: 'Tests Origin Delay Leave-Home' },
     { label: 'Panvel ➔ CSMT', from: 'PNVL', to: 'CSMT', time: '10:10', isArrive: false, ctx: 'pre_departure' as UserTravelContext, desc: 'Tests Harbour Line Commute' },
@@ -164,12 +169,13 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
         walkToStationMinutes: walkMargin,
         maxTransfers: 1
       },
-      observations: dynamicObservations
+      observations: dynamicObservations,
+      transitModeFilter
     });
-  }, [originCode, destCode, departureTime, isArriveByMode, arriveByTime, userContext, onboardTrainNumber, onboardStationCode, classPref, priority, hasSeasonPass, walkMargin, dynamicObservations]);
+  }, [originCode, destCode, departureTime, isArriveByMode, arriveByTime, userContext, onboardTrainNumber, onboardStationCode, classPref, priority, hasSeasonPass, walkMargin, dynamicObservations, transitModeFilter]);
 
-  const originStation = STATIONS[originCode];
-  const destStation = STATIONS[destCode];
+  const originStation = STATIONS[originCode] || resolveStation(originCode);
+  const destStation = STATIONS[destCode] || resolveStation(destCode);
 
   return (
     <div className="space-y-6">
@@ -181,7 +187,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <TrainTrack className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <TrainTrack className="w-5 h-5 text-theme-primary" />
               <span>Journey Decision Engine</span>
             </h2>
             <p className="text-xs text-slate-500">
@@ -289,7 +295,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
                       placeholder="Type station name, code, or alias (e.g. cst, thane)..."
                       value={originSearch}
                       onChange={(e) => setOriginSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)]"
                       autoFocus
                     />
                   </div>
@@ -304,7 +310,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
                         }}
                         className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
                           originCode === st.code 
-                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold' 
+                            ? 'bg-theme-light text-theme-text font-bold' 
                             : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
                         }`}
                       >
@@ -350,7 +356,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
                       placeholder="Type destination name or code..."
                       value={destSearch}
                       onChange={(e) => setDestSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)]"
                       autoFocus
                     />
                   </div>
@@ -365,7 +371,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
                         }}
                         className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
                           destCode === st.code 
-                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold' 
+                            ? 'bg-theme-light text-theme-text font-bold' 
                             : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
                         }`}
                       >
@@ -389,7 +395,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsArriveByMode(!isArriveByMode)}
-                className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                className="text-[10px] text-theme-primary hover:underline font-semibold"
               >
                 {isArriveByMode ? 'Switch to Depart' : 'Switch to Arrive'}
               </button>
@@ -404,7 +410,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
                   setDepartureTime(e.target.value);
                 }
               }}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] min-h-[44px]"
             />
           </div>
 
@@ -420,7 +426,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
                 max="60"
                 value={walkMargin}
                 onChange={(e) => setWalkMargin(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] min-h-[44px]"
               />
               <span className="text-xs text-slate-500 shrink-0">min</span>
             </div>
@@ -445,7 +451,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
                 onClick={() => setClassPref(c.id as any)}
                 className={`px-2.5 py-1 rounded-lg border font-medium transition-colors ${
                   classPref === c.id 
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
+                    ? 'bg-theme-primary text-white border-theme-primary shadow-xs' 
                     : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                 }`}
               >
@@ -481,7 +487,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
                 type="checkbox"
                 checked={hasSeasonPass}
                 onChange={(e) => setHasSeasonPass(e.target.checked)}
-                className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                className="rounded accent-[var(--theme-primary)] w-4 h-4"
               />
               <span className="text-slate-700 dark:text-slate-300 font-medium">I have Season Pass (MST)</span>
             </label>
@@ -489,51 +495,49 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
 
         </div>
 
-        {/* Live Network Disruption Simulator Bar */}
+        {/* Transit Mode Filter Bar */}
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <TrainTrack className="w-4 h-4 text-theme-primary shrink-0" />
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              Interactive Disruption Injection:
+              Transit Network:
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setActiveSignalDisruption(!activeSignalDisruption)}
-              className={`px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
-                activeSignalDisruption 
-                  ? 'bg-amber-600 text-white border-amber-600 shadow-xs' 
-                  : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600'
-              }`}
-            >
-              Vidyavihar Signal Failure (+22m) {activeSignalDisruption ? '⚡ ACTIVE' : 'CLEARED'}
-            </button>
-
-            <button
-              onClick={() => setActiveOriginDisruption(!activeOriginDisruption)}
-              className={`px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
-                activeOriginDisruption 
-                  ? 'bg-orange-600 text-white border-orange-600 shadow-xs' 
-                  : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600'
-              }`}
-            >
-              Kalyan AC Origin Hold (+18m) {activeOriginDisruption ? '⚡ ACTIVE' : 'CLEARED'}
-            </button>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { id: 'all', label: 'All Modes' },
+              { id: 'suburban', label: 'Suburban Rail' },
+              { id: 'metro', label: 'Mumbai Metro' },
+              { id: 'national', label: 'National Express' },
+              { id: 'combined', label: 'Multimodal Interchanges' }
+            ].map(m => (
+              <button
+                key={m.id}
+                onClick={() => setTransitModeFilter(m.id as any)}
+                className={`px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
+                  transitModeFilter === m.id
+                    ? 'bg-theme-primary text-white border-theme-primary shadow-xs'
+                    : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Quick Commute Presets */}
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
           <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
-            <TrainTrack className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <TrainTrack className="w-3.5 h-3.5 text-theme-primary" />
             Key Corridors:
           </span>
           {presets.map((pr, idx) => (
             <button
               key={idx}
               onClick={() => handleApplyPreset(pr)}
-              className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/40 dark:hover:text-blue-300 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium transition-colors"
+              className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-theme-light hover:text-theme-text text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium transition-colors"
               title={pr.desc}
             >
               {pr.label}

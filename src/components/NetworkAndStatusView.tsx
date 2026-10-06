@@ -14,6 +14,7 @@ import {
 
 interface NetworkAndStatusViewProps {
   onPlanRouteFromStation?: (stationCode: string) => void;
+  onPlanRouteToStation?: (stationCode: string) => void;
   onOpenGodsEye?: (stationCode: string) => void;
   initialTrainNumber?: string;
   defaultSubTab?: 'map' | 'tracker';
@@ -21,6 +22,7 @@ interface NetworkAndStatusViewProps {
 
 export const NetworkAndStatusView: React.FC<NetworkAndStatusViewProps> = ({
   onPlanRouteFromStation,
+  onPlanRouteToStation,
   onOpenGodsEye,
   initialTrainNumber = '95112',
   defaultSubTab = 'map'
@@ -64,7 +66,7 @@ export const NetworkAndStatusView: React.FC<NetworkAndStatusViewProps> = ({
           >
             <Radio className="w-4 h-4" />
             <span>
-              {language === 'hi' ? 'लाइव ट्रेन व OCC स्थिति' : language === 'mr' ? 'थेट ट्रेन व OCC स्थिती' : 'Live OCC & Train Tracker'}
+              {language === 'hi' ? 'ट्रेन स्थिति व सेवा अपडेट' : language === 'mr' ? 'ट्रेन स्थिती व सेवा अद्यतने' : 'Train Status & Service Updates'}
             </span>
           </button>
         </div>
@@ -93,6 +95,7 @@ export const NetworkAndStatusView: React.FC<NetworkAndStatusViewProps> = ({
         {subTab === 'map' ? (
           <NetworkMapViewer
             onPlanRouteFromStation={onPlanRouteFromStation}
+            onPlanRouteToStation={onPlanRouteToStation}
             onInspectTrainSchedule={handleInspectTrain}
             onOpenGodsEye={onOpenGodsEye}
           />

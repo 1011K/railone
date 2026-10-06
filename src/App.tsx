@@ -83,6 +83,11 @@ export default function App() {
     setActiveTab('journey');
   };
 
+  const handlePlanRouteToStation = (stationCode: string) => {
+    setJourneyDest(stationCode);
+    setActiveTab('journey');
+  };
+
   const handleSearchRouteShortcut = (from: string, to: string) => {
     setJourneyOrigin(from);
     setJourneyDest(to);
@@ -130,6 +135,7 @@ export default function App() {
           {activeTab === 'status' && (
             <NetworkAndStatusView
               onPlanRouteFromStation={handlePlanRouteFromStation}
+              onPlanRouteToStation={handlePlanRouteToStation}
               onOpenGodsEye={handleOpenGodsEye}
               initialTrainNumber={inspectedTrainNumber}
             />

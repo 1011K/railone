@@ -308,10 +308,10 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
       <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="p-2 rounded-xl bg-blue-600/30 text-blue-400 border border-blue-500/30">
+            <span className="p-2 rounded-xl bg-theme-light text-theme-primary border border-theme-primary/30">
               <Bot className="w-5 h-5" />
             </span>
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-theme-primary">
               Operations Control & Commuter Assistance Suite
             </span>
             {aiDataSource && (
@@ -334,7 +334,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
             onClick={() => setActiveTab('tasks')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
               activeTab === 'tasks' 
-                ? 'bg-blue-600 text-white shadow-xs font-bold' 
+                ? 'bg-theme-primary text-white shadow-xs font-bold' 
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -345,7 +345,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
             onClick={() => setActiveTab('copilot')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
               activeTab === 'copilot' 
-                ? 'bg-blue-600 text-white shadow-xs font-bold' 
+                ? 'bg-theme-primary text-white shadow-xs font-bold' 
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -376,7 +376,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Zap className="w-4 h-4 text-theme-primary" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                   Commuter Dilemma Decomposer & Action Planner
                 </h3>
@@ -393,12 +393,12 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                 value={naturalLanguageInput}
                 onChange={(e) => setNaturalLanguageInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAiAutoDecompose()}
-                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-theme-primary"
               />
               <button
                 onClick={() => handleAiAutoDecompose()}
                 disabled={isGenerating || !naturalLanguageInput.trim()}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs shrink-0"
+                className="px-5 py-2.5 bg-theme-primary hover-bg-theme-primary disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs shrink-0"
               >
                 {isGenerating ? (
                   <>
@@ -426,7 +426,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                 <button
                   key={chip.label}
                   onClick={() => handleAiAutoDecompose(chip.prompt)}
-                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200 dark:border-slate-700"
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-theme-light text-slate-700 dark:text-slate-300 hover:text-theme-primary transition-colors border border-slate-200 dark:border-slate-700"
                 >
                   {chip.label}
                 </button>
@@ -485,7 +485,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
 
               <button
                 onClick={() => setIsNewTaskOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                className="px-4 py-2 bg-theme-primary hover-bg-theme-primary text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>New Task</span>
@@ -496,10 +496,10 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
 
           {/* New Task Inline Modal Form */}
           {isNewTaskOpen && (
-            <form onSubmit={handleAddManualTask} className="bg-white dark:bg-slate-900 border-2 border-blue-500/40 rounded-3xl p-5 shadow-xl space-y-4 animate-fadeIn">
+            <form onSubmit={handleAddManualTask} className="bg-white dark:bg-slate-900 border-2 border-theme-primary/40 rounded-3xl p-5 shadow-xl space-y-4 animate-fadeIn">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-blue-600" />
+                  <Plus className="w-4 h-4 text-theme-primary" />
                   <span>Create Institutional Commuter Task</span>
                 </h4>
                 <button
@@ -723,7 +723,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                             isCompleted
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                               : isInProgress
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                              ? 'bg-theme-light text-theme-primary'
                               : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                           }`}
                         >
@@ -756,7 +756,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-blue-600 text-white font-bold">
+              <span className="p-2 rounded-xl bg-theme-primary text-white font-bold">
                 <Bot className="w-4 h-4" />
               </span>
               <div>
@@ -782,18 +782,18 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                 className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs font-bold font-mono">
+                  <div className="w-7 h-7 rounded-xl bg-theme-primary text-white flex items-center justify-center shrink-0 text-xs font-bold font-mono">
                     OCC
                   </div>
                 )}
                 <div className={`max-w-[80%] rounded-2xl p-3.5 text-xs leading-relaxed ${
                   msg.role === 'user' 
-                    ? 'bg-blue-600 text-white font-medium' 
+                    ? 'bg-theme-primary text-white font-medium' 
                     : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 shadow-xs'
                 }`}>
                   <p className="whitespace-pre-line">{msg.text}</p>
                   <span className={`block text-[9px] mt-1.5 text-right font-mono ${
-                    msg.role === 'user' ? 'text-blue-200' : 'text-slate-400'
+                    msg.role === 'user' ? 'text-white/80' : 'text-slate-400'
                   }`}>
                     {msg.time}
                   </span>
@@ -803,11 +803,11 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
 
             {isCopilotThinking && (
               <div className="flex gap-3 justify-start items-center text-xs text-slate-400">
-                <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-xl bg-theme-primary text-white flex items-center justify-center shrink-0">
                   <Bot className="w-3.5 h-3.5 animate-spin" />
                 </div>
                 <div className="bg-white dark:bg-slate-900 rounded-2xl px-4 py-2 border border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-theme-primary" />
                   <span>Analyzing sectional delay telemetry and platform routes...</span>
                 </div>
               </div>
@@ -822,12 +822,12 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
               value={copilotQuery}
               onChange={(e) => setCopilotQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSendCopilot()}
-              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-theme-primary"
             />
             <button
               onClick={handleSendCopilot}
               disabled={isCopilotThinking || !copilotQuery.trim()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+              className="px-6 py-3 bg-theme-primary hover-bg-theme-primary disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
             >
               <Send className="w-4 h-4" />
               <span>Send</span>

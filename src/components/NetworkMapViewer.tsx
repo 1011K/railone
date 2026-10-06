@@ -17,6 +17,7 @@ import {
   project3DIsometric,
   ALL_NETWORK_TRAINS
 } from '../engine/networkMapEngine';
+import { generateMetroTrips } from '../engine/journeyEngine';
 import { 
   Train, 
   Layers, 
@@ -43,12 +44,14 @@ import { useTheme } from './ThemeContext';
 
 interface NetworkMapViewerProps {
   onPlanRouteFromStation?: (stationCode: string) => void;
+  onPlanRouteToStation?: (stationCode: string) => void;
   onInspectTrainSchedule?: (trainNumber: string) => void;
   onOpenGodsEye?: (stationCode: string) => void;
 }
 
 export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
   onPlanRouteFromStation,
+  onPlanRouteToStation,
   onInspectTrainSchedule,
   onOpenGodsEye
 }) => {
@@ -164,6 +167,18 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     return null;
   }, [selectedStationCode, stations]);
 
+  // Active calling trains at active station
+  const activeStationCallingTrains = useMemo(() => {
+    if (!activeStation) return [];
+    const directTrains = ALL_NETWORK_TRAINS.filter(t => t.stops.some(s => s.stationCode === activeStation.code));
+    if (directTrains.length > 0) return directTrains;
+    if (activeStation.line === 'metro' || activeStation.code.startsWith('METRO_')) {
+      const metro = generateMetroTrips('10:30').filter(t => t.stops.some(s => s.stationCode === activeStation.code));
+      return metro.slice(0, 6);
+    }
+    return [];
+  }, [activeStation]);
+
   // Active inspected train
   const activeTrain = useMemo(() => {
     if (selectedTrainNumber) {
@@ -256,8 +271,12 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
 
     if (target) {
       const p = projectCoords(target.x, target.y, target.z || 10);
-      setPan({ x: Math.round(500 - p.px * 1.3), y: Math.round(450 - p.py * 1.3) });
-      setZoom(1.3);
+      const targetZoom = 1.3;
+      setPan({ 
+        x: Math.round((500 - p.px) * targetZoom), 
+        y: Math.round((475 - p.py) * targetZoom) 
+      });
+      setZoom(targetZoom);
     }
   };
 
@@ -270,8 +289,12 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     const marker = trainMarkers.find(m => m.trainNumber === tNum);
     if (marker) {
       const p = projectCoords(marker.position.x, marker.position.y, (marker.position.z || 10) + 5);
-      setPan({ x: Math.round(500 - p.px * 1.3), y: Math.round(450 - p.py * 1.3) });
-      setZoom(1.3);
+      const targetZoom = 1.3;
+      setPan({ 
+        x: Math.round((500 - p.px) * targetZoom), 
+        y: Math.round((475 - p.py) * targetZoom) 
+      });
+      setZoom(targetZoom);
     }
   };
 
@@ -450,7 +473,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
             </div>
           ) : (
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+              <ShieldCheck className="w-3.5 h-3.5 text-theme-primary" />
               Showing 40+ National Railway Hubs & High-Speed Golden Quadrilateral Corridors
             </div>
           )}
@@ -561,7 +584,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               Data Verification Provenance
             </span>
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mt-0.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+              <ShieldCheck className="w-3.5 h-3.5 text-theme-primary" />
               [TIMETABLE SCHEDULE & STATUS]
             </span>
           </div>
@@ -703,23 +726,32 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
+              <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center gap-2">
                 {onPlanRouteFromStation && (
                   <button
                     onClick={() => onPlanRouteFromStation(activeStation.code)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-theme-primary hover-bg-theme-primary text-white font-bold text-xs shadow-xs transition-colors"
+                    className="flex-1 min-w-[90px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-theme-primary hover-bg-theme-primary text-white font-bold text-xs shadow-xs transition-colors"
                   >
                     <ArrowRight className="w-3.5 h-3.5" />
-                    <span>Plan From Here</span>
+                    <span>From Here</span>
+                  </button>
+                )}
+                {onPlanRouteToStation && (
+                  <button
+                    onClick={() => onPlanRouteToStation(activeStation.code)}
+                    className="flex-1 min-w-[90px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-colors"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-theme-primary" />
+                    <span>To Here</span>
                   </button>
                 )}
                 {onOpenGodsEye && (
                   <button
                     onClick={() => onOpenGodsEye(activeStation.code)}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-colors"
+                    className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-colors"
                   >
-                    <Eye className="w-3.5 h-3.5 text-blue-400" />
-                    <span>3D View</span>
+                    <Eye className="w-3.5 h-3.5 text-theme-primary" />
+                    <span>3D</span>
                   </button>
                 )}
               </div>
@@ -1039,6 +1071,15 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                       <span>Plan Journey From {activeStation.name}</span>
                     </button>
                   )}
+                  {onPlanRouteToStation && (
+                    <button
+                      onClick={() => onPlanRouteToStation(activeStation.code)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-colors"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-theme-primary" />
+                      <span>Plan Journey To {activeStation.name}</span>
+                    </button>
+                  )}
                   {onOpenGodsEye && (
                     <button
                       onClick={() => onOpenGodsEye(activeStation.code)}
@@ -1054,11 +1095,11 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               {/* Trains Calling At This Station */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Scheduled Services Calling ({activeStation.passingTrainCount || 0}):
+                  Scheduled Services Calling ({activeStationCallingTrains.length || activeStation.passingTrainCount || 0}):
                 </h4>
                 <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                  {ALL_NETWORK_TRAINS.filter(t => t.stops.some(s => s.stationCode === activeStation.code)).length > 0 ? (
-                    ALL_NETWORK_TRAINS.filter(t => t.stops.some(s => s.stationCode === activeStation.code)).map(t => {
+                  {activeStationCallingTrains.length > 0 ? (
+                    activeStationCallingTrains.map(t => {
                       const stop = t.stops.find(s => s.stationCode === activeStation.code);
                       return (
                         <div 

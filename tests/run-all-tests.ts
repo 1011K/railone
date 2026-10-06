@@ -3,6 +3,8 @@
  * Master Plan 2.0 Acceptance Scenarios (G1–G18) + Architectural Invariants
  */
 
+import fs from 'fs';
+import path from 'path';
 import { STATIONS, TRAIN_TRIPS, INITIAL_OBSERVATIONS, calculateSuburbanFare } from '../src/fixtures/railwayData';
 import { evaluateJourneyEligibility } from '../src/engine/eligibilityEngine';
 import { computePredictedStops, getMinutesDifference, addMinutesToTimeString, addMinutesWithDayOffset } from '../src/engine/delayModel';
@@ -11,6 +13,7 @@ import { estimateCrowdLevel } from '../src/engine/crowdEstimator';
 import { RailBackendTools } from '../src/engine/voiceTools';
 import { MockBookingStore } from '../src/engine/mockBookingStore';
 import { normalizeStation } from '../src/engine/stationNormalizer';
+import { THEME_CONFIG } from '../src/components/ThemeContext';
 
 let totalTests = 0;
 let passedTests = 0;
@@ -784,6 +787,31 @@ console.log('\nTest Suite 19: Mumbai Metro Network, Strict AC Filtering, Pan-Ind
   assert(metroJourneys.length > 0, '19.18: Multimodal journey engine successfully plans direct Mumbai Metro trip');
   assert(metroJourneys[0].totalFareByClass.II !== undefined && metroJourneys[0].totalFareByClass.II > 0, 
     '19.19: Calculates official distance-slab fare for Metro journey');
+}
+
+console.log('\nTest Suite 20: Institutional Passenger PWA, Offline Service Worker & Theming Verification');
+{
+  const manifestPath = path.resolve(process.cwd(), 'public/manifest.json');
+  assert(fs.existsSync(manifestPath), '20.1: PWA manifest.json exists in public directory');
+  if (fs.existsSync(manifestPath)) {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    assert(manifest.display === 'standalone' && manifest.short_name === 'RailOne Next', '20.2: manifest.json configured with standalone display and RailOne Next name');
+  }
+
+  const swPath = path.resolve(process.cwd(), 'public/sw.js');
+  assert(fs.existsSync(swPath), '20.3: PWA service worker (sw.js) exists for offline caching');
+  if (fs.existsSync(swPath)) {
+    const swContent = fs.readFileSync(swPath, 'utf8');
+    assert(swContent.includes('railone-offline') && swContent.includes('fetch'), '20.4: Service worker includes offline cache and network fallback handlers');
+  }
+
+  const icon192Path = path.resolve(process.cwd(), 'public/icon-192.svg');
+  const icon512Path = path.resolve(process.cwd(), 'public/icon-512.svg');
+  assert(fs.existsSync(icon192Path) && fs.existsSync(icon512Path), '20.5: PWA scalable SVG icons exist (192px and 512px)');
+
+  const themeKeys = Object.keys(THEME_CONFIG);
+  assert(themeKeys.length === 8, '20.6: Exactly 8 authentic railway themes configured in THEME_CONFIG');
+  assert(themeKeys.every(k => THEME_CONFIG[k as any].primaryHex.startsWith('#')), '20.7: All 8 themes specify valid primaryHex color tokens');
 }
 
 console.log('\n====================================================');

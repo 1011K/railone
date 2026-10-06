@@ -193,7 +193,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
         {/* Modal Header */}
         <div className="px-5 py-4 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-theme-primary flex items-center justify-center text-white shadow-md">
               <Eye className="w-5 h-5" />
             </div>
             <div>
@@ -201,7 +201,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                 <h2 className="font-extrabold text-base sm:text-lg text-white">
                   God's Eye Station 3D Navigation
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-theme-light text-theme-primary border border-theme-primary/30">
                   {layout.zone} Division
                 </span>
               </div>
@@ -216,7 +216,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
             <select
               value={stationCode}
               onChange={(e) => handleStationChange(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-theme-primary"
               aria-label="Select interchange station"
             >
               {Object.values(STATION_3D_LAYOUTS).map(stn => (
@@ -255,7 +255,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
               onClick={() => setViewMode('gods_eye_3d')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold transition-colors ${
                 viewMode === 'gods_eye_3d' 
-                  ? 'bg-blue-600 text-white shadow-xs' 
+                  ? 'bg-theme-primary text-white shadow-xs' 
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -267,7 +267,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
               onClick={() => setViewMode('top_down_plan')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold transition-colors ${
                 viewMode === 'top_down_plan' 
-                  ? 'bg-blue-600 text-white shadow-xs' 
+                  ? 'bg-theme-primary text-white shadow-xs' 
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -303,27 +303,27 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
               <button
                 onClick={() => setSelectedLevel(0)}
                 className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                  selectedLevel === 0 ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+                  selectedLevel === 0 ? 'bg-theme-primary text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                L0 Platforms
+                Platforms (L0)
               </button>
               <button
                 onClick={() => setSelectedLevel(1)}
                 className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                  selectedLevel === 1 ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+                  selectedLevel === 1 ? 'bg-theme-primary text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                L1 Bridges
+                Footbridges (L1)
               </button>
               {layout.levelsCount > 2 && (
                 <button
                   onClick={() => setSelectedLevel(2)}
                   className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                    selectedLevel === 2 ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
+                    selectedLevel === 2 ? 'bg-theme-primary text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  L2 Skywalk
+                  Elevated Concourse (L2)
                 </button>
               )}
             </div>
@@ -332,23 +332,23 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
           {/* 3D sliders (only if 3D mode) */}
           {viewMode === 'gods_eye_3d' && (
             <div className="hidden md:flex items-center gap-3 bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-700/60 text-[11px]">
-              <span className="text-blue-300 font-bold">Pitch:</span>
+              <span className="text-theme-primary font-bold">Pitch:</span>
               <input
                 type="range"
                 min="20"
                 max="65"
                 value={pitch}
                 onChange={(e) => setPitch(Number(e.target.value))}
-                className="w-16 accent-blue-500 cursor-pointer"
+                className="w-16 accent-theme-primary cursor-pointer"
               />
-              <span className="text-blue-300 font-bold ml-1">Rot:</span>
+              <span className="text-theme-primary font-bold ml-1">Rot:</span>
               <input
                 type="range"
                 min="-45"
                 max="45"
                 value={rotation}
                 onChange={(e) => setRotation(Number(e.target.value))}
-                className="w-16 accent-blue-500 cursor-pointer"
+                className="w-16 accent-theme-primary cursor-pointer"
               />
             </div>
           )}
@@ -574,7 +574,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                       }}
                       title={`${amenity.name} (${amenity.type})`}
                     >
-                      <div className="w-5 h-5 rounded-full bg-blue-600 border border-white/80 shadow-md flex items-center justify-center text-white text-[10px] cursor-pointer hover:scale-125 transition-transform">
+                      <div className="w-5 h-5 rounded-full bg-theme-primary border border-white/80 shadow-md flex items-center justify-center text-white text-[10px] cursor-pointer hover:scale-125 transition-transform">
                         {amenity.type === 'lift' ? '♿' : 
                          amenity.type === 'wheelchair_ramp' ? '♿' :
                          amenity.type === 'escalator' ? '⚡' : 
@@ -613,7 +613,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
               </div>
 
               <div className="bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-400 backdrop-blur pointer-events-auto flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                <ShieldCheck className="w-3.5 h-3.5 text-theme-primary" />
                 <span>3D Precision Topological Model</span>
               </div>
             </div>
@@ -731,13 +731,13 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
               <div className="space-y-4">
                 {/* Bridge Inspector (if bridge is clicked) */}
                 {activeBridge && (
-                  <div className="bg-blue-950/40 border border-blue-500/40 rounded-2xl p-3.5 space-y-2 text-xs animate-fadeIn">
+                  <div className="bg-slate-900/90 border border-theme-primary/40 rounded-2xl p-3.5 space-y-2 text-xs animate-fadeIn">
                     <div className="flex items-center justify-between">
                       <h4 className="font-bold text-white flex items-center gap-1.5">
-                        <Footprints className="w-3.5 h-3.5 text-blue-400" />
+                        <Footprints className="w-3.5 h-3.5 text-theme-primary" />
                         <span>{activeBridge.name}</span>
                       </h4>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-theme-light text-theme-primary border border-theme-primary/30">
                         Level {activeBridge.level}
                       </span>
                     </div>
@@ -745,14 +745,14 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                       <div>Length: <strong className="text-white">{activeBridge.lengthMeters}m</strong></div>
                       <div>Avg Walk: <strong className="text-white">{activeBridge.typicalWalkMinutes} min</strong></div>
                       <div>Lifts: <strong className={activeBridge.hasLifts ? 'text-emerald-400' : 'text-slate-400'}>{activeBridge.hasLifts ? 'Yes (♿)' : 'No'}</strong></div>
-                      <div>Escalator: <strong className={activeBridge.hasEscalators ? 'text-blue-300' : 'text-slate-400'}>{activeBridge.hasEscalators ? 'Yes' : 'No'}</strong></div>
+                      <div>Escalator: <strong className={activeBridge.hasEscalators ? 'text-theme-primary' : 'text-slate-400'}>{activeBridge.hasEscalators ? 'Yes' : 'No'}</strong></div>
                     </div>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-blue-400" />
+                    <Building2 className="w-4 h-4 text-theme-primary" />
                     <span>Station Platform Details</span>
                   </h3>
                   <span className="text-xs text-slate-400 font-mono">
@@ -790,9 +790,9 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
 
                     {/* Approaching train on platform */}
                     {activePlatform.currentTrain ? (
-                      <div className="bg-blue-950/40 border border-blue-500/30 rounded-xl p-3 space-y-1">
+                      <div className="bg-slate-900/90 border border-theme-primary/30 rounded-xl p-3 space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wide">
+                          <span className="text-[10px] font-bold text-theme-primary uppercase tracking-wide">
                             Next Expected Arrival
                           </span>
                           <span className="text-[10px] font-bold text-amber-400">
@@ -803,7 +803,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                           {activePlatform.currentTrain.trainName} (#{activePlatform.currentTrain.trainNumber})
                         </p>
                         <p className="text-[11px] text-slate-300">
-                          Destination: <span className="font-bold text-blue-300">{activePlatform.currentTrain.destination}</span> · {activePlatform.currentTrain.carCount}-Car {activePlatform.currentTrain.rakeType}
+                          Destination: <span className="font-bold text-theme-primary">{activePlatform.currentTrain.destination}</span> · {activePlatform.currentTrain.carCount}-Car {activePlatform.currentTrain.rakeType}
                         </p>
                       </div>
                     ) : (
@@ -829,7 +829,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                         setViewMode('pathfinder');
                         setFromPlatformId(activePlatform.id);
                       }}
-                      className="w-full mt-2 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                      className="w-full mt-2 py-2 rounded-xl bg-theme-primary hover-bg-theme-primary text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Footprints className="w-3.5 h-3.5" />
                       <span>Plan FOB Transfer from PF {activePlatform.number}</span>
@@ -856,7 +856,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                         onClick={() => setFilterAmenity(f.id)}
                         className={`px-2 py-1.5 rounded-lg text-left text-[11px] font-bold transition-colors ${
                           filterAmenity === f.id 
-                            ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50' 
+                            ? 'bg-theme-light text-theme-primary border border-theme-primary/50' 
                             : 'bg-slate-800/60 text-slate-400 hover:text-white'
                         }`}
                       >
@@ -871,7 +871,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
 
             {/* Bottom Safety Reminder */}
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-400 flex items-start gap-2.5">
-              <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <ShieldCheck className="w-4 h-4 text-theme-primary shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-slate-200 block">Railway Safety Guideline:</span>
                 Never cross railway tracks on foot. Always use designated Foot-Over-Bridges (FOB) or subways.
