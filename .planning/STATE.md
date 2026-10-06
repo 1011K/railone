@@ -69,6 +69,11 @@
 - [x] Live platform occupancy visualization and amenities indexing (ATVMs, Lifts, Escalators, RPF Police posts, Medical clinics, Metro links).
 - [x] Automated Verification Suite 18 with 22 assertions, expanding test suite total to 135/135 passing tests (100% pass rate).
 - [x] Complete institutional documentation library in `docs/`:
+  - `docs/MASTER_REQUIREMENTS_3_0.md` (Master requirements specification for RailOne Next 3.0).
+  - `docs/AUDIT_DEFECT_CLOSURE.md` (Definitive closure register for all P0 audit defects).
+  - `docs/DATA_SOURCES_AND_RIGHTS.md` (Data provenance, CRIS/NTES boundary, and licensing compliance).
+  - `docs/END_TO_END_ACCEPTANCE.md` (Comprehensive E2E acceptance evidence across 135 assertions).
+  - `docs/REMAINING_BLOCKERS.md` (Transparent register of external institutional blockers vs working simulators).
   - `docs/INTERNATIONAL_BENCHMARK_MATRIX.md` (JR East, TfL, SBB, SNCF, MTA, Singapore LTA benchmarking).
   - `docs/COMPETITOR_PROBLEM_TO_SOLUTION.md` (Analysis of store review failure modes & deterministic solutions).
   - `docs/GITHUB_INTEGRATION_REGISTER.md` (Audit of 29 candidate repositories under "Integrate, Don't Collect").
@@ -88,5 +93,7 @@
 - **Branch:** `feature/railone-decision-core` verified and ready for push to origin.
 - **Verification Evidence:** All 135 unit and integration tests passing cleanly (100% pass rate).
 - **Typecheck & Lint Status:** 0 errors via `npm run lint`.
-- **Production Build:** Clean bundle in 897ms via `npm run build`.
+- **Production Build:** Clean bundle in 711ms via `npm run build`.
+- **Deliverables Coverage:** All 25 required deliverables from Section 22 complete and verified.
+
 

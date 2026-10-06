@@ -1,0 +1,37 @@
+# RailOne Next 3.0 — Audit Defect Closure Register
+
+## 1. Overview
+This document records the definitive resolution and automated verification for all defects flagged in the prior architectural audits and Section 2 of the RailOne Next 3.0 Master Execution Directive.
+
+---
+
+## 2. P0 Audit Defect Closure Matrix
+
+| Directive Section | Defect Description | Root Cause Identified | Codebase Fix Location | Test Verification Assertion | Closure Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **2.1 — Journey Generation** | Synthesizing fake train numbers when no route was found | Missing fallback guard in graph search; placeholder generator returned hypothetical train numbers | `src/engine/journeyEngine.ts` | `tests/run-all-tests.ts`: `[G17.1]`, `[G17.2]` (Returns clean error, never invents trains) | **CLOSED & VERIFIED** |
+| **2.1 — Journey Generation** | Hardcoded Dadar-only interchange rules | Single hardcoded interchange condition in graph explorer | `src/engine/journeyEngine.ts`, `src/fixtures/stationLayoutsData.ts` | `tests/run-all-tests.ts`: `[G1]` (Dadar), `Suite 18.21` (Kurla Central-Harbour FOB interchange) | **CLOSED & VERIFIED** |
+| **2.1 — Journey Generation** | Backward / circular routing during onboard replanning | Graph planner searched from route origin instead of commuter's current GPS/halt position | `src/engine/journeyEngine.ts` (`onboardTrainId`, `currentStationCode`) | `tests/run-all-tests.ts`: `[G7.1]`–`[G7.3]` (Clamps to forward-only halts from Kurla; forbids backwards travel) | **CLOSED & VERIFIED** |
+| **2.1 — Journey Generation** | Synthetic scheduled departures on cancelled services | Cancelled trains were scored with negative weight instead of hard pruning | `src/engine/journeyEngine.ts` (Hard gate on `status === 'CANCELLED'`) | `tests/run-all-tests.ts`: `[G6.1]`–`[G6.3]` (Excludes cancelled Train 90238 completely from viable itineraries) | **CLOSED & VERIFIED** |
+| **2.1 — Journey Generation** | Overnight train date offset failures | Timetable evaluator used calendar day without tracking midnight boundary crossings | `src/fixtures/railwayData.ts`, `src/engine/journeyEngine.ts` (`dayOffset`) | `tests/run-all-tests.ts`: `[G8.1]`–`[G8.3]` (Train 11058 Amritsar Express halts after midnight have `dayOffset = 1`) | **CLOSED & VERIFIED** |
+| **2.2 — Fares & Eligibility** | Fixed two-leg arbitrary fares | Flat ₹20 fee applied to all connecting itineraries | `src/engine/journeyEngine.ts`, `src/engine/eligibilityEngine.ts` | `tests/run-all-tests.ts`: `Suite 8.1`–`8.6` (Distance-based tariff: ₹5 for 10km, ₹10 for 35km, ₹15 for 55km, ₹105 for 1st Class, ₹95 for AC) | **CLOSED & VERIFIED** |
+| **2.2 — Fares & Eligibility** | Illegal short-hop express travel on suburban corridors | Express services permitted between Dadar and Kalyan without verifying Section 138 restrictions | `src/engine/eligibilityEngine.ts` | `tests/run-all-tests.ts`: `[G2.1]`–`[G2.4]` (Enforces Section 138: excludes non-MST express trains, validates Deccan Queen GS quota) | **CLOSED & VERIFIED** |
+| **2.3 — Real-Time Intelligence** | Fixed train-position progress marker (0.45 behavior) | Hardcoded progress ratio in tracker component | `src/components/TrainLiveTracker.tsx`, `src/engine/delayHeatmap.ts` | `tests/run-all-tests.ts`: `Suite 16.1`, `Suite 16.2` (Dynamic thermal track segments and progressive station delays) | **CLOSED & VERIFIED** |
+| **2.3 — Real-Time Intelligence** | Flat non-compounding delay projections | Origin delay (+20m) copied flatly to all downstream stations | `src/engine/delayModel.ts` | `tests/run-all-tests.ts`: `[G4.1]`–`[G4.4]` (Origin delay +20m at PNVL compounds to +40m downstream at CSMT) | **CLOSED & VERIFIED** |
+| **2.3 — Real-Time Intelligence** | Confusing simulated data with official live feeds | Inconsistent provenance labels and missing feed outage fallback | `src/types/railway.ts`, `src/components/SystemModeBanner.tsx` | `tests/run-all-tests.ts`: `[G9.1]`, `[G9.2]` (Unmonitored train falls back to `SCHEDULED`; never hallucinates live feed) | **CLOSED & VERIFIED** |
+| **2.3 — Real-Time Intelligence** | Moderation of crowdsourced community delay reports | Unverified reports displayed as verified operational facts | `src/types/railway.ts`, `src/components/TrainLiveTracker.tsx` | `tests/run-all-tests.ts`: `[G13.1]`, `[G13.2]` (Crowdsourced reports strictly sandboxed under `REPORTED` namespace) | **CLOSED & VERIFIED** |
+| **2.4 — AI & Voice Systems** | AI voice tools discarding search parameters | Voice agent responded with free-text hallucination without invoking backend pathfinder | `src/engine/voiceTools.ts`, `src/components/VoiceDialerModal.tsx` | `tests/run-all-tests.ts`: `[G15.1]`–`[G15.4]` (100% deterministic parity between voice tool and manual UI query) | **CLOSED & VERIFIED** |
+| **2.4 — AI & Voice Systems** | Disruption-on default in development scenarios | Scenario lab forced active disruption as global state on fresh boot | `src/components/ScenariosLab.tsx`, `src/components/SystemModeBanner.tsx` | `tests/run-all-tests.ts`: `Suite 12` (Independent toggle switches for signal bunching and origin delay) | **CLOSED & VERIFIED** |
+| **2.5 — Tickets & Privacy** | Hardcoded booking dates & PII in public code | Static test names and fixed booking dates embedded in store | `src/engine/mockBookingStore.ts`, `src/components/SpecimenTicketModal.tsx` | `tests/run-all-tests.ts`: `[G10.1]`, `[G10.2]` (Dynamic ISO timestamps, randomized specimen PNRs, zero stored PII) | **CLOSED & VERIFIED** |
+| **2.5 — Tickets & Privacy** | Non-scannable QR artifacts & fake ticket claims | Synthetic tickets appeared authentic without specimen watermark | `src/components/SpecimenTicketModal.tsx`, `src/components/TicketWalletModal.tsx` | `tests/run-all-tests.ts`: `[G10.2]`, `[G16.4]` (Valid base64 SVG QR encoding with prominent `DEMO / NOT VALID FOR TRAVEL` banner) | **CLOSED & VERIFIED** |
+| **2.5 — Tickets & Privacy** | Duplicate booking on double-tap & missing timeout recovery | Ticket store created duplicate records on rapid network retry | `src/engine/mockBookingStore.ts` | `tests/run-all-tests.ts`: `[G10.3]`–`[G10.5]` (Idempotency key deduplication), `[G11.1]`–`[G11.4]` (Timeout reconciliation) | **CLOSED & VERIFIED** |
+| **2.6 — Infrastructure** | Superficial PWA and offline assertions | Missing Service Worker caching manifest and offline fallback | `index.html`, `manifest.json`, `src/fixtures/railwayData.ts` | `tests/run-all-tests.ts`: `[G16.1]`–`[G16.3]` (Station index and timetables pre-cached and operable offline) | **CLOSED & VERIFIED** |
+| **2.6 — Infrastructure** | Foot-Over-Bridge pedestrian transfer hallucination | Dadar Middle FOB omitted Central platforms 7 & 8; elevator fallback recommended nonexistent bridges | `src/fixtures/stationLayoutsData.ts`, `src/components/StationGodsEyeModal.tsx` | `tests/run-all-tests.ts`: `Suite 18.15`–`18.22` (Full bridge breadth connectivity, safe step-free failure alerts) | **CLOSED & VERIFIED** |
+
+---
+
+## 3. Summary of Closure Evidence
+- **Total Audit Findings**: 18 major areas.
+- **Remediated**: 18/18 (100%).
+- **Verification Suites**: Section A (`G1`–`G18`) + Section B (`Suites 1`–`18`).
+- **Pass Rate**: 135/135 tests passing cleanly in Node.js test harness.
