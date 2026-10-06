@@ -651,6 +651,69 @@ export const TRAIN_TRIPS: TrainTrip[] = [
       { stationCode: 'VSH', stationName: 'Vashi', scheduledArrival: '11:31', scheduledDeparture: '11:32', platform: '1', distanceKm: 20.4, isHalt: true },
       { stationCode: 'PNVL', stationName: 'Panvel', scheduledArrival: '11:58', scheduledDeparture: '11:58', platform: '3', distanceKm: 48.9, isHalt: true }
     ]
+  },
+
+  // 13. National Overnight Express: 11058 Amritsar - CSMT Express (Midnight crossing scenario)
+  {
+    trainNumber: '11058',
+    trainName: 'Amritsar - CSMT Express',
+    hindiName: 'अमृतसर - सीएसएमटी एक्सप्रेस',
+    marathiName: 'अमृतसर - सीएसएमटी एक्सप्रेस',
+    originStation: 'KYN', // Intercity service calling post-midnight in Mumbai section
+    destinationStation: 'CSMT',
+    serviceType: 'mail_express',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    availableClasses: ['2S', 'SL', '3A', '2A'],
+    isMSTPermitted: false,
+    mstNotes: 'National long-distance service originating yesterday night (22:30). Crosses midnight into day 1 for Mumbai section.',
+    stops: [
+      { stationCode: 'KYN', stationName: 'Kalyan', scheduledArrival: '00:50', scheduledDeparture: '00:53', platform: '6', distanceKm: 0, isHalt: true, dayOffset: 1 },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '01:15', scheduledDeparture: '01:18', platform: '6', distanceKm: 19.9, isHalt: true, dayOffset: 1 },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '01:42', scheduledDeparture: '01:45', platform: '6', distanceKm: 44.5, isHalt: true, dayOffset: 1 },
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '02:10', scheduledDeparture: '02:10', platform: '11', distanceKm: 53.5, isHalt: true, dayOffset: 1 }
+    ]
+  },
+
+  // 14. National Superfast: 12134 Mangalore - CSMT Superfast (Downstream Compounding Delay Scenario)
+  {
+    trainNumber: '12134',
+    trainName: 'Mangalore - CSMT Superfast Express',
+    hindiName: 'मंगलौर - सीएसएमटी सुपरफास्ट',
+    marathiName: 'मंगळूर - सीएसएमटी सुपरफास्ट',
+    originStation: 'PNVL',
+    destinationStation: 'CSMT',
+    serviceType: 'superfast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    availableClasses: ['2S', 'SL', '3A', '2A'],
+    isMSTPermitted: false,
+    stops: [
+      { stationCode: 'PNVL', stationName: 'Panvel', scheduledArrival: '09:40', scheduledDeparture: '09:43', platform: '6', distanceKm: 0, isHalt: true },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '10:20', scheduledDeparture: '10:23', platform: '7', distanceKm: 33.6, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '10:48', scheduledDeparture: '10:50', platform: '7', distanceKm: 58.2, isHalt: true },
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '11:15', scheduledDeparture: '11:15', platform: '12', distanceKm: 67.2, isHalt: true }
+    ]
+  },
+
+  // 15. Western Fast Local: 90238 (Cancelled connecting service scenario)
+  {
+    trainNumber: '90238',
+    trainName: 'Borivali - Churchgate Fast Local (Cancelled)',
+    hindiName: 'बोरिवली - चर्चगेट फास्ट लोकल (रद्द)',
+    marathiName: 'बोरिवली - चर्चगेट जलद लोकल (रद्द)',
+    originStation: 'BVI',
+    destinationStation: 'CCG',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BVI', stationName: 'Borivali', scheduledArrival: '11:10', scheduledDeparture: '11:10', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'ADH', stationName: 'Andheri', scheduledArrival: '11:24', scheduledDeparture: '11:25', platform: '5', distanceKm: 12.4, isHalt: true },
+      { stationCode: 'BA', stationName: 'Bandra', scheduledArrival: '11:33', scheduledDeparture: '11:34', platform: '4', distanceKm: 19.1, isHalt: true },
+      { stationCode: 'DDR', stationName: 'Dadar (Western)', scheduledArrival: '11:40', scheduledDeparture: '11:41', platform: '4', distanceKm: 24.0, isHalt: true },
+      { stationCode: 'MMCT', stationName: 'Mumbai Central', scheduledArrival: '11:48', scheduledDeparture: '11:49', platform: '4', distanceKm: 29.9, isHalt: true },
+      { stationCode: 'CCG', stationName: 'Churchgate', scheduledArrival: '11:57', scheduledDeparture: '11:57', platform: '2', distanceKm: 34.2, isHalt: true }
+    ]
   }
 ];
 
@@ -795,6 +858,59 @@ export const INITIAL_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     dataSource: 'CR Harbour Controller Feed Simulator',
     dataRetrievedAt: '10:37',
     uncertaintyMarginMinutes: 1
+  },
+
+  // 11058 Amritsar Express (Originating yesterday 22:30, boarding post-midnight today)
+  '11058': {
+    trainNumber: '11058',
+    serviceDate: '2026-10-05', // Origin service date is yesterday
+    currentStationCode: 'KYN',
+    lastReportedStationCode: 'KYN',
+    lastReportedTimestamp: '00:52',
+    hasDepartedOrigin: true,
+    actualOriginDeparture: '22:30',
+    delayMinutesAtCurrent: 0,
+    isCanceled: false,
+    disruptionReason: 'Operating on published overnight schedule crossing midnight into Day 1',
+    dataStatus: 'DEMO',
+    dataSource: 'CR Overnight Express Movement Feed',
+    dataRetrievedAt: '00:53',
+    uncertaintyMarginMinutes: 2
+  },
+
+  // 12134 Mangalore - CSMT Superfast (Origin delay +20 min accumulates to +40 min downstream)
+  '12134': {
+    trainNumber: '12134',
+    serviceDate: '2026-10-06',
+    currentStationCode: 'PNVL',
+    lastReportedStationCode: 'PNVL',
+    lastReportedTimestamp: '10:00',
+    hasDepartedOrigin: true,
+    actualOriginDeparture: '10:00', // Departed PNVL 20 min late
+    delayMinutesAtCurrent: 20,
+    isCanceled: false,
+    disruptionReason: 'Freight movement bottleneck with compounding downstream congestion (+20m at PNVL grows to +40m at CSMT)',
+    dataStatus: 'DEMO',
+    dataSource: 'CR Control Office Delayed Progression Model',
+    dataRetrievedAt: '10:01',
+    uncertaintyMarginMinutes: 5
+  },
+
+  // 90238 Borivali - Churchgate Fast Local (Cancelled connection)
+  '90238': {
+    trainNumber: '90238',
+    serviceDate: '2026-10-06',
+    currentStationCode: 'BVI',
+    lastReportedStationCode: 'BVI',
+    lastReportedTimestamp: '11:00',
+    hasDepartedOrigin: false,
+    delayMinutesAtCurrent: 0,
+    isCanceled: true,
+    disruptionReason: 'Cancelled due to emergency track maintenance mega-block at Dadar Western yard',
+    dataStatus: 'DEMO',
+    dataSource: 'WR Operations Control Room Advisory',
+    dataRetrievedAt: '11:01',
+    uncertaintyMarginMinutes: 0
   }
 };
 

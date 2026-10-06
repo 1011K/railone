@@ -20,20 +20,45 @@ export interface PlanJourneyParams {
   departureTime?: string; // HH:MM (defaults to 10:35)
   arriveByDeadline?: string; // HH:MM optional
   userContext: UserTravelContext;
+  onboardTrainNumber?: string;
+  onboardCurrentStation?: string;
   preferences: PassengerPreferences;
   observations?: Record<string, TrainRunningObservation>;
 }
 
 export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   const {
-    originCode,
+    originCode: rawOriginCode,
     destCode,
     departureTime = '10:35',
     arriveByDeadline,
     userContext,
+    onboardTrainNumber,
+    onboardCurrentStation,
     preferences,
     observations = INITIAL_OBSERVATIONS
   } = params;
+
+  // Onboard passenger context: passengers already onboard cannot backtrack to prior stations.
+  // Origin is strictly bound to the train's current/next station halt.
+  let originCode = rawOriginCode;
+  let isOnboardBacktrackForbidden = false;
+
+  if (userContext === 'onboard' && onboardTrainNumber && onboardCurrentStation) {
+    const onboardTrain = TRAIN_TRIPS.find(t => t.trainNumber === onboardTrainNumber);
+    if (onboardTrain) {
+      const currentHaltIdx = onboardTrain.stops.findIndex(s => s.stationCode === onboardCurrentStation);
+      const requestedOriginIdx = onboardTrain.stops.findIndex(s => s.stationCode === rawOriginCode);
+
+      // If requested origin is before current station, forbid backtracking and clamp origin to current station
+      if (requestedOriginIdx !== -1 && requestedOriginIdx < currentHaltIdx) {
+        originCode = onboardCurrentStation;
+        isOnboardBacktrackForbidden = true;
+      } else if (!rawOriginCode || rawOriginCode === onboardTrain.originStation) {
+        originCode = onboardCurrentStation;
+      }
+    }
+  }
 
   const originStation = STATIONS[originCode];
   const destStation = STATIONS[destCode];
@@ -52,6 +77,12 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     legIdx: number
   ): ItineraryLeg | null => {
     const obs = observations[train.trainNumber];
+    
+    // Hard gate: Cancelled train cannot form a viable journey leg
+    if (obs && obs.isCanceled) {
+      return null;
+    }
+
     const predictedStops = computePredictedStops(train, obs);
 
     const fromStop = predictedStops.find(s => s.stationCode === fromStation.code);
@@ -112,10 +143,18 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       const leg = buildLeg(train, originStation, destStation, 0);
       if (!leg) continue;
 
-      // Filter by departure time if planning pre-departure
-      // Allow trains within realistic window (-5 min to +120 min)
-      const diffFromQuery = getMinutesDifference(departureTime, leg.predictedDep);
-      if (diffFromQuery < -10 || diffFromQuery > 180) continue;
+      // Filter by arrive-by deadline if specified
+      if (arriveByDeadline) {
+        const diffToDeadline = getMinutesDifference(leg.predictedArr, arriveByDeadline);
+        if (diffToDeadline < 0) {
+          // Arrives AFTER deadline! Strictly excluded
+          continue;
+        }
+      } else {
+        // Standard depart-after filter: allow trains within realistic window (-10 min to +180 min)
+        const diffFromQuery = getMinutesDifference(departureTime, leg.predictedDep);
+        if (diffFromQuery < -10 || diffFromQuery > 180) continue;
+      }
 
       // Fare calculation
       const stopFrom = train.stops[fromIdx];
@@ -153,6 +192,10 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         originDelayWarning = `Origin Delay: Train has not departed ${train.originStation} yet (waiting at origin, delayed by +${obs.delayMinutesAtCurrent} min). Stay at home until ${leaveHomeTime}.`;
       }
 
+      if (isOnboardBacktrackForbidden) {
+        originDelayWarning = `Onboard Context: Alternatives start strictly from ${originStation.name} (current position). Backtracking to earlier halts is prohibited.`;
+      }
+
       candidateItineraries.push({
         id: `direct-${train.trainNumber}`,
         legs: [leg],
@@ -165,7 +208,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         totalFareByClass,
         recommendedClass: isAc ? 'AC_LOCAL' : preferences.classPreference === 'first' ? 'I' : 'II',
         eligibility,
-        score: 0, // will compute
+        score: 0,
         rankReason: '',
         isRecommended: false,
         leaveHomeTime,
@@ -177,7 +220,6 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   }
 
   // 2. Transfer Trains Search (e.g. Thane Central Line -> Dadar -> Churchgate Western Line)
-  // Check common transfer stations: Dadar (DR / DDR) and Kurla (CLA)
   const potentialInterchanges = [
     { centralCode: 'DR', westernCode: 'DDR', station: STATIONS.DR, walkMinutes: 7 },
     { centralCode: 'CLA', westernCode: 'CLA', station: STATIONS.CLA, walkMinutes: 4 },
@@ -207,8 +249,10 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       const leg1 = buildLeg(train1, leg1FromStation, leg1ToStation, 0);
       if (!leg1) continue;
 
-      const diffFromQuery = getMinutesDifference(departureTime, leg1.predictedDep);
-      if (diffFromQuery < -10 || diffFromQuery > 180) continue;
+      if (!arriveByDeadline) {
+        const diffFromQuery = getMinutesDifference(departureTime, leg1.predictedDep);
+        if (diffFromQuery < -10 || diffFromQuery > 180) continue;
+      }
 
       for (const train2 of secondLegTrains) {
         const leg2FromStation = STATIONS[train2.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode)!.stationCode];
@@ -216,15 +260,23 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         const leg2 = buildLeg(train2, leg2FromStation, leg2ToStation, 1);
         if (!leg2) continue;
 
+        // Check arrive-by deadline on second leg arrival
+        if (arriveByDeadline) {
+          const diffToDeadline = getMinutesDifference(leg2.predictedArr, arriveByDeadline);
+          if (diffToDeadline < 0) {
+            // Arrives after deadline
+            continue;
+          }
+        }
+
         // Check transfer buffer
         const transferBufferMinutes = getMinutesDifference(leg1.predictedArr, leg2.predictedDep);
         const minWalkTime = interchange.walkMinutes;
         const isMissedConnection = transferBufferMinutes < minWalkTime;
         const isTightConnection = transferBufferMinutes >= minWalkTime && transferBufferMinutes < minWalkTime + 4;
 
-        // If missed connection, we can't reliably take this pair unless user waits for next train
         if (isMissedConnection) continue;
-        if (transferBufferMinutes > 45) continue; // too long a layover
+        if (transferBufferMinutes > 50) continue; // too long a layover
 
         const transfer: TransferInfo = {
           station: interchange.station,
@@ -283,8 +335,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     }
   }
 
-  // 2b. Universal High-Frequency Suburban Scheduler Fallback
-  // If no direct or transfer trains were found in the static catalog, synthesize realistic Mumbai Suburban EMU runs
+  // 3. Fallback only if no catalogue itineraries matched (and never invent phantom AC)
   if (candidateItineraries.length === 0) {
     const isSameLine = originStation.line === destStation.line;
     const estDistanceKm = Math.max(8, Math.min(65, Math.abs(
@@ -293,8 +344,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
     const departures = [
       { offset: 4, type: 'suburban_slow' as const, isAc: false, nameSuffix: 'Slow Local' },
-      { offset: 11, type: 'suburban_fast' as const, isAc: false, nameSuffix: 'Fast Local' },
-      { offset: 18, type: 'suburban_ac_fast' as const, isAc: true, nameSuffix: 'AC Fast Local' }
+      { offset: 12, type: 'suburban_fast' as const, isAc: false, nameSuffix: 'Fast Local' }
     ];
 
     for (let dIdx = 0; dIdx < departures.length; dIdx++) {
@@ -305,7 +355,11 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       const schedDep = addMinutesToTimeString(departureTime, dep.offset);
       const schedArr = addMinutesToTimeString(schedDep, legDuration);
 
-      const delayMin = dep.type === 'suburban_fast' ? 4 : 1;
+      if (arriveByDeadline && getMinutesDifference(schedArr, arriveByDeadline) < 0) {
+        continue;
+      }
+
+      const delayMin = dep.type === 'suburban_fast' ? 3 : 1;
       const predDep = addMinutesToTimeString(schedDep, delayMin);
       const predArr = addMinutesToTimeString(schedArr, delayMin);
 
@@ -317,22 +371,19 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         destinationStation: destStation.code,
         serviceType: dep.type,
         runningDays: [0, 1, 2, 3, 4, 5, 6],
-        availableClasses: dep.isAc ? ['AC_LOCAL'] : ['II', 'I'],
+        availableClasses: ['II', 'I'],
         stops: [
           { stationCode: originStation.code, stationName: originStation.name, scheduledArrival: schedDep, scheduledDeparture: schedDep, platform: '2', distanceKm: 0, isHalt: true },
           { stationCode: destStation.code, stationName: destStation.name, scheduledArrival: schedArr, scheduledDeparture: schedArr, platform: '1', distanceKm: estDistanceKm, isHalt: true }
         ]
       };
 
-      const fareByClass: Partial<Record<TravelClass, number>> = {};
-      if (dep.isAc) {
-        fareByClass.AC_LOCAL = calculateSuburbanFare(estDistanceKm, 'AC_LOCAL');
-      } else {
-        fareByClass.II = calculateSuburbanFare(estDistanceKm, 'II');
-        fareByClass.I = calculateSuburbanFare(estDistanceKm, 'I');
-      }
+      const fareByClass: Partial<Record<TravelClass, number>> = {
+        II: calculateSuburbanFare(estDistanceKm, 'II'),
+        I: calculateSuburbanFare(estDistanceKm, 'I')
+      };
 
-      const crowding = estimateCrowdLevel(mockTrip, originStation.code, predDep, delayMin, dep.isAc);
+      const crowding = estimateCrowdLevel(mockTrip, originStation.code, predDep, delayMin, false);
       const walkMargin = preferences.walkToStationMinutes || 12;
       const leaveHomeTime = addMinutesToTimeString(predDep, -walkMargin);
 
@@ -374,27 +425,26 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         scheduledArrival: schedArr,
         predictedArrival: predArr,
         totalFareByClass: fareByClass,
-        recommendedClass: dep.isAc ? 'AC_LOCAL' : preferences.classPreference === 'first' ? 'I' : 'II',
+        recommendedClass: preferences.classPreference === 'first' ? 'I' : 'II',
         eligibility: {
           status: 'ELIGIBLE',
           summary: 'Suburban EMU travel eligible with UTS suburban single ticket or Season Pass.',
           rulesApplied: ['Mumbai Suburban Railway tariff section rules applied.'],
-          validClasses: dep.isAc ? ['AC_LOCAL'] : ['II', 'I'],
+          validClasses: ['II', 'I'],
           passPermitted: true,
-          ticketRequiredNote: dep.isAc ? 'Requires UTS AC ticket or Smart Card AC pass.' : 'Ordinary suburban ticket or season pass.'
+          ticketRequiredNote: 'Ordinary suburban ticket or season pass.'
         },
         score: 0,
         rankReason: '',
         isRecommended: false,
         leaveHomeTime,
         leaveHomeMarginMinutes: walkMargin,
-        isAcService: dep.isAc
+        isAcService: false
       });
     }
   }
 
-  // 3. Detect Delay Inversion (Slow vs Delayed Fast)
-  // Find cases where a Fast train is delayed and a Slow train arrives earlier
+  // 4. Detect Delay Inversion (Slow vs Delayed Fast)
   for (let i = 0; i < candidateItineraries.length; i++) {
     const itA = candidateItineraries[i];
     if (itA.legs.length === 1 && itA.legs[0].train.serviceType === 'suburban_slow') {
@@ -413,39 +463,40 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     }
   }
 
-  // 4. Scoring and Ranking Engine
-  // Factor in:
-  // - Total arrival time & duration
-  // - Preferences: AC mandatory vs preferred, priority (fastest, cheapest, least crowded)
-  // - Legal eligibility penalties (Prohibited = massive penalty)
-  // - Crowding penalties
-  // - Transfer penalties
+  // 5. Scoring and Ranking Engine
   for (const it of candidateItineraries) {
     let score = 1000;
 
-    // Arrival penalty (earlier arrival = higher score)
-    const minutesToArr = getMinutesDifference(departureTime, it.predictedArrival);
-    score -= minutesToArr * 4;
+    if (arriveByDeadline) {
+      // Arrive-by scoring: rewards journeys arriving before deadline with minimum idle time
+      const marginBeforeDeadline = getMinutesDifference(it.predictedArrival, arriveByDeadline);
+      if (marginBeforeDeadline >= 0) {
+        score += Math.max(0, 400 - marginBeforeDeadline * 3);
+      } else {
+        score -= 10000;
+      }
+    } else {
+      // Depart-after scoring: earlier arrival is better
+      const minutesToArr = getMinutesDifference(departureTime, it.predictedArrival);
+      score -= minutesToArr * 4;
+    }
 
-    // Duration penalty
     score -= it.totalDurationMinutes * 2;
-
-    // Transfer penalty
     score -= it.transfers.length * 15;
 
     // Disqualification / Penalties for Eligibility
     if (it.eligibility.status === 'PROHIBITED') {
       score -= 5000;
     } else if (it.eligibility.status === 'CONDITIONAL') {
-      score -= 80; // minor friction
+      score -= 80;
     }
 
-    // AC Preference handling (Strict non-bias unless user requested)
+    // AC Preference handling
     if (preferences.classPreference === 'ac_mandatory') {
       if (!it.isAcService) {
-        score -= 2000; // eliminate non-ac if mandatory
+        score -= 3000;
       } else {
-        score += 300;
+        score += 350;
       }
     } else if (preferences.classPreference === 'ac_preferred') {
       if (it.isAcService) score += 120;
@@ -464,7 +515,6 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       score -= baseFare * 5;
     }
 
-    // Delay Inversion Bonus
     if (it.delayInversionNote) {
       score += 250;
     }
@@ -482,6 +532,9 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
     if (best.delayInversionNote) {
       best.rankReason = 'Recommended: Arrives earliest by taking unaffected Slow track while Fast track is held up.';
+    } else if (arriveByDeadline) {
+      const margin = getMinutesDifference(best.predictedArrival, arriveByDeadline);
+      best.rankReason = `Recommended: Arrives safely at ${best.predictedArrival} (${margin} min before your ${arriveByDeadline} deadline).`;
     } else if (best.transfers.length === 0) {
       best.rankReason = `Recommended: Direct service with best arrival time (${best.predictedArrival}) and ${best.legs[0].crowding.level.toLowerCase()} crowd.`;
     } else {

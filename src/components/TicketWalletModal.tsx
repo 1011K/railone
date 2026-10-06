@@ -34,7 +34,8 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
         setSelectedTicket({
           ...selectedTicket,
           paymentStatus: 'CANCELLED_REFUNDED',
-          refundAmount: res.refundAmount
+          refundAmount: res.refundBreakdown.walletRefund || res.refundBreakdown.totalPaid,
+          refundBreakdown: res.refundBreakdown
         });
       }
     }

@@ -7,6 +7,8 @@ export type DataStatus =
   | 'LIVE_VERIFIED'
   | 'SCHEDULED'
   | 'HISTORICAL'
+  | 'PREDICTED'
+  | 'REPORTED'
   | 'ESTIMATED'
   | 'DEMO'
   | 'UNKNOWN';
@@ -61,6 +63,7 @@ export interface StopEntry {
   platform?: string;
   distanceKm: number;
   isHalt: boolean;
+  dayOffset?: number; // 0 for origin day, 1 for next day (midnight crossing)
 }
 
 export interface TrainTrip {
@@ -95,6 +98,12 @@ export interface TrainRunningObservation {
   dataSource: string;
   dataRetrievedAt: string;
   uncertaintyMarginMinutes: number;
+  source_id?: string;
+  observed_at?: string;
+  fetched_at?: string;
+  expires_at?: string;
+  quality_flag?: 'VERIFIED' | 'STALE' | 'CONFLICT' | 'SYNTHETIC';
+  conflict_indicator?: boolean;
 }
 
 export type CrowdingLevel = 'LOW' | 'MODERATE' | 'HEAVY' | 'CRUSH_LOAD';
@@ -188,11 +197,34 @@ export interface PassengerPreferences {
   maxTransfers: number;
 }
 
+export type BookingState = 
+  | 'DRAFT'
+  | 'VALIDATING'
+  | 'PAYMENT_SIMULATED'
+  | 'TICKET_ISSUED_DEMO'
+  | 'FAILED'
+  | 'PENDING_RECONCILIATION_DEMO'
+  | 'CANCELLED_DEMO'
+  | 'REFUND_PENDING_DEMO'
+  | 'REFUNDED_DEMO';
+
+export interface RefundBreakdown {
+  totalPaid: number;
+  cashRefund: number;
+  walletRefund: number;
+  voucherCredit: number;
+  clericalDeduction: number;
+  refundTimeline: string;
+  termsNotice: string;
+}
+
 export interface SpecimenTicket {
   id: string;
+  idempotencyKey?: string;
   pnrMock: string;
   bookingTimestamp: string;
   journeyDate: string;
+  serviceDateOffsetDays?: number;
   trainNumber: string;
   trainName: string;
   fromStation: { code: string; name: string };
@@ -205,10 +237,12 @@ export interface SpecimenTicket {
     gender: string;
     berthOrCoachMock?: string;
   }>;
-  paymentStatus: 'PAID_MOCK' | 'CANCELLED_REFUNDED' | 'FAILED';
+  paymentStatus: 'PAID_MOCK' | 'CANCELLED_REFUNDED' | 'FAILED' | 'PENDING_RECONCILIATION_DEMO';
+  bookingState?: BookingState;
   paymentMethod: string;
   qrPayload: string;
   refundAmount?: number;
+  refundBreakdown?: RefundBreakdown;
   cancellationTimestamp?: string;
 }
 

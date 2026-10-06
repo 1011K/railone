@@ -50,6 +50,8 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
   const [isOriginOpen, setIsOriginOpen] = useState(false);
   const [isDestOpen, setIsDestOpen] = useState(false);
   const [departureTime, setDepartureTime] = useState('10:40');
+  const [isArriveByMode, setIsArriveByMode] = useState(false);
+  const [arriveByTime, setArriveByTime] = useState('12:30');
   const [userContext, setUserContext] = useState<UserTravelContext>('waiting_at_station');
 
   // Onboard replanning context
@@ -68,12 +70,12 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
 
   // Quick preset shortcuts
   const presets = [
-    { label: 'Thane ➔ Dadar', from: 'TNA', to: 'DR', time: '10:40', ctx: 'waiting_at_station' as UserTravelContext, desc: 'Tests Fast vs Slow Delay Inversion' },
-    { label: 'Thane ➔ Churchgate', from: 'TNA', to: 'CCG', time: '10:35', ctx: 'pre_departure' as UserTravelContext, desc: 'Tests Central-to-Western Transfer' },
-    { label: 'Dadar ➔ Kalyan', from: 'DR', to: 'KYN', time: '10:15', ctx: 'waiting_at_station' as UserTravelContext, desc: 'Tests Express Short-Hop Eligibility' },
-    { label: 'Kalyan ➔ CSMT', from: 'KYN', to: 'CSMT', time: '10:20', ctx: 'pre_departure' as UserTravelContext, desc: 'Tests Origin Delay Leave-Home' },
-    { label: 'Panvel ➔ CSMT', from: 'PNVL', to: 'CSMT', time: '10:10', ctx: 'pre_departure' as UserTravelContext, desc: 'Tests Harbour Line Commute' },
-    { label: 'CSMT ➔ Pune Jn', from: 'CSMT', to: 'PUNE', time: '06:30', ctx: 'pre_departure' as UserTravelContext, desc: 'Tests National Intercity Rail' },
+    { label: 'Thane ➔ Dadar', from: 'TNA', to: 'DR', time: '10:40', isArrive: false, ctx: 'waiting_at_station' as UserTravelContext, desc: 'Tests Fast vs Slow Delay Inversion' },
+    { label: 'Thane ➔ Churchgate (Arrive 12:30)', from: 'TNA', to: 'CCG', time: '10:35', isArrive: true, deadline: '12:30', ctx: 'pre_departure' as UserTravelContext, desc: 'Scenario 1: Arrive-by deadline via Dadar' },
+    { label: 'Dadar ➔ Kalyan', from: 'DR', to: 'KYN', time: '10:15', isArrive: false, ctx: 'waiting_at_station' as UserTravelContext, desc: 'Tests Express Short-Hop Eligibility' },
+    { label: 'Kalyan ➔ CSMT', from: 'KYN', to: 'CSMT', time: '10:20', isArrive: false, ctx: 'pre_departure' as UserTravelContext, desc: 'Tests Origin Delay Leave-Home' },
+    { label: 'Panvel ➔ CSMT', from: 'PNVL', to: 'CSMT', time: '10:10', isArrive: false, ctx: 'pre_departure' as UserTravelContext, desc: 'Tests Harbour Line Commute' },
+    { label: 'CSMT ➔ Pune Jn', from: 'CSMT', to: 'PUNE', time: '06:30', isArrive: false, ctx: 'pre_departure' as UserTravelContext, desc: 'Tests National Intercity Rail' },
   ];
 
   const handleApplyPreset = (p: typeof presets[0]) => {
@@ -81,6 +83,12 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
     setDestCode(p.to);
     setDepartureTime(p.time);
     setUserContext(p.ctx);
+    if (p.isArrive) {
+      setIsArriveByMode(true);
+      if (p.deadline) setArriveByTime(p.deadline);
+    } else {
+      setIsArriveByMode(false);
+    }
   };
 
   // Build reactive observations based on disruption toggles
@@ -101,7 +109,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
     return obsMap;
   }, [activeSignalDisruption, activeOriginDisruption]);
 
-  // Filtered station lists for autocompletes
+  // Filtered station lists for autocompletes with multilingual Hindi/Marathi support
   const allStationsList = useMemo(() => Object.values(STATIONS), []);
 
   const filteredOriginStations = useMemo(() => {
@@ -111,6 +119,8 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
       s.name.toLowerCase().includes(q) || 
       s.code.toLowerCase().includes(q) || 
       s.city.toLowerCase().includes(q) ||
+      (s.hindiName && s.hindiName.includes(originSearch.trim())) ||
+      (s.marathiName && s.marathiName.includes(originSearch.trim())) ||
       s.aliases.some(a => a.toLowerCase().includes(q))
     );
   }, [originSearch, allStationsList]);
@@ -122,6 +132,8 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
       s.name.toLowerCase().includes(q) || 
       s.code.toLowerCase().includes(q) || 
       s.city.toLowerCase().includes(q) ||
+      (s.hindiName && s.hindiName.includes(destSearch.trim())) ||
+      (s.marathiName && s.marathiName.includes(destSearch.trim())) ||
       s.aliases.some(a => a.toLowerCase().includes(q))
     );
   }, [destSearch, allStationsList]);
@@ -132,7 +144,10 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
       originCode,
       destCode,
       departureTime,
+      arriveByDeadline: isArriveByMode ? arriveByTime : undefined,
       userContext,
+      onboardTrainNumber: userContext === 'onboard' ? onboardTrainNumber : undefined,
+      onboardCurrentStation: userContext === 'onboard' ? onboardStationCode : undefined,
       preferences: {
         classPreference: classPref,
         priority,
@@ -142,7 +157,7 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
       },
       observations: dynamicObservations
     });
-  }, [originCode, destCode, departureTime, userContext, classPref, priority, hasSeasonPass, walkMargin, dynamicObservations]);
+  }, [originCode, destCode, departureTime, isArriveByMode, arriveByTime, userContext, onboardTrainNumber, onboardStationCode, classPref, priority, hasSeasonPass, walkMargin, dynamicObservations]);
 
   const originStation = STATIONS[originCode];
   const destStation = STATIONS[destCode];
@@ -337,16 +352,31 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
             )}
           </div>
 
-          {/* Departure Time */}
+          {/* Departure / Arrive-By Time Selector */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-slate-500 mb-1 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>Time</span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{isArriveByMode ? 'Arrive By' : 'Depart At'}</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsArriveByMode(!isArriveByMode)}
+                className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+              >
+                {isArriveByMode ? 'Switch to Depart' : 'Switch to Arrive'}
+              </button>
+            </div>
             <input
               type="time"
-              value={departureTime}
-              onChange={(e) => setDepartureTime(e.target.value)}
+              value={isArriveByMode ? arriveByTime : departureTime}
+              onChange={(e) => {
+                if (isArriveByMode) {
+                  setArriveByTime(e.target.value);
+                } else {
+                  setDepartureTime(e.target.value);
+                }
+              }}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
             />
           </div>

@@ -3,7 +3,8 @@ import { planJourneys } from './journeyEngine';
 import { evaluateJourneyEligibility } from './eligibilityEngine';
 import { computePredictedStops } from './delayModel';
 import { MockBookingStore } from './mockBookingStore';
-import { TravelClass, PassengerPreferences, SpecimenTicket } from '../types/railway';
+import { normalizeStation } from './stationNormalizer';
+import { TravelClass, PassengerPreferences, SpecimenTicket, UserTravelContext, BookingState, RefundBreakdown } from '../types/railway';
 
 export interface SearchTrainsSuccess {
   status: 'success';
@@ -40,6 +41,7 @@ export interface SearchTrainsSuccess {
 export interface ToolErrorResult {
   status: 'error';
   message: string;
+  disambiguationOptions?: string[];
 }
 
 export type SearchTrainsResult = SearchTrainsSuccess | ToolErrorResult;
@@ -87,6 +89,7 @@ export type QuoteFareResult = QuoteFareSuccess | ToolErrorResult;
 
 export interface BookingDraft {
   draftId: string;
+  idempotencyKey?: string;
   trainNumber: string;
   trainName: string;
   fromStationCode: string;
@@ -105,36 +108,60 @@ const activeDrafts: Map<string, BookingDraft> = new Map();
 /**
  * Deterministic Backend Service Tools
  * Shared contract between Web Speech / In-App Voice Dialer and Manual Web UI.
+ * Guaranteed 100% parity between voice and manual workflows (Scenario 15).
  */
 export const RailBackendTools = {
   /**
    * 1. Search Trains & Itineraries
+   * Supports multilingual station query, arrive-by deadlines, and onboard context.
    */
   searchTrains(
-    originCode: string, 
-    destCode: string, 
+    originQuery: string, 
+    destQuery: string, 
     time: string = '10:35', 
-    classPref: PassengerPreferences['classPreference'] = 'any'
+    classPref: PassengerPreferences['classPreference'] = 'any',
+    options?: {
+      arriveByDeadline?: string;
+      userContext?: UserTravelContext;
+      onboardTrainNumber?: string;
+      onboardCurrentStation?: string;
+      hasSeasonPass?: boolean;
+    }
   ): SearchTrainsResult {
-    const fromStation = STATIONS[originCode.toUpperCase()];
-    const toStation = STATIONS[destCode.toUpperCase()];
+    const fromNorm = normalizeStation(originQuery);
+    const toNorm = normalizeStation(destQuery);
 
-    if (!fromStation || !toStation) {
+    if (!fromNorm.matchedStation) {
       return {
         status: 'error',
-        message: `Unknown station code. Available codes: ${Object.keys(STATIONS).join(', ')}`
+        message: fromNorm.explanation,
+        disambiguationOptions: fromNorm.candidates.map(c => `${c.name} (${c.code})`)
       };
     }
+
+    if (!toNorm.matchedStation) {
+      return {
+        status: 'error',
+        message: toNorm.explanation,
+        disambiguationOptions: toNorm.candidates.map(c => `${c.name} (${c.code})`)
+      };
+    }
+
+    const fromStation = fromNorm.matchedStation;
+    const toStation = toNorm.matchedStation;
 
     const itineraries = planJourneys({
       originCode: fromStation.code,
       destCode: toStation.code,
       departureTime: time,
-      userContext: 'pre_departure',
+      arriveByDeadline: options?.arriveByDeadline,
+      userContext: options?.userContext || 'pre_departure',
+      onboardTrainNumber: options?.onboardTrainNumber,
+      onboardCurrentStation: options?.onboardCurrentStation,
       preferences: {
         classPreference: classPref,
         priority: 'fastest',
-        hasSeasonPass: false,
+        hasSeasonPass: options?.hasSeasonPass || false,
         walkToStationMinutes: 15,
         maxTransfers: 1
       }
@@ -229,10 +256,15 @@ export const RailBackendTools = {
     const train = TRAIN_TRIPS.find(t => t.trainNumber === trainNumber);
     if (!train) return { status: 'error', message: 'Train not found' };
 
+    const fromNorm = normalizeStation(fromCode);
+    const toNorm = normalizeStation(toCode);
+    const fCode = fromNorm.matchedStation?.code || fromCode.toUpperCase();
+    const tCode = toNorm.matchedStation?.code || toCode.toUpperCase();
+
     const result = evaluateJourneyEligibility({
       train,
-      fromStationCode: fromCode.toUpperCase(),
-      toStationCode: toCode.toUpperCase(),
+      fromStationCode: fCode,
+      toStationCode: tCode,
       userTicketType: ticketType,
       userClass,
       hasMST: ticketType === 'suburban_season_pass'
@@ -241,8 +273,8 @@ export const RailBackendTools = {
     return {
       status: 'success',
       trainNumber,
-      fromCode,
-      toCode,
+      fromCode: fCode,
+      toCode: tCode,
       eligibility: result.status,
       summary: result.summary,
       rules: result.rulesApplied,
@@ -269,17 +301,20 @@ export const RailBackendTools = {
    * 5. Quote Fare
    */
   quoteFare(fromCode: string, toCode: string, travelClass: TravelClass = 'II'): QuoteFareResult {
-    const from = STATIONS[fromCode.toUpperCase()];
-    const to = STATIONS[toCode.toUpperCase()];
-    if (!from || !to) return { status: 'error', message: 'Invalid stations' };
+    const fromNorm = normalizeStation(fromCode);
+    const toNorm = normalizeStation(toCode);
+
+    if (!fromNorm.matchedStation || !toNorm.matchedStation) {
+      return { status: 'error', message: 'Invalid stations' };
+    }
 
     const estDist = 25; // default suburban segment km
     const fare = calculateSuburbanFare(estDist, travelClass);
 
     return {
       status: 'success',
-      from: from.name,
-      to: to.name,
+      from: fromNorm.matchedStation.name,
+      to: toNorm.matchedStation.name,
       class: travelClass,
       fareAmount: fare,
       currency: 'INR (₹)',
@@ -291,6 +326,7 @@ export const RailBackendTools = {
    * 6. Create Booking Draft
    */
   createBookingDraft(params: {
+    idempotencyKey?: string;
     trainNumber: string;
     fromCode: string;
     toCode: string;
@@ -298,10 +334,10 @@ export const RailBackendTools = {
     passengers: Array<{ name: string; age: number; gender: string }>;
   }): { status: string; draft?: BookingDraft; error?: string } {
     const train = TRAIN_TRIPS.find(t => t.trainNumber === params.trainNumber);
-    const from = STATIONS[params.fromCode.toUpperCase()];
-    const to = STATIONS[params.toCode.toUpperCase()];
+    const fromNorm = normalizeStation(params.fromCode);
+    const toNorm = normalizeStation(params.toCode);
 
-    if (!train || !from || !to) {
+    if (!train || !fromNorm.matchedStation || !toNorm.matchedStation) {
       return { status: 'error', error: 'Train or station not found.' };
     }
 
@@ -311,12 +347,13 @@ export const RailBackendTools = {
     const draftId = 'DFT-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     const draft: BookingDraft = {
       draftId,
+      idempotencyKey: params.idempotencyKey,
       trainNumber: train.trainNumber,
       trainName: train.trainName,
-      fromStationCode: from.code,
-      fromStationName: from.name,
-      toStationCode: to.code,
-      toStationName: to.name,
+      fromStationCode: fromNorm.matchedStation.code,
+      fromStationName: fromNorm.matchedStation.name,
+      toStationCode: toNorm.matchedStation.code,
+      toStationName: toNorm.matchedStation.name,
       classBooked: params.classCode,
       farePerPerson: fare,
       totalFare,
@@ -329,15 +366,26 @@ export const RailBackendTools = {
   },
 
   /**
-   * 7. Confirm Demo Booking
+   * 7. Confirm Demo Booking (Idempotent)
    */
-  confirmDemoBooking(draftId: string, paymentMethod: string = 'RailWallet (Simulated)'): { status: string; ticket?: SpecimenTicket; error?: string } {
+  confirmDemoBooking(
+    draftId: string, 
+    paymentMethod: string = 'RailWallet (Simulated)',
+    options?: { simulateAmbiguousTimeout?: boolean }
+  ): { 
+    status: string; 
+    ticket?: SpecimenTicket; 
+    isDuplicate?: boolean;
+    bookingState?: BookingState;
+    error?: string 
+  } {
     const draft = activeDrafts.get(draftId);
     if (!draft) {
       return { status: 'error', error: 'Draft booking not found or expired.' };
     }
 
-    const ticket = MockBookingStore.createSpecimenBooking({
+    const res = MockBookingStore.createSpecimenBooking({
+      idempotencyKey: draft.idempotencyKey || draft.draftId,
       trainNumber: draft.trainNumber,
       trainName: draft.trainName,
       fromCode: draft.fromStationCode,
@@ -347,10 +395,38 @@ export const RailBackendTools = {
       classBooked: draft.classBooked,
       fare: draft.totalFare,
       passengers: draft.passengers,
-      paymentMethod
+      paymentMethod,
+      simulateAmbiguousTimeout: options?.simulateAmbiguousTimeout
     });
 
     activeDrafts.delete(draftId);
-    return { status: 'success', ticket };
+    return { 
+      status: 'success', 
+      ticket: res.ticket, 
+      isDuplicate: res.isDuplicateSubmission,
+      bookingState: res.bookingState
+    };
+  },
+
+  /**
+   * 8. Reconcile Pending Demo Booking
+   */
+  reconcileDemoBooking(identifier: string) {
+    const result = MockBookingStore.reconcilePendingOrder(identifier);
+    return {
+      status: result.success ? 'success' : 'error',
+      ...result
+    };
+  },
+
+  /**
+   * 9. Cancel Booking with Itemized Refund Breakdown
+   */
+  cancelDemoBooking(ticketId: string, preferredType: 'wallet' | 'cash' | 'voucher' = 'wallet') {
+    const res = MockBookingStore.cancelBooking(ticketId, preferredType);
+    return {
+      status: res.success ? 'success' : 'error',
+      ...res
+    };
   }
 };

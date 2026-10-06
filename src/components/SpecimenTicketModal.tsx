@@ -57,7 +57,7 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
   const handleSimulatePayment = () => {
     setIsProcessing(true);
     setTimeout(() => {
-      const ticket = MockBookingStore.createSpecimenBooking({
+      const res = MockBookingStore.createSpecimenBooking({
         trainNumber: leg.train.trainNumber,
         trainName: leg.train.trainName,
         fromCode: leg.fromStation.code,
@@ -70,10 +70,10 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
         paymentMethod
       });
 
-      setCreatedTicket(ticket);
+      setCreatedTicket(res.ticket);
       setIsProcessing(false);
       setStep('confirmed');
-      onBookingCreated(ticket);
+      onBookingCreated(res.ticket);
     }, 800);
   };
 
@@ -85,7 +85,7 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
       setCreatedTicket({
         ...createdTicket,
         paymentStatus: 'CANCELLED_REFUNDED',
-        refundAmount: res.refundAmount
+        refundAmount: res.refundBreakdown.walletRefund || res.refundBreakdown.totalPaid
       });
     }
   };
