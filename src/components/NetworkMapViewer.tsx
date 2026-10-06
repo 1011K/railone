@@ -37,7 +37,15 @@ import {
   Compass
 } from 'lucide-react';
 
-export const NetworkMapViewer: React.FC = () => {
+interface NetworkMapViewerProps {
+  onPlanRouteFromStation?: (stationCode: string) => void;
+  onInspectTrainSchedule?: (trainNumber: string) => void;
+}
+
+export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
+  onPlanRouteFromStation,
+  onInspectTrainSchedule
+}) => {
   const [scope, setScope] = useState<MapScope>('mumbai_suburban');
   const [renderMode, setRenderMode] = useState<MapRenderMode>('2d');
   const [delayFilter, setDelayFilter] = useState<'all' | 'disrupted' | 'ontime'>('all');
@@ -168,6 +176,26 @@ export const NetworkMapViewer: React.FC = () => {
   };
 
   const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch drag handlers for mobile devices
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    setPan({
+      x: e.touches[0].clientX - dragStart.x,
+      y: e.touches[0].clientY - dragStart.y
+    });
+  };
+
+  const handleTouchEnd = () => {
     setIsDragging(false);
   };
 
@@ -544,7 +572,7 @@ export const NetworkMapViewer: React.FC = () => {
           {/* 3D Tilt sliders if in 3D Mode */}
           {renderMode === '3d' && (
             <div className="absolute bottom-4 left-4 z-10 flex items-center gap-3 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700/80 text-[11px] text-slate-300 backdrop-blur">
-              <span className="font-bold flex items-center gap-1 text-indigo-300">
+              <span className="font-bold flex items-center gap-1 text-blue-300">
                 <Layers className="w-3.5 h-3.5" /> 3D Pitch:
               </span>
               <input 
@@ -553,17 +581,17 @@ export const NetworkMapViewer: React.FC = () => {
                 max="60" 
                 value={pitch} 
                 onChange={(e) => setPitch(Number(e.target.value))}
-                className="w-20 accent-indigo-500 cursor-pointer"
+                className="w-20 accent-blue-500 cursor-pointer"
                 title="Adjust 3D Pitch"
               />
-              <span className="font-bold text-indigo-300 ml-1">Rot:</span>
+              <span className="font-bold text-blue-300 ml-1">Rot:</span>
               <input 
                 type="range" 
                 min="-45" 
                 max="45" 
                 value={rotation} 
                 onChange={(e) => setRotation(Number(e.target.value))}
-                className="w-20 accent-indigo-500 cursor-pointer"
+                className="w-20 accent-blue-500 cursor-pointer"
                 title="Adjust 3D Rotation"
               />
             </div>
@@ -596,6 +624,10 @@ export const NetworkMapViewer: React.FC = () => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
             className={`w-full h-[580px] sm:h-[680px] overflow-hidden cursor-${isDragging ? 'grabbing' : 'grab'}`}
           >
             <svg 
@@ -941,6 +973,15 @@ export const NetworkMapViewer: React.FC = () => {
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Station Code: <code className="font-mono font-bold text-slate-700 dark:text-slate-300">{activeStation.code}</code> • Platforms: {activeStation.platforms.join(', ')} • {activeStation.city}
                 </p>
+                {onPlanRouteFromStation && (
+                  <button
+                    onClick={() => onPlanRouteFromStation(activeStation.code)}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Plan Journey From {activeStation.name}</span>
+                  </button>
+                )}
               </div>
 
               {/* Trains Calling At This Station */}

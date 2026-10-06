@@ -86,7 +86,7 @@ export const TASK_CATEGORY_METADATA: Record<TaskCategory, { label: string; iconN
   SAFETY_LOST_FOUND: {
     label: 'RPF Safety & SOS',
     iconName: 'ShieldCheck',
-    color: 'purple',
+    color: 'rose',
     description: 'RPF 139 emergency assistance, lost property tracking, medical help'
   },
   STATION_AMENITIES: {
@@ -98,7 +98,7 @@ export const TASK_CATEGORY_METADATA: Record<TaskCategory, { label: string; iconN
   COACH_POSITIONING: {
     label: 'Coach Layout & Position',
     iconName: 'TrainTrack',
-    color: 'indigo',
+    color: 'sky',
     description: 'Ladies compartment alignment, Divyangjan coach, luggage van'
   },
   CREW_OPERATIONS: {

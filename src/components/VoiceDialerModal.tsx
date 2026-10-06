@@ -7,7 +7,6 @@ import {
   PhoneOff, 
   Volume2, 
   Terminal, 
-  Sparkles, 
   AlertCircle,
   HelpCircle,
   CheckCircle2,

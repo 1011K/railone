@@ -483,7 +483,7 @@ export const MovingTrain3DModal: React.FC<MovingTrain3DModalProps> = ({
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               onClick={onClose}
-              className="w-full md:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 group active:scale-95"
+              className="w-full md:w-auto px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-xl hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 group active:scale-95"
             >
               <span>Enter RailOne Next Dashboard</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

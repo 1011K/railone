@@ -802,7 +802,7 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span className={`w-3 h-3 rounded-full ${
-                        corridor.line === 'central' ? 'bg-blue-600' : corridor.line === 'western' ? 'bg-purple-600' : 'bg-emerald-600'
+                        corridor.line === 'central' ? 'bg-blue-600' : corridor.line === 'western' ? 'bg-rose-600' : 'bg-emerald-600'
                       }`} />
                       <h4 className="font-bold text-sm text-slate-900 dark:text-white">
                         {corridor.corridorName}
@@ -914,7 +914,7 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
                       : coach.type === 'L'
                       ? 'bg-pink-50 dark:bg-pink-950/50 border-pink-300 dark:border-pink-800 text-pink-900 dark:text-pink-200'
                       : coach.type === 'D'
-                      ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-300 dark:border-purple-800 text-purple-900 dark:text-purple-200'
+                      ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
                       : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200'
                   }`}
                 >

@@ -246,7 +246,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="xl:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pt-3 pb-6 space-y-1.5 animate-fadeIn">
+        <>
+          <div 
+            className="xl:hidden fixed inset-0 top-16 z-30 bg-black/40 backdrop-blur-xs"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="xl:hidden relative z-40 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pt-3 pb-6 space-y-1.5 animate-fadeIn">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -298,6 +304,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
         </div>
+      </>
       )}
     </header>
   );
