@@ -15,8 +15,6 @@ import { RulesReferenceView } from './components/RulesReferenceView';
 import { VoiceDialerModal } from './components/VoiceDialerModal';
 import { SpecimenTicketModal } from './components/SpecimenTicketModal';
 import { TicketWalletModal } from './components/TicketWalletModal';
-import { MovingTrain3DModal } from './components/MovingTrain3DModal';
-import { NetworkMapViewer } from './components/NetworkMapViewer';
 import { MockBookingStore } from './engine/mockBookingStore';
 import { JourneyItinerary, TravelClass, SpecimenTicket } from './types/railway';
 import { 
@@ -24,13 +22,15 @@ import {
   Mic, 
   Ticket, 
   Radio, 
-  Sparkles, 
   Layers, 
   ShieldCheck, 
   ExternalLink,
   Bot,
   Zap
 } from 'lucide-react';
+
+const NetworkMapViewer = React.lazy(() => import('./components/NetworkMapViewer'));
+const MovingTrain3DModal = React.lazy(() => import('./components/MovingTrain3DModal'));
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('journey');
@@ -95,7 +95,21 @@ export default function App() {
           )}
 
           {activeTab === 'map' && (
-            <NetworkMapViewer />
+            <React.Suspense fallback={
+              <div className="flex flex-col items-center justify-center p-20 space-y-4 text-slate-500">
+                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="text-center">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    Loading Interactive Network Map
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Initializing Mumbai Suburban & Pan-India Track Topology...
+                  </p>
+                </div>
+              </div>
+            }>
+              <NetworkMapViewer />
+            </React.Suspense>
           )}
 
           {activeTab === 'ai_tasks' && (
@@ -160,10 +174,14 @@ export default function App() {
         </div>
 
         {/* 3D Moving Train Opening Animation Modal */}
-        <MovingTrain3DModal
-          isOpen={is3DTrainOpen}
-          onClose={() => setIs3DTrainOpen(false)}
-        />
+        {is3DTrainOpen && (
+          <React.Suspense fallback={null}>
+            <MovingTrain3DModal
+              isOpen={is3DTrainOpen}
+              onClose={() => setIs3DTrainOpen(false)}
+            />
+          </React.Suspense>
+        )}
 
         {/* Modals */}
         <VoiceDialerModal

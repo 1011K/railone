@@ -23,7 +23,6 @@ import {
   TrainTrack, 
   Clock, 
   RotateCcw,
-  Sparkles,
   AlertTriangle,
   Zap,
   CheckCircle2,
@@ -254,7 +253,10 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
               From Station (Search Name, Code or Alias)
             </label>
             <div 
-              onClick={() => setIsOriginOpen(!isOriginOpen)}
+              onClick={() => {
+                setIsOriginOpen(prev => !prev);
+                setIsDestOpen(false);
+              }}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between cursor-pointer min-h-[44px]"
             >
               <div className="truncate">
@@ -264,39 +266,45 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
             </div>
 
             {isOriginOpen && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-2 max-h-60 overflow-y-auto">
-                <div className="relative mb-2">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Type station name, code, or alias (e.g. cst, thane)..."
-                    value={originSearch}
-                    onChange={(e) => setOriginSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    autoFocus
-                  />
+              <>
+                <div 
+                  className="fixed inset-0 z-20" 
+                  onClick={() => setIsOriginOpen(false)} 
+                />
+                <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-2 max-h-60 overflow-y-auto">
+                  <div className="relative mb-2">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Type station name, code, or alias (e.g. cst, thane)..."
+                      value={originSearch}
+                      onChange={(e) => setOriginSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-0.5">
+                    {filteredOriginStations.map((st) => (
+                      <button
+                        key={st.code}
+                        onClick={() => {
+                          setOriginCode(st.code);
+                          setIsOriginOpen(false);
+                          setOriginSearch('');
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                          originCode === st.code 
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold' 
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                        }`}
+                      >
+                        <span className="truncate">{st.name} ({st.code})</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-mono">{st.line}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-0.5">
-                  {filteredOriginStations.map((st) => (
-                    <button
-                      key={st.code}
-                      onClick={() => {
-                        setOriginCode(st.code);
-                        setIsOriginOpen(false);
-                        setOriginSearch('');
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                        originCode === st.code 
-                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold' 
-                          : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
-                      }`}
-                    >
-                      <span className="truncate">{st.name} ({st.code})</span>
-                      <span className="text-[10px] text-slate-400 uppercase font-mono">{st.line}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -306,7 +314,10 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
               To Station (Search Name, Code or Alias)
             </label>
             <div 
-              onClick={() => setIsDestOpen(!isDestOpen)}
+              onClick={() => {
+                setIsDestOpen(prev => !prev);
+                setIsOriginOpen(false);
+              }}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between cursor-pointer min-h-[44px]"
             >
               <div className="truncate">
@@ -316,39 +327,45 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
             </div>
 
             {isDestOpen && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-2 max-h-60 overflow-y-auto">
-                <div className="relative mb-2">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Type destination name or code..."
-                    value={destSearch}
-                    onChange={(e) => setDestSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    autoFocus
-                  />
+              <>
+                <div 
+                  className="fixed inset-0 z-20" 
+                  onClick={() => setIsDestOpen(false)} 
+                />
+                <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-2 max-h-60 overflow-y-auto">
+                  <div className="relative mb-2">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Type destination name or code..."
+                      value={destSearch}
+                      onChange={(e) => setDestSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-0.5">
+                    {filteredDestStations.map((st) => (
+                      <button
+                        key={st.code}
+                        onClick={() => {
+                          setDestCode(st.code);
+                          setIsDestOpen(false);
+                          setDestSearch('');
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                          destCode === st.code 
+                            ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold' 
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                        }`}
+                      >
+                        <span className="truncate">{st.name} ({st.code})</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-mono">{st.line}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-0.5">
-                  {filteredDestStations.map((st) => (
-                    <button
-                      key={st.code}
-                      onClick={() => {
-                        setDestCode(st.code);
-                        setIsDestOpen(false);
-                        setDestSearch('');
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                        destCode === st.code 
-                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold' 
-                          : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
-                      }`}
-                    >
-                      <span className="truncate">{st.name} ({st.code})</span>
-                      <span className="text-[10px] text-slate-400 uppercase font-mono">{st.line}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -498,9 +515,9 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
 
         {/* Quick Commute Presets */}
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-400 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-amber-500" />
-            Presets:
+          <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
+            <TrainTrack className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            Key Corridors:
           </span>
           {presets.map((pr, idx) => (
             <button

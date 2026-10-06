@@ -266,7 +266,7 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
 
               <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-between text-xs">
                 <span className="text-slate-500">Total Mock Amount:</span>
-                <span className="font-bold text-slate-900 dark:text-white text-base">₹{fare}</span>
+                <span className="font-bold text-slate-900 dark:text-white text-base font-mono tabular-nums">₹{fare}</span>
               </div>
 
               <button
@@ -287,7 +287,7 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
                   <div className="font-bold text-xs text-emerald-950 dark:text-emerald-100">
                     Specimen Ticket Created Successfully
                   </div>
-                  <div className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                  <div className="text-[11px] text-emerald-700 dark:text-emerald-300 font-mono tabular-nums">
                     Mock PNR: {createdTicket.pnrMock} · Status: {createdTicket.paymentStatus}
                   </div>
                 </div>
@@ -303,11 +303,11 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
                 <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-slate-700">
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider block">PNR (Simulated)</span>
-                    <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">{createdTicket.pnrMock}</span>
+                    <span className="font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">{createdTicket.pnrMock}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Class / Fare</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{createdTicket.classBooked} · ₹{createdTicket.farePaid}</span>
+                    <span className="font-bold text-blue-600 dark:text-blue-400 font-mono tabular-nums">{createdTicket.classBooked} · ₹{createdTicket.farePaid}</span>
                   </div>
                 </div>
 

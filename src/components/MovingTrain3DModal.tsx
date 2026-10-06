@@ -8,7 +8,6 @@ import {
   Zap, 
   Gauge, 
   ShieldCheck, 
-  Sparkles,
   Sun,
   Moon,
   Sunset,
@@ -435,7 +434,7 @@ export const MovingTrain3DModal: React.FC<MovingTrain3DModalProps> = ({
                   <span className="text-[11px] text-slate-500 font-mono ml-2">(MPS: 110)</span>
                 </div>
                 <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                   <span>Cruising Section · Signal Cleared</span>
                 </div>
               </div>
@@ -523,3 +522,5 @@ export const MovingTrain3DModal: React.FC<MovingTrain3DModalProps> = ({
     </div>
   );
 };
+
+export default MovingTrain3DModal;

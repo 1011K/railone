@@ -12,7 +12,6 @@ import {
   X,
   Palette,
   Bot,
-  Sparkles,
   Zap,
   Check,
   ChevronDown,
@@ -40,7 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems = [
     { id: 'journey', label: language === 'hi' ? 'यात्रा निर्णय' : language === 'mr' ? 'प्रवास निर्णय' : 'Journey Decision', icon: Train },
     { id: 'map', label: language === 'hi' ? 'नेटवर्क मैप' : language === 'mr' ? 'नेटवर्क नकाशा' : 'Live Rail Map', icon: Navigation, isNew: true },
-    { id: 'ai_tasks', label: language === 'hi' ? 'AI टास्क' : language === 'mr' ? 'AI कार्ये' : 'AI Copilot & Tasks', icon: Bot },
+    { id: 'ai_tasks', label: language === 'hi' ? 'कार्य व सहायता' : language === 'mr' ? 'कार्ये व मदत' : 'Operations & Tasks', icon: Bot },
     { id: 'scenarios', label: language === 'hi' ? 'परिदृश्य लैब' : language === 'mr' ? 'परिदृश्य लॅब' : 'Scenarios Lab', icon: Layers },
     { id: 'tracker', label: language === 'hi' ? 'लाइव ट्रैकर' : language === 'mr' ? 'थेट ट्रॅकर' : 'Live OCC Status', icon: Radio },
     { id: 'voice', label: language === 'hi' ? 'रेलसाथी आवाज़' : language === 'mr' ? 'रेलसाथी आवाज' : 'RailSathi Voice', icon: Mic },
@@ -105,12 +104,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
                   {item.isNew && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 text-white uppercase tracking-wider">
-                      {item.id === 'map' ? '2D/3D' : 'AI'}
+                    <span className="px-1.5 py-0.2 rounded font-mono text-[9px] font-black bg-blue-700 text-white uppercase tracking-wider">
+                      {item.id === 'map' ? '2D/3D' : 'OCC'}
                     </span>
                   )}
                   {item.badge !== undefined && item.badge > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold font-mono">
                       {item.badge}
                     </span>
                   )}
@@ -126,10 +125,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onOpen3DTrain && (
               <button
                 onClick={onOpen3DTrain}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs border border-amber-300 dark:border-amber-700/60 transition-all shadow-xs active:scale-95 min-h-[38px]"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-300 dark:border-amber-700/60 transition-all shadow-xs active:scale-95 min-h-[38px]"
                 title="Launch 3D Train Moving Simulation"
               >
-                <Zap className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span className="hidden sm:inline">3D Train Sim</span>
               </button>
             )}
@@ -168,8 +167,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               {showThemeMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-fadeIn">
-                  <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowThemeMenu(false)} 
+                  />
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-fadeIn">
+                    <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                       Railway Theme Liveries
                     </span>
@@ -208,7 +212,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     })}
                   </div>
                 </div>
-              )}
+              </>
+            )}
             </div>
 
             {/* Dark / Light Mode Toggle */}
@@ -262,8 +267,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
                   {item.isNew && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-600 text-white uppercase">
-                      {item.id === 'map' ? '2D/3D' : 'AI'}
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-600 text-white uppercase font-mono">
+                      {item.id === 'map' ? '2D/3D' : 'OCC'}
                     </span>
                   )}
                 </div>

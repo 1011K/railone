@@ -1079,3 +1079,5 @@ export const NetworkMapViewer: React.FC = () => {
     </div>
   );
 };
+
+export default NetworkMapViewer;

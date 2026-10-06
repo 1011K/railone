@@ -102,37 +102,37 @@ export const RulesReferenceView: React.FC = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
               <tr>
                 <td className="py-2.5 px-3 font-medium">1 – 10 km</td>
-                <td className="py-2.5 px-3 font-mono">₹5</td>
-                <td className="py-2.5 px-3 font-mono">₹50</td>
-                <td className="py-2.5 px-3 font-mono">₹35</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹5</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹50</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹35</td>
                 <td className="py-2.5 px-3 text-slate-400">CSMT – Byculla / Dadar</td>
               </tr>
               <tr>
                 <td className="py-2.5 px-3 font-medium">11 – 20 km</td>
-                <td className="py-2.5 px-3 font-mono">₹10</td>
-                <td className="py-2.5 px-3 font-mono">₹85</td>
-                <td className="py-2.5 px-3 font-mono">₹65</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹10</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹85</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹65</td>
                 <td className="py-2.5 px-3 text-slate-400">Dadar – Ghatkopar</td>
               </tr>
               <tr>
                 <td className="py-2.5 px-3 font-medium">21 – 35 km</td>
-                <td className="py-2.5 px-3 font-mono">₹10</td>
-                <td className="py-2.5 px-3 font-mono">₹105</td>
-                <td className="py-2.5 px-3 font-mono">₹95</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹10</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹105</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹95</td>
                 <td className="py-2.5 px-3 text-slate-400">Thane – Dadar / CSMT</td>
               </tr>
               <tr>
                 <td className="py-2.5 px-3 font-medium">36 – 55 km</td>
-                <td className="py-2.5 px-3 font-mono">₹15</td>
-                <td className="py-2.5 px-3 font-mono">₹140</td>
-                <td className="py-2.5 px-3 font-mono">₹135</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹15</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹140</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹135</td>
                 <td className="py-2.5 px-3 text-slate-400">Kalyan – Dadar / CSMT</td>
               </tr>
               <tr>
                 <td className="py-2.5 px-3 font-medium">56+ km</td>
-                <td className="py-2.5 px-3 font-mono">₹20</td>
-                <td className="py-2.5 px-3 font-mono">₹165</td>
-                <td className="py-2.5 px-3 font-mono">₹180</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹20</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹165</td>
+                <td className="py-2.5 px-3 font-mono tabular-nums">₹180</td>
                 <td className="py-2.5 px-3 text-slate-400">Churchgate – Virar / Karjat</td>
               </tr>
             </tbody>

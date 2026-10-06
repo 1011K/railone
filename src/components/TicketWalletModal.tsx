@@ -105,7 +105,7 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="font-bold text-slate-900 dark:text-white text-sm">₹{t.farePaid}</span>
+                    <span className="font-bold text-slate-900 dark:text-white text-sm font-mono tabular-nums">₹{t.farePaid}</span>
                     <div className="text-[10px] text-slate-400">{t.paymentMethod}</div>
                   </div>
                 </div>

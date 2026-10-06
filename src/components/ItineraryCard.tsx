@@ -113,39 +113,41 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
           {/* Left: Timing & Train Details */}
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <span className="font-bold text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight">
+              <span className="font-black text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight tabular-nums font-mono">
                 {itinerary.predictedDeparture}
               </span>
               <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                 <span className="h-0.5 w-6 sm:w-10 bg-slate-300 dark:bg-slate-700 inline-block" />
-                <span>{itinerary.totalDurationMinutes} min</span>
+                <span className="tabular-nums font-mono font-bold">{itinerary.totalDurationMinutes} min</span>
                 <span className="h-0.5 w-6 sm:w-10 bg-slate-300 dark:bg-slate-700 inline-block" />
               </div>
-              <span className="font-bold text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight">
+              <span className="font-black text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight tabular-nums font-mono">
                 {itinerary.predictedArrival}
               </span>
             </div>
 
             {/* Delay & Schedule metadata (Clean unboxed inline typography) */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {primaryLeg.train.trainNumber} · {primaryLeg.train.trainName}
+              <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
+                #{primaryLeg.train.trainNumber} · {primaryLeg.train.trainName}
               </span>
               <span aria-hidden="true">·</span>
-              <span>{primaryLeg.stoppingPatternLabel}</span>
+              <span className="font-medium">{primaryLeg.stoppingPatternLabel}</span>
               <span aria-hidden="true">·</span>
-              <span>Platform {primaryLeg.departurePlatform}</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
+                PF {primaryLeg.departurePlatform}
+              </span>
               {primaryLeg.delayDepMinutes > 0 ? (
                 <>
                   <span aria-hidden="true">·</span>
-                  <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                  <span className="text-amber-700 dark:text-amber-400 font-bold tabular-nums font-mono">
                     +{primaryLeg.delayDepMinutes}m delay (Sched: {primaryLeg.scheduledDep})
                   </span>
                 </>
               ) : (
                 <>
                   <span aria-hidden="true">·</span>
-                  <span className="text-emerald-700 dark:text-emerald-400 font-medium">On-time</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold">On-time</span>
                 </>
               )}
             </div>
@@ -154,7 +156,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
             <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
               <Footprints className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>
-                Leave Home at <strong className="text-slate-900 dark:text-white">{itinerary.leaveHomeTime}</strong> ({itinerary.leaveHomeMarginMinutes}m transit margin to station)
+                Leave Home at <strong className="text-slate-900 dark:text-white font-mono tabular-nums">{itinerary.leaveHomeTime}</strong> ({itinerary.leaveHomeMarginMinutes}m transit margin to station)
               </span>
             </div>
           </div>
@@ -292,12 +294,17 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
                     <span className="font-medium text-slate-900 dark:text-white">
                       Leg {lIdx + 1}: {leg.fromStation.name} ➔ {leg.toStation.name}
                     </span>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
-                      Train {leg.train.trainNumber} ({leg.train.serviceType}) · Board Platform {leg.departurePlatform}
+                    <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                      <span className="font-mono font-bold">#{leg.train.trainNumber}</span>
+                      <span>({leg.train.serviceType})</span>
+                      <span>·</span>
+                      <span className="inline-flex items-center px-1 py-0.2 rounded text-[10px] font-bold font-mono bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
+                        PF {leg.departurePlatform}
+                      </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="font-semibold text-slate-900 dark:text-white">
+                    <span className="font-bold text-slate-900 dark:text-white font-mono tabular-nums">
                       {leg.predictedDep} ➔ {leg.predictedArr}
                     </span>
                     <div className="text-[11px] text-slate-500">

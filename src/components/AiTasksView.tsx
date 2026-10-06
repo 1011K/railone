@@ -8,7 +8,6 @@ import {
 } from '../types/tasks';
 import { AiRailwayService } from '../services/aiService';
 import { 
-  Sparkles, 
   Plus, 
   CheckCircle2, 
   Clock, 
@@ -306,18 +305,18 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
     <div className="space-y-6">
 
       {/* Header Bar */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="p-2 rounded-xl bg-purple-600/30 text-purple-400 border border-purple-500/30">
+            <span className="p-2 rounded-xl bg-blue-600/30 text-blue-400 border border-blue-500/30">
               <Bot className="w-5 h-5" />
             </span>
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-400">
-              CRIS AI Copilot & Task Operations Suite
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+              Operations Control & Commuter Assistance Suite
             </span>
             {aiDataSource && (
               <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-300 font-mono">
-                {aiDataSource}
+                {aiDataSource === 'gemini' ? '[AI DISPATCH ASSIST]' : '[DETERMINISTIC FALLBACK]'}
               </span>
             )}
           </div>
@@ -346,12 +345,12 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
             onClick={() => setActiveTab('copilot')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
               activeTab === 'copilot' 
-                ? 'bg-purple-600 text-white shadow-xs font-bold' 
+                ? 'bg-blue-600 text-white shadow-xs font-bold' 
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Bot className="w-3.5 h-3.5" />
-            <span>AI Copilot</span>
+            <span>Transit Copilot</span>
           </button>
           <button
             onClick={() => setActiveTab('railmadad')}
@@ -373,17 +372,17 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
       {activeTab === 'tasks' && (
         <div className="space-y-6">
 
-          {/* AI Task Decomposer Input Card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+          {/* Commuter Task Decomposer Input Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  AI Natural Language Task Generator & Decomposition
+                  Commuter Dilemma Decomposer & Action Planner
                 </h3>
               </div>
-              <span className="text-[11px] text-slate-500">
-                Powered by Gemini 3.8 Flash & Railway Rules Engine
+              <span className="text-[11px] text-slate-500 font-medium">
+                Verified with Mumbai Suburban Rules & Schedule Model
               </span>
             </div>
 
@@ -394,22 +393,22 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                 value={naturalLanguageInput}
                 onChange={(e) => setNaturalLanguageInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAiAutoDecompose()}
-                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={() => handleAiAutoDecompose()}
                 disabled={isGenerating || !naturalLanguageInput.trim()}
-                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs shrink-0"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs shrink-0"
               >
                 {isGenerating ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Decomposing...</span>
+                    <span>Analyzing...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Auto-Decompose</span>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Generate Actions</span>
                   </>
                 )}
               </button>
@@ -427,7 +426,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                 <button
                   key={chip.label}
                   onClick={() => handleAiAutoDecompose(chip.prompt)}
-                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-950/60 text-slate-700 dark:text-slate-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors border border-slate-200 dark:border-slate-700"
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200 dark:border-slate-700"
                 >
                   {chip.label}
                 </button>
@@ -689,9 +688,9 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                             </span>
                           )}
                           {task.isAiGenerated && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                              <Sparkles className="w-2.5 h-2.5" />
-                              AI Gen
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                              <Zap className="w-2.5 h-2.5" />
+                              ASSISTED
                             </span>
                           )}
                         </div>
@@ -751,18 +750,18 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
       )}
 
       {/* ========================================================================= */}
-      {/* 2. AI COPILOT CHAT VIEW                                                   */}
+      {/* 2. TRANSIT COPILOT CHAT VIEW                                              */}
       {/* ========================================================================= */}
       {activeTab === 'copilot' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-purple-600 text-white font-bold">
+              <span className="p-2 rounded-xl bg-blue-600 text-white font-bold">
                 <Bot className="w-4 h-4" />
               </span>
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  RailSathi Conversational Copilot
+                  RailSathi Transit Operations Desk
                 </h3>
                 <p className="text-[11px] text-slate-500">
                   Real-time Mumbai Suburban & Central Railway operational intelligence
@@ -783,8 +782,8 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                 className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 text-xs font-bold">
-                    AI
+                  <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 text-xs font-bold font-mono">
+                    OCC
                   </div>
                 )}
                 <div className={`max-w-[80%] rounded-2xl p-3.5 text-xs leading-relaxed ${
@@ -793,7 +792,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
                     : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 shadow-xs'
                 }`}>
                   <p className="whitespace-pre-line">{msg.text}</p>
-                  <span className={`block text-[9px] mt-1.5 text-right ${
+                  <span className={`block text-[9px] mt-1.5 text-right font-mono ${
                     msg.role === 'user' ? 'text-blue-200' : 'text-slate-400'
                   }`}>
                     {msg.time}
@@ -804,11 +803,11 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
 
             {isCopilotThinking && (
               <div className="flex gap-3 justify-start items-center text-xs text-slate-400">
-                <div className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
                   <Bot className="w-3.5 h-3.5 animate-spin" />
                 </div>
                 <div className="bg-white dark:bg-slate-900 rounded-2xl px-4 py-2 border border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
                   <span>Analyzing sectional delay telemetry and platform routes...</span>
                 </div>
               </div>
@@ -823,12 +822,12 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
               value={copilotQuery}
               onChange={(e) => setCopilotQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSendCopilot()}
-              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={handleSendCopilot}
               disabled={isCopilotThinking || !copilotQuery.trim()}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
             >
               <Send className="w-4 h-4" />
               <span>Send</span>

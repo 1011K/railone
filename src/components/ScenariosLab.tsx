@@ -14,7 +14,7 @@ import {
   Clock, 
   ArrowRight,
   HelpCircle,
-  Sparkles
+  Activity
 } from 'lucide-react';
 
 interface ScenariosLabProps {
@@ -49,7 +49,7 @@ export const ScenariosLab: React.FC<ScenariosLabProps> = ({
     <div className="space-y-6">
       
       {/* Introduction Card */}
-      <section aria-label="Scenarios Lab Overview" className="bg-gradient-to-r from-blue-900 to-indigo-950 text-white rounded-2xl p-6 shadow-md border border-blue-800">
+      <section aria-label="Scenarios Lab Overview" className="bg-slate-900 text-white rounded-2xl p-6 shadow-md border border-slate-800">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -61,12 +61,12 @@ export const ScenariosLab: React.FC<ScenariosLabProps> = ({
             <h2 className="text-xl font-bold tracking-tight">
               Interactive Commuter Decision Lab
             </h2>
-            <p className="text-xs text-blue-200 max-w-2xl leading-relaxed">
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
               Verify how RailOne Next tackles genuine passenger dilemmas: delay inversion where a slow train beats a delayed fast train, leave-home calculation before origin departure, transfer walking time guarantees, and legal Express boarding eligibility.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-blue-950/80 px-4 py-2.5 rounded-xl border border-blue-700 text-xs">
+          <div className="flex items-center gap-2 bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-700 text-xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>Deterministic Scenario Engine Active</span>
           </div>
@@ -82,12 +82,12 @@ export const ScenariosLab: React.FC<ScenariosLabProps> = ({
                 onClick={() => setSelectedScenarioId(sc.id)}
                 className={`p-3 rounded-xl text-left text-xs transition-all border min-h-[44px] flex flex-col justify-between ${
                   isSelected 
-                    ? 'bg-white text-slate-900 border-white font-semibold shadow-md ring-2 ring-blue-400' 
-                    : 'bg-blue-950/60 hover:bg-blue-900/80 text-blue-100 border-blue-800/80'
+                    ? 'bg-white text-slate-900 border-white font-semibold shadow-md ring-2 ring-blue-500' 
+                    : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 <div className="font-bold line-clamp-1">{sc.title}</div>
-                <div className={`text-[11px] mt-1 line-clamp-2 ${isSelected ? 'text-slate-600' : 'text-blue-300'}`}>
+                <div className={`text-[11px] mt-1 line-clamp-2 ${isSelected ? 'text-slate-600' : 'text-slate-400'}`}>
                   {sc.subtitle}
                 </div>
               </button>
@@ -101,7 +101,7 @@ export const ScenariosLab: React.FC<ScenariosLabProps> = ({
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Activity className="w-3.5 h-3.5" />
               <span>Active Scenario Analysis</span>
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">

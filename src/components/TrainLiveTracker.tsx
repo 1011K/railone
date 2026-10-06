@@ -447,7 +447,7 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
               <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
                 Sectional Route Delay & Thermal Congestion Heatmap
               </h3>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
                 Live Heat Layer
               </span>
             </div>
@@ -1003,29 +1003,31 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
                       </div>
                     </td>
 
-                    <td className="py-3 px-4 font-mono text-slate-700 dark:text-slate-300">
-                      PF {train.stops[sIdx]?.platform || '1'}
+                    <td className="py-3 px-4">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-[11px] bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
+                        PF {train.stops[sIdx]?.platform || '1'}
+                      </span>
                     </td>
 
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400 font-mono">
+                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400 font-mono tabular-nums">
                       {stop.scheduledArrival} / {stop.scheduledDeparture}
                     </td>
 
-                    <td className="py-3 px-4 font-mono font-semibold text-slate-900 dark:text-white">
+                    <td className="py-3 px-4 font-mono font-bold tabular-nums text-slate-900 dark:text-white">
                       {stop.predictedArrival} / {stop.predictedDeparture}
                     </td>
 
                     <td className="py-3 px-4">
                       {stop.delayArrivalMinutes > 0 ? (
-                        <span className="text-amber-700 dark:text-amber-400 font-semibold">
+                        <span className="text-amber-700 dark:text-amber-400 font-bold font-mono tabular-nums">
                           +{stop.delayArrivalMinutes}m
                         </span>
                       ) : (
-                        <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">
                           On-time
                         </span>
                       )}
-                      <span className="text-[10px] text-slate-600 dark:text-slate-400 ml-1">
+                      <span className="text-[10px] text-slate-500 font-mono tabular-nums ml-1">
                         (±{stop.uncertaintyMinutes}m)
                       </span>
                     </td>

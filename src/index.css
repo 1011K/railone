@@ -218,3 +218,14 @@
 .animate-signal-red {
   animation: signalPulseRed 1.2s infinite ease-in-out;
 }
+
+/* Authentic Indian Railways Transit Signage & Departure Clock Utilities */
+.ir-platform-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.ir-clock-numeral {
+  font-variant-numeric: tabular-nums;
+}
