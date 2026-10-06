@@ -26,15 +26,19 @@ import {
   ShieldCheck, 
   ExternalLink,
   Bot,
-  Zap
+  Zap,
+  Eye
 } from 'lucide-react';
 
 const NetworkMapViewer = React.lazy(() => import('./components/NetworkMapViewer'));
 const MovingTrain3DModal = React.lazy(() => import('./components/MovingTrain3DModal'));
+const StationGodsEyeModal = React.lazy(() => import('./components/StationGodsEyeModal'));
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('journey');
   const [is3DTrainOpen, setIs3DTrainOpen] = useState(false); // 3D train moving experience available on demand
+  const [isGodsEyeOpen, setIsGodsEyeOpen] = useState(false);
+  const [godsEyeStationCode, setGodsEyeStationCode] = useState('DR');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -56,6 +60,11 @@ export default function App() {
   const handleInspectTrain = (trainNumber: string) => {
     setInspectedTrainNumber(trainNumber);
     setActiveTab('tracker');
+  };
+
+  const handleOpenGodsEye = (stationCode: string = 'DR') => {
+    setGodsEyeStationCode(stationCode);
+    setIsGodsEyeOpen(true);
   };
 
   const handleBookingCreated = (ticket: SpecimenTicket) => {
@@ -108,7 +117,13 @@ export default function App() {
                 </div>
               </div>
             }>
-              <NetworkMapViewer />
+              <NetworkMapViewer 
+                onPlanRouteFromStation={(stn) => {
+                  setActiveTab('journey');
+                }}
+                onInspectTrainSchedule={handleInspectTrain}
+                onOpenGodsEye={handleOpenGodsEye}
+              />
             </React.Suspense>
           )}
 
@@ -140,6 +155,16 @@ export default function App() {
 
         {/* Floating Quick Action Buttons (Mobile & Desktop) */}
         <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-3">
+          {/* 3D Station God's Eye Navigation Floating Button */}
+          <button
+            onClick={() => handleOpenGodsEye('DR')}
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-blue-700/90 dark:bg-blue-600/90 hover:bg-blue-700 text-white rounded-xl shadow-lg border border-blue-500/60 font-bold text-xs transition-all active:scale-95 group backdrop-blur-xs"
+            aria-label="Launch 3D Station God's Eye Navigation"
+          >
+            <Eye className="w-3.5 h-3.5 text-blue-200 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline">God's Eye Station</span>
+          </button>
+
           {/* 3D Train Simulator Quick Floating Button */}
           <button
             onClick={() => setIs3DTrainOpen(true)}
@@ -179,6 +204,17 @@ export default function App() {
             <MovingTrain3DModal
               isOpen={is3DTrainOpen}
               onClose={() => setIs3DTrainOpen(false)}
+            />
+          </React.Suspense>
+        )}
+
+        {/* 3D Station God's Eye Navigation Modal */}
+        {isGodsEyeOpen && (
+          <React.Suspense fallback={null}>
+            <StationGodsEyeModal
+              isOpen={isGodsEyeOpen}
+              onClose={() => setIsGodsEyeOpen(false)}
+              initialStationCode={godsEyeStationCode}
             />
           </React.Suspense>
         )}

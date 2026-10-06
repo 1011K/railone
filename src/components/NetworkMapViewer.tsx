@@ -34,17 +34,20 @@ import {
   Zap, 
   CheckCircle2,
   Navigation,
-  Compass
+  Compass,
+  Eye
 } from 'lucide-react';
 
 interface NetworkMapViewerProps {
   onPlanRouteFromStation?: (stationCode: string) => void;
   onInspectTrainSchedule?: (trainNumber: string) => void;
+  onOpenGodsEye?: (stationCode: string) => void;
 }
 
 export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
   onPlanRouteFromStation,
-  onInspectTrainSchedule
+  onInspectTrainSchedule,
+  onOpenGodsEye
 }) => {
   const [scope, setScope] = useState<MapScope>('mumbai_suburban');
   const [renderMode, setRenderMode] = useState<MapRenderMode>('2d');
@@ -973,15 +976,26 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Station Code: <code className="font-mono font-bold text-slate-700 dark:text-slate-300">{activeStation.code}</code> • Platforms: {activeStation.platforms.join(', ')} • {activeStation.city}
                 </p>
-                {onPlanRouteFromStation && (
-                  <button
-                    onClick={() => onPlanRouteFromStation(activeStation.code)}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors"
-                  >
-                    <ArrowRight className="w-3.5 h-3.5" />
-                    <span>Plan Journey From {activeStation.name}</span>
-                  </button>
-                )}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  {onPlanRouteFromStation && (
+                    <button
+                      onClick={() => onPlanRouteFromStation(activeStation.code)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>Plan Journey From {activeStation.name}</span>
+                    </button>
+                  )}
+                  {onOpenGodsEye && (
+                    <button
+                      onClick={() => onOpenGodsEye(activeStation.code)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-xs shadow-xs transition-colors border border-slate-700"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-blue-400" />
+                      <span>3D God's Eye Station View</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Trains Calling At This Station */}

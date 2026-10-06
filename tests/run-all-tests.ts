@@ -603,6 +603,69 @@ console.log('\nTest Suite 17: Interactive 2D/3D Network Map Engine & Multi-Train
     '17.29: Network map search finds Mumbai Rajdhani by train number 12951');
 }
 
+console.log('\nTest Suite 18: 3D Station Navigation, God\'s Eye Topological Layouts & FOB Transfer Routing');
+{
+  const { 
+    STATION_3D_LAYOUTS, 
+    calculateStationTransferRoute 
+  } = await import('../src/fixtures/stationLayoutsData');
+
+  // 18.1 Major railway hub layouts loaded
+  const hubCodes = Object.keys(STATION_3D_LAYOUTS);
+  assert(hubCodes.includes('DR') && hubCodes.includes('CSMT') && hubCodes.includes('TNA') && hubCodes.includes('ADH') && hubCodes.includes('KYN') && hubCodes.includes('NDLS'), 
+    '18.1: Station layout index loads major interchange hubs (Dadar, CSMT, Thane, Andheri, Kalyan, NDLS)');
+
+  // 18.2 Dadar Junction Western vs Central line platform segregation
+  const dadar = STATION_3D_LAYOUTS['DR'];
+  assert(dadar.platforms.length === 15, '18.2: Dadar Junction contains 15 total operational platforms (7 WR + 8 CR)');
+  const dadarWR = dadar.platforms.filter(p => p.line === 'western');
+  const dadarCR = dadar.platforms.filter(p => p.line === 'central');
+  assert(dadarWR.length === 7 && dadarCR.length === 8, '18.3: Accurately separates Western (PF 1-7) and Central (PF 1-8) platforms');
+
+  // 18.3 Foot-Over-Bridge transfer pathfinder computes realistic cross-line walk time
+  const wrToCrRoute = calculateStationTransferRoute('DR', 'DR_WR_1', 'DR_CR_4', false);
+  assert(wrToCrRoute.success === true, '18.4: Cross-line transfer route calculated successfully');
+  assert(wrToCrRoute.walkMinutes >= 6 && wrToCrRoute.walkMinutes <= 8, '18.5: Foot-Over-Bridge walk time between WR PF 1 and CR PF 4 is realistic (6-8 mins)');
+  assert(wrToCrRoute.steps.length >= 4, '18.6: Provides step-by-step pedestrian navigation instructions');
+
+  // 18.4 Accessible Step-Free transfer pathfinding
+  const stepFreeRoute = calculateStationTransferRoute('DR', 'DR_WR_3', 'DR_CR_4', true);
+  assert(stepFreeRoute.stepFreeAvailable === true, '18.7: Step-free pathfinder detects elevator-equipped Foot-Over-Bridge');
+  assert(stepFreeRoute.steps.some(s => s.toLowerCase().includes('elevator') || s.toLowerCase().includes('lift')), 
+    '18.8: Step-free route guides commuter to elevator / lift access');
+
+  // 18.5 Same-platform transfer zero walk
+  const samePlatRoute = calculateStationTransferRoute('DR', 'DR_WR_1', 'DR_WR_1', false);
+  assert(samePlatRoute.walkMinutes === 0 && samePlatRoute.distanceMeters === 0, 
+    '18.9: Same-platform transfer returns 0 minute walk and safety boundary guidance');
+
+  // 18.6 Andheri direct Metro Line 1 elevated skywalk link
+  const andheri = STATION_3D_LAYOUTS['ADH'];
+  assert(andheri.bridges.some(b => b.name.includes('Metro Line 1')), 
+    '18.10: Andheri station includes Mumbai Metro Line 1 elevated skywalk connection');
+
+  // 18.7 Thane SATIS elevated bus deck on Level 2
+  const thane = STATION_3D_LAYOUTS['TNA'];
+  assert(thane.levelsCount === 3 && thane.bridges.some(b => b.id === 'TNA_SATIS_DECK'), 
+    '18.11: Thane station includes Level 2 SATIS elevated deck for municipal bus interchange');
+
+  // 18.8 Platform occupancy tracking for berthed & approaching rakes
+  const csmt = STATION_3D_LAYOUTS['CSMT'];
+  const csmtPf3 = csmt.platforms.find(p => p.id === 'CSMT_3');
+  assert(csmtPf3 !== undefined && csmtPf3.currentTrain !== undefined, 
+    '18.12: Station platform occupancy mapping tracks live approaching / berthed trains');
+
+  // 18.9 Amenities indexing includes RPF emergency security posts
+  const rpfPost = dadar.amenities.find(a => a.type === 'rpf_post');
+  assert(rpfPost !== undefined && rpfPost.isAccessible === true, 
+    '18.13: Station amenities index includes RPF Security Post & SOS helpdesk');
+
+  // 18.10 New Delhi national terminal Airport Express link
+  const ndls = STATION_3D_LAYOUTS['NDLS'];
+  assert(ndls.amenities.some(a => a.name.includes('Airport Express')), 
+    '18.14: New Delhi national terminal indexes Delhi Metro Airport Express underpass');
+}
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');
