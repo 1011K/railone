@@ -28,6 +28,9 @@ import {
   Sparkles
 } from 'lucide-react';
 
+import { CoachPositionGuide } from './components/CoachPositionGuide';
+import { InstitutionalDossierModal } from './components/InstitutionalDossierModal';
+
 const MovingTrain3DModal = React.lazy(() => import('./components/MovingTrain3DModal'));
 const StationGodsEyeModal = React.lazy(() => import('./components/StationGodsEyeModal'));
 
@@ -43,6 +46,8 @@ export default function App() {
   const [godsEyeStationCode, setGodsEyeStationCode] = useState('DR');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [isCoachGuideOpen, setIsCoachGuideOpen] = useState(false);
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<JourneyItinerary | null>(null);
   const [selectedClass, setSelectedClass] = useState<TravelClass>('II');
   const [inspectedTrainNumber, setInspectedTrainNumber] = useState<string>('95112');
@@ -109,6 +114,8 @@ export default function App() {
           onOpenThemeModal={() => setIsThemeModalOpen(true)}
           onOpen3DTrain={() => setIs3DTrainOpen(true)}
           onOpenGodsEye={handleOpenGodsEye}
+          onOpenCoachGuide={() => setIsCoachGuideOpen(true)}
+          onOpenDossier={() => setIsDossierOpen(true)}
         />
 
         {/* Main Content Viewport */}
@@ -217,6 +224,33 @@ export default function App() {
           onBookingCreated={handleBookingCreated}
         />
 
+        {/* Institutional Academic Evaluation & CRIS Dossier Modal */}
+        <InstitutionalDossierModal
+          isOpen={isDossierOpen}
+          onClose={() => setIsDossierOpen(false)}
+        />
+
+        {/* Platform Coach Alignment & Wagenstandsanzeiger Modal */}
+        {isCoachGuideOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+            <div className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto">
+              <div className="flex justify-end p-2 mb-1">
+                <button
+                  onClick={() => setIsCoachGuideOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-white font-bold text-xs hover:bg-slate-700 transition-colors shadow-lg"
+                >
+                  ✕ Close Coach Guide
+                </button>
+              </div>
+              <CoachPositionGuide
+                stationCode="DR"
+                platformNumber="3"
+                onClose={() => setIsCoachGuideOpen(false)}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Institutional Footer */}
         <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 py-6 text-xs text-slate-500">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -228,6 +262,19 @@ export default function App() {
               <span>CRIS & Indian Railways Conceptual Model</span>
             </div>
             <div className="flex items-center gap-4 text-[11px]">
+              <button 
+                onClick={() => setIsCoachGuideOpen(true)}
+                className="hover:text-slate-800 dark:hover:text-slate-300 underline flex items-center gap-1"
+              >
+                <span>Coach Guide (JR East)</span>
+              </button>
+              <button 
+                onClick={() => setIsDossierOpen(true)}
+                className="hover:text-slate-800 dark:hover:text-slate-300 underline flex items-center gap-1 text-theme-primary font-bold"
+              >
+                <Sparkles className="w-3 h-3 text-theme-primary" />
+                <span>CRIS Academic Dossier</span>
+              </button>
               <button 
                 onClick={() => {
                   setActiveTab('help');

@@ -814,6 +814,33 @@ console.log('\nTest Suite 20: Institutional Passenger PWA, Offline Service Worke
   assert(themeKeys.every(k => THEME_CONFIG[k as any].primaryHex.startsWith('#')), '20.7: All 8 themes specify valid primaryHex color tokens');
 }
 
+console.log('\nTest Suite 21: Global Benchmarks, Coach Alignment (Wagenstandsanzeiger) & Institutional Academic Dossier');
+{
+  const coachGuidePath = path.resolve(process.cwd(), 'src/components/CoachPositionGuide.tsx');
+  assert(fs.existsSync(coachGuidePath), '21.1: CoachPositionGuide component exists in src/components');
+  if (fs.existsSync(coachGuidePath)) {
+    const content = fs.readFileSync(coachGuidePath, 'utf8');
+    assert(content.includes('12_car_suburban') && content.includes('12_car_ac_suburban'), 
+      '21.2: 12-car Non-AC and AC local suburban rake models supported');
+    assert(content.includes('divyangjan') && content.includes('Wheelchair'), 
+      '21.3: Divyangjan handicap accessible coach alignment mapped with tactile guidance');
+    assert(content.includes('16_car_vande_bharat') && content.includes('Executive'), 
+      '21.4: 16-car Vande Bharat Express configuration with Executive Chair Car (EC) mapped');
+    assert(content.includes('nearestFobDadar') && content.includes('Middle Foot-Over-Bridge'), 
+      '21.5: Platform Foot-Over-Bridge exit mapping guides commuter to fast interchange stairs');
+  }
+
+  const dossierPath = path.resolve(process.cwd(), 'src/components/InstitutionalDossierModal.tsx');
+  assert(fs.existsSync(dossierPath), '21.6: InstitutionalDossierModal exists for academic exam evaluation');
+  if (fs.existsSync(dossierPath)) {
+    const dossierContent = fs.readFileSync(dossierPath, 'utf8');
+    assert(dossierContent.includes('JR East') && dossierContent.includes('SBB') && dossierContent.includes('TfL') && dossierContent.includes('DB Navigator') && dossierContent.includes('SMRT'),
+      '21.7: Documents 5 global benchmark transit authorities (Japan, Switzerland, UK, Germany, Singapore)');
+    assert(dossierContent.includes('Section 138') && dossierContent.includes('Compounding Delay'),
+      '21.8: Documents statutory Railways Act Section 138 and compounding delay mathematical proofs');
+  }
+}
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');

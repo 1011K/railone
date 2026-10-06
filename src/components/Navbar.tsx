@@ -28,6 +28,8 @@ interface NavbarProps {
   onOpenThemeModal: () => void;
   onOpen3DTrain?: () => void;
   onOpenGodsEye?: (stationCode: string) => void;
+  onOpenCoachGuide?: () => void;
+  onOpenDossier?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
@@ -36,7 +38,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   savedTicketCount,
   onOpenThemeModal,
   onOpen3DTrain,
-  onOpenGodsEye 
+  onOpenGodsEye,
+  onOpenCoachGuide,
+  onOpenDossier 
 }) => {
   const { theme, isDark, toggleDarkMode, language, setLanguage } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -138,6 +142,30 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Controls: Station 3D, Theme Palettes Modal, Dark/Light, Language */}
           <div className="flex items-center gap-2">
             
+            {/* Coach Guide & Wagenstandsanzeiger Shortcut */}
+            {onOpenCoachGuide && (
+              <button
+                onClick={onOpenCoachGuide}
+                className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all min-h-[38px]"
+                title="Platform Coach Alignment Guide (Wagenstandsanzeiger)"
+              >
+                <Train className="w-3.5 h-3.5 text-theme-primary" />
+                <span>Coach Guide</span>
+              </button>
+            )}
+
+            {/* Academic & CRIS Dossier Shortcut */}
+            {onOpenDossier && (
+              <button
+                onClick={onOpenDossier}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary font-bold text-xs border border-theme-primary/30 transition-all min-h-[38px]"
+                title="Open Academic Evaluation Dossier & CRIS Specifications"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>CRIS Dossier</span>
+              </button>
+            )}
+
             {/* Quick 3D Wayfinding Shortcut */}
             {onOpenGodsEye && (
               <button
@@ -265,18 +293,44 @@ export const Navbar: React.FC<NavbarProps> = ({
               );
             })}
 
-            {/* Mobile Actions: Appearance, 3D Sim */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+            {/* Mobile Actions: Appearance, 3D Sim, Coach Guide, CRIS Dossier */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   onOpenThemeModal();
                 }}
-                className="flex-1 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-2"
+                className="py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-2"
               >
                 <Palette className="w-4 h-4 text-theme-primary" />
-                <span>Theme Colors (8)</span>
+                <span>Themes (8)</span>
               </button>
+
+              {onOpenCoachGuide && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenCoachGuide();
+                  }}
+                  className="py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-2"
+                >
+                  <Train className="w-4 h-4 text-theme-primary" />
+                  <span>Coach Guide</span>
+                </button>
+              )}
+
+              {onOpenDossier && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenDossier();
+                  }}
+                  className="py-2 px-3 rounded-xl bg-theme-primary/10 text-theme-primary text-xs font-bold flex items-center justify-center gap-2 border border-theme-primary/30"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>CRIS Dossier</span>
+                </button>
+              )}
 
               {onOpenGodsEye && (
                 <button
@@ -284,7 +338,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setMobileMenuOpen(false);
                     onOpenGodsEye('DR');
                   }}
-                  className="flex-1 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-2"
+                  className="py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-2"
                 >
                   <Compass className="w-4 h-4 text-theme-primary" />
                   <span>3D Station</span>

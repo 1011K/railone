@@ -12,6 +12,7 @@ import {
   NetworkServiceAlert, 
   DivisionHealth 
 } from '../services/networkAlertsService';
+import { CoachPositionGuide } from './CoachPositionGuide';
 import { 
   Radio, 
   Clock, 
@@ -1053,6 +1054,15 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* Platform Coach Alignment & Wagenstandsanzeiger */}
+      <section className="pt-2">
+        <CoachPositionGuide
+          initialRakeType={train.serviceType?.includes('ac') ? '12_car_ac_suburban' : train.serviceType === 'vande_bharat_tejas' ? '16_car_vande_bharat' : '12_car_suburban'}
+          stationCode={currentStop?.stationCode || 'DR'}
+          platformNumber={train.stops[0]?.platform || '3'}
+        />
       </section>
 
     </div>
