@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "gsd": {
+      "command": "npx.cmd",
+      "args": [
+        "-y",
+        "-p",
+        "@opengsd/gsd-core",
+        "gsd-mcp-server"
+      ]
+    }
+  }
+}
