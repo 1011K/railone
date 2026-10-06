@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   STATION_3D_LAYOUTS, 
   PlatformLayout, 
@@ -30,7 +30,10 @@ import {
   Accessibility,
   Eye,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  ZoomIn,
+  ZoomOut,
+  Move
 } from 'lucide-react';
 import { useTheme } from './ThemeContext';
 
@@ -52,7 +55,9 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
   const { language } = useTheme();
 
   // Selected station
-  const [stationCode, setStationCode] = useState(initialStationCode);
+  const [stationCode, setStationCode] = useState(
+    STATION_3D_LAYOUTS[initialStationCode] ? initialStationCode : 'DR'
+  );
   const layout = STATION_3D_LAYOUTS[stationCode] || STATION_3D_LAYOUTS['DR'];
 
   // View modes: 'gods_eye_3d' | 'top_down_plan' | 'pathfinder'
@@ -66,12 +71,15 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
     layout.platforms[0]?.id || null
   );
 
+  // Selected bridge for inspection
+  const [selectedBridgeId, setSelectedBridgeId] = useState<string | null>(null);
+
   // Transfer pathfinder states
   const [fromPlatformId, setFromPlatformId] = useState<string>(
     initialFromPlatformId || layout.platforms[0]?.id || ''
   );
   const [toPlatformId, setToPlatformId] = useState<string>(
-    initialToPlatformId || layout.platforms[3]?.id || ''
+    initialToPlatformId || layout.platforms[Math.min(3, layout.platforms.length - 1)]?.id || ''
   );
   const [requireStepFree, setRequireStepFree] = useState(false);
 
@@ -82,7 +90,35 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
   const [pitch, setPitch] = useState(42);
   const [rotation, setRotation] = useState(-18);
 
-  // Synchronize when stationCode changes
+  // Canvas zoom & pan controls for responsive desktop/tablet/mobile interaction
+  const [zoom, setZoom] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 640 ? 0.6 : 1));
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Synchronize when initialStationCode prop changes or modal opens
+  useEffect(() => {
+    const validCode = STATION_3D_LAYOUTS[initialStationCode] ? initialStationCode : 'DR';
+    setStationCode(validCode);
+    const targetLayout = STATION_3D_LAYOUTS[validCode];
+    if (targetLayout) {
+      setSelectedPlatformId(initialFromPlatformId || targetLayout.platforms[0]?.id || null);
+      setFromPlatformId(initialFromPlatformId || targetLayout.platforms[0]?.id || '');
+      setToPlatformId(
+        initialToPlatformId || 
+        targetLayout.platforms[Math.min(3, targetLayout.platforms.length - 1)]?.id || 
+        targetLayout.platforms[0]?.id || 
+        ''
+      );
+    }
+    // Auto-adjust scale for small viewports
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      setZoom(0.6);
+      setPan({ x: 0, y: 0 });
+    }
+  }, [initialStationCode, initialFromPlatformId, initialToPlatformId]);
+
+  // Synchronize when stationCode changes via selector
   const handleStationChange = (code: string) => {
     setStationCode(code);
     const newLayout = STATION_3D_LAYOUTS[code];
@@ -93,6 +129,43 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
     }
   };
 
+  // Drag interaction handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button, select, input, [role="button"]')) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    setPan({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+  };
+
+  const handleTouchEnd = () => setIsDragging(false);
+
+  const handleZoomIn = () => setZoom(z => Math.min(1.8, Number((z + 0.15).toFixed(2))));
+  const handleZoomOut = () => setZoom(z => Math.max(0.4, Number((z - 0.15).toFixed(2))));
+  const handleResetCanvas = () => {
+    setZoom(typeof window !== 'undefined' && window.innerWidth < 640 ? 0.6 : 1);
+    setPan({ x: 0, y: 0 });
+    setPitch(42);
+    setRotation(-18);
+  };
+
   // Calculate transfer route
   const transferRoute = useMemo(() => {
     return calculateStationTransferRoute(stationCode, fromPlatformId, toPlatformId, requireStepFree);
@@ -101,6 +174,10 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
   const activePlatform = useMemo(() => {
     return layout.platforms.find(p => p.id === selectedPlatformId);
   }, [layout, selectedPlatformId]);
+
+  const activeBridge = useMemo(() => {
+    return layout.bridges.find(b => b.id === selectedBridgeId);
+  }, [layout, selectedBridgeId]);
 
   if (!isOpen) return null;
 
@@ -158,6 +235,16 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Notice for unindexed station fallback */}
+        {initialStationCode && !STATION_3D_LAYOUTS[initialStationCode] && (
+          <div className="px-5 py-2 bg-amber-950/70 border-b border-amber-600/40 text-[11px] text-amber-200 flex items-center gap-2">
+            <Info className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              3D model for station <strong>{initialStationCode}</strong> is currently under topological survey. Displaying nearest indexed interchange hub (<strong>{layout.stationName}</strong>).
+            </span>
+          </div>
+        )}
 
         {/* Sub-header Controls */}
         <div className="px-5 py-2.5 bg-slate-950/60 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -272,8 +359,46 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
         <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 min-h-0">
           
           {/* Interactive Visual Canvas (8 cols on lg) */}
-          <div className="lg:col-span-8 bg-slate-950 p-4 flex flex-col items-center justify-center relative overflow-hidden min-h-[380px] sm:min-h-[460px]">
-            
+          <div 
+            className="lg:col-span-8 bg-slate-950 p-4 flex flex-col items-center justify-center relative overflow-hidden min-h-[380px] sm:min-h-[460px] cursor-grab active:cursor-grabbing select-none"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Floating Zoom & Canvas Controls */}
+            <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs shadow-lg backdrop-blur">
+              <button
+                onClick={handleZoomIn}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Zoom In"
+                aria-label="Zoom In"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleZoomOut}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Zoom Out"
+                aria-label="Zoom Out"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleResetCanvas}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Reset View"
+                aria-label="Reset View"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <span className="text-[10px] font-mono text-slate-400 px-1 font-bold">
+                {Math.round(zoom * 100)}%
+              </span>
+            </div>
+
             {/* Visual Station Canvas */}
             <div 
               className="w-full h-full flex items-center justify-center transition-transform duration-300 select-none"
@@ -283,13 +408,15 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
               }}
             >
               <div 
-                className="relative transition-transform duration-300 ease-out"
+                className="relative transition-transform duration-100 ease-out"
                 style={{
                   width: '760px',
                   height: '420px',
-                  transform: viewMode === 'gods_eye_3d' 
-                    ? `rotateX(${pitch}deg) rotateZ(${rotation}deg) scale(0.9)` 
-                    : 'rotateX(0deg) rotateZ(0deg) scale(0.95)'
+                  transform: `translate(${pan.x}px, ${pan.y}px) ${
+                    viewMode === 'gods_eye_3d' 
+                      ? `rotateX(${pitch}deg) rotateZ(${rotation}deg) scale(${zoom * 0.9})` 
+                      : `rotateX(0deg) rotateZ(0deg) scale(${zoom * 0.95})`
+                  }`
                 }}
               >
                 {/* Station Ground Deck / Track Bed */}
@@ -385,45 +512,51 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                   );
                 })}
 
-                {/* Foot-Over-Bridges (Level 1) */}
-                {(selectedLevel === 'all' || selectedLevel === 1) && layout.bridges.map((bridge) => {
-                  const isRecommendedPath = viewMode === 'pathfinder' && transferRoute.recommendedBridge?.id === bridge.id;
+                {/* Foot-Over-Bridges & Skywalks (Level 1 & Level 2) */}
+                {layout.bridges
+                  .filter(bridge => selectedLevel === 'all' || bridge.level === selectedLevel)
+                  .map((bridge) => {
+                    const isRecommendedPath = viewMode === 'pathfinder' && transferRoute.recommendedBridge?.id === bridge.id;
+                    const isInspected = selectedBridgeId === bridge.id;
 
-                  return (
-                    <div
-                      key={bridge.id}
-                      className={`absolute rounded-xl border-2 transition-all duration-300 flex items-center justify-between px-2 cursor-pointer ${
-                        isRecommendedPath 
-                          ? 'bg-amber-500/40 border-amber-400 ring-4 ring-amber-400/50 shadow-2xl z-30' 
-                          : 'bg-slate-750/90 border-blue-500/50 hover:border-blue-400 z-20 shadow-xl'
-                      }`}
-                      style={{
-                        left: `${bridge.x1}px`,
-                        top: `${bridge.y1}px`,
-                        width: `${bridge.x2 - bridge.x1 + 30}px`,
-                        height: '26px',
-                        transform: 'translateZ(35px)',
-                        backdropFilter: 'blur(4px)'
-                      }}
-                      title={`${bridge.name} (${bridge.typicalWalkMinutes}m walk)`}
-                    >
-                      <div className="flex items-center gap-1.5 overflow-hidden">
-                        <Footprints className={`w-3.5 h-3.5 shrink-0 ${isRecommendedPath ? 'text-amber-300 animate-bounce' : 'text-blue-300'}`} />
-                        <span className="text-[10px] font-black truncate text-white drop-shadow">
-                          {bridge.name}
-                        </span>
-                      </div>
+                    return (
+                      <div
+                        key={bridge.id}
+                        onClick={() => setSelectedBridgeId(isInspected ? null : bridge.id)}
+                        className={`absolute rounded-xl border-2 transition-all duration-300 flex items-center justify-between px-2 cursor-pointer ${
+                          isRecommendedPath 
+                            ? 'bg-amber-500/40 border-amber-400 ring-4 ring-amber-400/50 shadow-2xl z-30' 
+                            : isInspected
+                            ? 'bg-blue-600/50 border-blue-400 ring-2 ring-blue-400 shadow-2xl z-25'
+                            : 'bg-slate-800/90 border-blue-500/50 hover:border-blue-400 z-20 shadow-xl'
+                        }`}
+                        style={{
+                          left: `${bridge.x1}px`,
+                          top: `${bridge.y1}px`,
+                          width: `${bridge.x2 - bridge.x1 + 30}px`,
+                          height: '26px',
+                          transform: `translateZ(${bridge.level === 2 ? 65 : 35}px)`,
+                          backdropFilter: 'blur(4px)'
+                        }}
+                        title={`${bridge.name} (${bridge.typicalWalkMinutes}m walk - Level ${bridge.level})`}
+                      >
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <Footprints className={`w-3.5 h-3.5 shrink-0 ${isRecommendedPath ? 'text-amber-300 animate-bounce' : 'text-blue-300'}`} />
+                          <span className="text-[10px] font-black truncate text-white drop-shadow">
+                            {bridge.name}
+                          </span>
+                        </div>
 
-                      <div className="flex items-center gap-1 shrink-0 text-[9px] font-bold text-slate-300">
-                        {bridge.hasLifts && <span title="Lifts available" className="text-emerald-400">♿</span>}
-                        {bridge.hasEscalators && <span title="Escalator available" className="text-blue-300">⚡</span>}
-                        <span className="bg-slate-900/80 px-1 rounded text-slate-300">
-                          {bridge.typicalWalkMinutes}m
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0 text-[9px] font-bold text-slate-300">
+                          {bridge.hasLifts && <span title="Lifts available" className="text-emerald-400">♿</span>}
+                          {bridge.hasEscalators && <span title="Escalator available" className="text-blue-300">⚡</span>}
+                          <span className="bg-slate-900/80 px-1 rounded text-slate-300">
+                            {bridge.typicalWalkMinutes}m
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
 
                 {/* Station Amenities Pins */}
                 {layout.amenities.map((amenity) => {
@@ -433,7 +566,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                   return (
                     <div
                       key={amenity.id}
-                      className="absolute z-35 group"
+                      className="absolute z-30 group"
                       style={{
                         left: `${amenity.x}px`,
                         top: `${amenity.y}px`,
@@ -443,10 +576,14 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                     >
                       <div className="w-5 h-5 rounded-full bg-blue-600 border border-white/80 shadow-md flex items-center justify-center text-white text-[10px] cursor-pointer hover:scale-125 transition-transform">
                         {amenity.type === 'lift' ? '♿' : 
+                         amenity.type === 'wheelchair_ramp' ? '♿' :
                          amenity.type === 'escalator' ? '⚡' : 
                          amenity.type === 'rpf_post' ? '🛡️' : 
                          amenity.type === 'medical_help' ? '➕' : 
-                         amenity.type === 'metro_interchange' ? '🚇' : '🎫'}
+                         amenity.type === 'metro_interchange' ? '🚇' : 
+                         amenity.type === 'water_atm' ? '💧' :
+                         amenity.type === 'cloak_room' ? '🧳' :
+                         amenity.type === 'exit_gate' ? '🚪' : '🎫'}
                       </div>
                       <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-slate-900 text-slate-100 text-[10px] font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap border border-slate-700 pointer-events-none z-50">
                         {amenity.name}
@@ -545,7 +682,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                 </div>
 
                 {/* Transfer Guidance Output */}
-                {transferRoute.success && (
+                {transferRoute.success ? (
                   <div className="bg-amber-950/40 border border-amber-500/40 rounded-2xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-amber-300 font-extrabold text-xs">
@@ -577,11 +714,42 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                       ))}
                     </div>
                   </div>
+                ) : (
+                  <div className="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-4 space-y-2 text-center">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 mx-auto" />
+                    <p className="text-xs text-amber-200 font-bold">
+                      {transferRoute.steps[0] || 'Direct Foot-Over-Bridge connection not available between these platforms.'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Select connecting platforms on the station map or use the dropdowns above.
+                    </p>
+                  </div>
                 )}
               </div>
             ) : (
               /* Platform & Station Inspector */
               <div className="space-y-4">
+                {/* Bridge Inspector (if bridge is clicked) */}
+                {activeBridge && (
+                  <div className="bg-blue-950/40 border border-blue-500/40 rounded-2xl p-3.5 space-y-2 text-xs animate-fadeIn">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-white flex items-center gap-1.5">
+                        <Footprints className="w-3.5 h-3.5 text-blue-400" />
+                        <span>{activeBridge.name}</span>
+                      </h4>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        Level {activeBridge.level}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+                      <div>Length: <strong className="text-white">{activeBridge.lengthMeters}m</strong></div>
+                      <div>Avg Walk: <strong className="text-white">{activeBridge.typicalWalkMinutes} min</strong></div>
+                      <div>Lifts: <strong className={activeBridge.hasLifts ? 'text-emerald-400' : 'text-slate-400'}>{activeBridge.hasLifts ? 'Yes (♿)' : 'No'}</strong></div>
+                      <div>Escalator: <strong className={activeBridge.hasEscalators ? 'text-blue-300' : 'text-slate-400'}>{activeBridge.hasEscalators ? 'Yes' : 'No'}</strong></div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-sm text-white flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-blue-400" />

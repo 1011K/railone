@@ -48,6 +48,18 @@ Commuters frequently miss connecting services because existing transit apps prov
 - **Platforms**: 16 outstation platforms connecting Paharganj (West) and Ajmeri Gate (East).
 - **Subway Concourse**: Direct underpass connection to Delhi Metro Airport Express and Yellow Line.
 
+### 2.6 Borivali Junction & Terminus (BVI)
+- **Platforms**: 8 operational platforms handling Western slow/fast locals, mail/express trains, and terminating services.
+- **Bridges**: North FOB (Dahisar end), Central Concourse FOB with lifts and escalators, Level 2 SV Road Elevated Skywalk.
+
+### 2.7 Kurla Junction (CLA)
+- **Platforms**: 8 operational platforms connecting Central Railway Main Line (PF 1–6) and Harbour Line (PF 7–8).
+- **Bridges**: Central Cross-Line Interchange FOB with lifts and escalators, Level 2 Nehru Nagar East-West Skywalk.
+
+### 2.8 Churchgate Terminus (CCG)
+- **Platforms**: 4 terminal platforms handling Western Railway slow and fast originating local services.
+- **Concourse**: Level 0 Heritage Ground Concourse with direct street-level access and Level 1 Maharshi Karve Road Subway.
+
 ---
 
 ## 3. Foot-Over-Bridge Transfer Algorithm
@@ -62,4 +74,4 @@ The transfer pathfinding function `calculateStationTransferRoute()` evaluates:
    - Walk along bridge concourse ($D$ meters).
    - Descend via elevator / stairs onto Platform $B$.
    - Stand behind yellow safety line and inspect digital indicators.
-- **Verified Test**: Test Suite 18 (Assertions 18.1 to 18.14 pass deterministically).
+- **Verified Test**: Test Suite 18 (Assertions 18.1 to 18.22 pass deterministically).

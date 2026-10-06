@@ -69,7 +69,7 @@ The suite tests all P0 boundary conditions and canonical master plan acceptance 
 ```bash
 npm test
 ```
-**Results (127/127 Tests Passing, 0 Failed, 100% Pass Rate)**:
+**Results (135/135 Tests Passing, 0 Failed, 100% Pass Rate)**:
 - **Section A: Canonical Acceptance Scenarios (G1–G18)**:
   - **[G1] Thane -> Churchgate via Dadar**: Arrive-by 12:30 deadline, minimum 7 min FOB walking buffer, Class II vs I fares (7/7 PASS)
   - **[G2] Dadar -> Kalyan Section 138 Eligibility**: Strict gating on non-MST Express with penalties (4/4 PASS)
@@ -95,9 +95,9 @@ npm test
   - **Suite 13**: Network Service Alerts & OCC Operations API (2/2 PASS)
   - **Suite 16**: Visual Route Delay & Congestion Heatmap Engine (2/2 PASS)
   - **Suite 17**: Interactive 2D/3D Network Map Engine & Multi-Train Delays (29/29 PASS)
-  - **Suite 18**: 3D Station Navigation, God's Eye Topological Layouts & FOB Transfer Routing (14/14 PASS)
+  - **Suite 18**: 3D Station Navigation, God's Eye Topological Layouts & FOB Transfer Routing (22/22 PASS)
 
-**Total**: **127/127 Automated Tests Passing (0 Failed)**.
+**Total**: **135/135 Automated Tests Passing (0 Failed)**.
 
 ---
 

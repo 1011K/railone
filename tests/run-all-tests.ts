@@ -664,6 +664,47 @@ console.log('\nTest Suite 18: 3D Station Navigation, God\'s Eye Topological Layo
   const ndls = STATION_3D_LAYOUTS['NDLS'];
   assert(ndls.amenities.some(a => a.name.includes('Airport Express')), 
     '18.14: New Delhi national terminal indexes Delhi Metro Airport Express underpass');
+
+  // 18.11 Dadar Middle FOB full breadth connection to Central PF 7 & 8
+  const wrToCr7Route = calculateStationTransferRoute('DR', 'DR_WR_1', 'DR_CR_7', false);
+  assert(wrToCr7Route.success === true && wrToCr7Route.recommendedBridge?.id === 'DR_MIDDLE_FOB', 
+    '18.15: Dadar Middle FOB connects Western PF 1 to Central PF 7 across full station breadth');
+
+  // 18.12 Dadar step-free transfer from WR PF 6 to CR PF 8
+  const wr6ToCr8Route = calculateStationTransferRoute('DR', 'DR_WR_6', 'DR_CR_8', true);
+  assert(wr6ToCr8Route.success === true && wr6ToCr8Route.recommendedBridge?.id === 'DR_MIDDLE_FOB' && wr6ToCr8Route.stepFreeAvailable === true, 
+    '18.16: Dadar WR PF 6 to CR PF 8 step-free route selects elevator-equipped Middle FOB');
+
+  // 18.13 Expanded 3D station catalog (Kurla, Borivali, Churchgate)
+  assert(hubCodes.includes('CLA') && hubCodes.includes('BVI') && hubCodes.includes('CCG'), 
+    '18.17: Station 3D catalog indexes Kurla (CLA), Borivali (BVI), and Churchgate (CCG)');
+
+  // 18.14 Kurla Junction Central Main vs Harbour line separation
+  const kurla = STATION_3D_LAYOUTS['CLA'];
+  const kurlaCR = kurla.platforms.filter(p => p.line === 'central');
+  const kurlaHR = kurla.platforms.filter(p => p.line === 'harbour');
+  assert(kurla.platforms.length === 8 && kurlaCR.length === 6 && kurlaHR.length === 2, 
+    '18.18: Kurla Junction models 8 platforms segregating Central Main (PF 1-6) and Harbour (PF 7-8)');
+
+  // 18.15 Borivali junction 8 platforms and elevated skywalk
+  const borivali = STATION_3D_LAYOUTS['BVI'];
+  assert(borivali.platforms.length === 8 && borivali.bridges.some(b => b.id === 'BVI_SOUTH_SKYWALK' && b.level === 2), 
+    '18.19: Borivali terminus models 8 operational platforms and Level 2 SV Road skywalk');
+
+  // 18.16 Churchgate terminus 4 platforms and ground heritage concourse
+  const churchgate = STATION_3D_LAYOUTS['CCG'];
+  assert(churchgate.platforms.length === 4 && churchgate.bridges.some(b => b.id === 'CCG_MAIN_CONCOURSE' && b.level === 0), 
+    '18.20: Churchgate terminus models 4 platforms and Level 0 heritage passenger concourse');
+
+  // 18.17 Cross-line transfer Kurla Central PF 1 to Harbour PF 7
+  const claCrToHrRoute = calculateStationTransferRoute('CLA', 'CLA_1', 'CLA_7', false);
+  assert(claCrToHrRoute.success === true && claCrToHrRoute.recommendedBridge?.id === 'CLA_CENTRAL_FOB', 
+    '18.21: Kurla cross-line transfer between Central PF 1 and Harbour PF 7 uses Central Interchange FOB');
+
+  // 18.18 Safe failure for unindexed station layout
+  const unindexedRoute = calculateStationTransferRoute('UNKNOWN_STN', 'PF_1', 'PF_2', false);
+  assert(unindexedRoute.success === false && unindexedRoute.steps[0].includes('not indexed'), 
+    '18.22: Unindexed station layout request safely fails with explanatory guidance');
 }
 
 console.log('\n====================================================');

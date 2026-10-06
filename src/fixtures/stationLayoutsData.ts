@@ -133,7 +133,7 @@ export const STATION_3D_LAYOUTS: Record<string, Station3DLayout> = {
       {
         id: 'DR_MIDDLE_FOB',
         name: 'Middle Foot-Over-Bridge & Flower Market Concourse',
-        connectedPlatforms: ['DR_WR_1', 'DR_WR_2', 'DR_WR_3', 'DR_WR_4', 'DR_WR_5', 'DR_WR_6', 'DR_WR_7', 'DR_CR_1', 'DR_CR_2', 'DR_CR_3', 'DR_CR_4', 'DR_CR_5', 'DR_CR_6'],
+        connectedPlatforms: ['DR_WR_1', 'DR_WR_2', 'DR_WR_3', 'DR_WR_4', 'DR_WR_5', 'DR_WR_6', 'DR_WR_7', 'DR_CR_1', 'DR_CR_2', 'DR_CR_3', 'DR_CR_4', 'DR_CR_5', 'DR_CR_6', 'DR_CR_7', 'DR_CR_8'],
         level: 1,
         lengthMeters: 450,
         typicalWalkMinutes: 7,
@@ -428,6 +428,208 @@ export const STATION_3D_LAYOUTS: Record<string, Station3DLayout> = {
       { id: 'NDLS_AM_2', type: 'cloak_room', name: 'IRCTC Executive Lounge & Left Luggage', platformId: 'NDLS_16', level: 1, x: 500, y: 150, z: 1, isAccessible: true },
       { id: 'NDLS_AM_3', type: 'rpf_post', name: 'Northern Railway RPF Main Station Post', platformId: 'NDLS_1', level: 0, x: 50, y: 120, z: 0, isAccessible: true }
     ]
+  },
+
+  BVI: {
+    stationCode: 'BVI',
+    stationName: 'Borivali Junction & Terminus',
+    hindiName: 'बोरीवली जंक्शन',
+    marathiName: 'बोरीवली जंक्शन',
+    city: 'Mumbai',
+    zone: 'WR',
+    division: 'Mumbai Central (WR)',
+    isMajorInterchange: true,
+    levelsCount: 2,
+    description: 'Premier Northern suburban terminus on Western Railway. 8 operational platforms handle originating slow and fast locals, mail/express trains, and harbor services.',
+    platforms: [
+      { id: 'BVI_1', number: '1 (WR Slow Down)', line: 'western', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 50, y: 50, width: 22, height: 260, currentTrain: { trainNumber: '90021', trainName: 'Churchgate Slow Local', destination: 'Churchgate', etaMinutes: 3, rakeType: 'SLOW', carCount: 15 } },
+      { id: 'BVI_2', number: '2 (WR Slow Up)', line: 'western', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'HEAVY', x: 90, y: 50, width: 22, height: 260 },
+      { id: 'BVI_3', number: '3 (WR Fast Down)', line: 'western', serviceType: 'fast', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 130, y: 50, width: 22, height: 280, currentTrain: { trainNumber: '92015', trainName: 'Virar Fast Local', destination: 'Virar', etaMinutes: 2, rakeType: 'FAST', carCount: 15 } },
+      { id: 'BVI_4', number: '4 (WR Fast Up)', line: 'western', serviceType: 'fast', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 170, y: 50, width: 22, height: 280 },
+      { id: 'BVI_5', number: '5 (WR Fast / Outstation)', line: 'western', serviceType: 'both', trackGauge: 'Broad Gauge', carCapacity: 24, lengthMeters: 550, crowdLevel: 'HEAVY', x: 210, y: 30, width: 24, height: 320 },
+      { id: 'BVI_6', number: '6 (Outstation / Terminating)', line: 'national', serviceType: 'outstation', trackGauge: 'Broad Gauge', carCapacity: 24, lengthMeters: 550, crowdLevel: 'MODERATE', x: 250, y: 30, width: 24, height: 320, currentTrain: { trainNumber: '12952', trainName: 'Mumbai Rajdhani Express', destination: 'Mumbai Central', etaMinutes: 14, rakeType: 'EXPRESS', carCount: 22 } },
+      { id: 'BVI_7', number: '7 (Terminating Local)', line: 'western', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'MODERATE', x: 290, y: 50, width: 22, height: 260 },
+      { id: 'BVI_8', number: '8 (Terminating Local)', line: 'western', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'LOW', x: 330, y: 50, width: 22, height: 260 }
+    ],
+    bridges: [
+      {
+        id: 'BVI_NORTH_FOB',
+        name: 'North Foot-Over-Bridge (Dahisar End)',
+        connectedPlatforms: ['BVI_1', 'BVI_2', 'BVI_3', 'BVI_4', 'BVI_5', 'BVI_6', 'BVI_7', 'BVI_8'],
+        level: 1,
+        lengthMeters: 340,
+        typicalWalkMinutes: 5,
+        hasLifts: true,
+        hasEscalators: true,
+        isCovered: true,
+        crowdFactor: 1.2,
+        x1: 40,
+        y1: 90,
+        x2: 345,
+        y2: 90
+      },
+      {
+        id: 'BVI_MIDDLE_FOB',
+        name: 'Central Concourse & Elevated Skywalk',
+        connectedPlatforms: ['BVI_1', 'BVI_2', 'BVI_3', 'BVI_4', 'BVI_5', 'BVI_6', 'BVI_7', 'BVI_8'],
+        level: 1,
+        lengthMeters: 360,
+        typicalWalkMinutes: 6,
+        hasLifts: true,
+        hasEscalators: true,
+        isCovered: true,
+        crowdFactor: 1.4,
+        x1: 40,
+        y1: 180,
+        x2: 345,
+        y2: 180
+      },
+      {
+        id: 'BVI_SOUTH_SKYWALK',
+        name: 'South FOB & SV Road Elevated Skywalk',
+        connectedPlatforms: ['BVI_1', 'BVI_2', 'BVI_3', 'BVI_4', 'BVI_5'],
+        level: 2,
+        lengthMeters: 280,
+        typicalWalkMinutes: 4,
+        hasLifts: true,
+        hasEscalators: true,
+        isCovered: true,
+        crowdFactor: 1.1,
+        x1: 40,
+        y1: 270,
+        x2: 225,
+        y2: 270
+      }
+    ],
+    amenities: [
+      { id: 'BVI_AM_1', type: 'atvm_ticket', name: 'West Concourse ATVM & Booking Office', platformId: 'BVI_1', level: 0, x: 50, y: 180, z: 0, isAccessible: true },
+      { id: 'BVI_AM_2', type: 'rpf_post', name: 'RPF Police Post & Station Security', platformId: 'BVI_4', level: 0, x: 170, y: 180, z: 0, isAccessible: true },
+      { id: 'BVI_AM_3', type: 'lift', name: 'Platform 3-4 Central Lift', platformId: 'BVI_3', level: 0, x: 140, y: 90, z: 0, isAccessible: true },
+      { id: 'BVI_AM_4', type: 'medical_help', name: 'Emergency Medical Care Unit', platformId: 'BVI_1', level: 0, x: 50, y: 220, z: 0, isAccessible: true },
+      { id: 'BVI_AM_5', type: 'exit_gate', name: 'East Exit (SV Road / Bus Station)', platformId: 'BVI_8', level: 0, x: 350, y: 180, z: 0, isAccessible: true }
+    ]
+  },
+
+  CLA: {
+    stationCode: 'CLA',
+    stationName: 'Kurla Junction',
+    hindiName: 'कुर्ला जंक्शन',
+    marathiName: 'कुर्ला जंक्शन',
+    city: 'Mumbai',
+    zone: 'CR',
+    division: 'Mumbai (CR)',
+    isMajorInterchange: true,
+    levelsCount: 2,
+    description: 'Bustling junction connecting Central Railway Main Line (PF 1-6) and Harbour Line (PF 7-8). Major transit point for Lokmanya Tilak Terminus (LTT) connections.',
+    platforms: [
+      { id: 'CLA_1', number: '1 (CR Slow Down)', line: 'central', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 50, y: 50, width: 22, height: 260, currentTrain: { trainNumber: '97045', trainName: 'Kalyan Slow Local', destination: 'Kalyan', etaMinutes: 2, rakeType: 'SLOW', carCount: 15 } },
+      { id: 'CLA_2', number: '2 (CR Slow Up)', line: 'central', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'HEAVY', x: 90, y: 50, width: 22, height: 260 },
+      { id: 'CLA_3', number: '3 (CR Fast Down)', line: 'central', serviceType: 'fast', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 130, y: 50, width: 22, height: 280 },
+      { id: 'CLA_4', number: '4 (CR Fast Up)', line: 'central', serviceType: 'fast', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 170, y: 50, width: 22, height: 280, currentTrain: { trainNumber: '95112', trainName: 'CSMT Fast Local', destination: 'CSMT', etaMinutes: 1, rakeType: 'FAST', carCount: 15 } },
+      { id: 'CLA_5', number: '5 (CR Outstation / Loop)', line: 'central', serviceType: 'both', trackGauge: 'Broad Gauge', carCapacity: 24, lengthMeters: 550, crowdLevel: 'MODERATE', x: 210, y: 30, width: 24, height: 320 },
+      { id: 'CLA_6', number: '6 (CR Outstation / Loop)', line: 'central', serviceType: 'both', trackGauge: 'Broad Gauge', carCapacity: 24, lengthMeters: 550, crowdLevel: 'MODERATE', x: 250, y: 30, width: 24, height: 320 },
+      { id: 'CLA_7', number: '7 (Harbour Down)', line: 'harbour', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 12, lengthMeters: 260, crowdLevel: 'CRUSH_LOAD', x: 310, y: 50, width: 22, height: 260, currentTrain: { trainNumber: '98012', trainName: 'Panvel Slow Local', destination: 'Panvel', etaMinutes: 4, rakeType: 'SLOW', carCount: 12 } },
+      { id: 'CLA_8', number: '8 (Harbour Up)', line: 'harbour', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 12, lengthMeters: 260, crowdLevel: 'HEAVY', x: 350, y: 50, width: 22, height: 260 }
+    ],
+    bridges: [
+      {
+        id: 'CLA_CENTRAL_FOB',
+        name: 'Kurla Central Cross-Line Interchange FOB',
+        connectedPlatforms: ['CLA_1', 'CLA_2', 'CLA_3', 'CLA_4', 'CLA_5', 'CLA_6', 'CLA_7', 'CLA_8'],
+        level: 1,
+        lengthMeters: 380,
+        typicalWalkMinutes: 6,
+        hasLifts: true,
+        hasEscalators: true,
+        isCovered: true,
+        crowdFactor: 1.5,
+        x1: 40,
+        y1: 150,
+        x2: 365,
+        y2: 150
+      },
+      {
+        id: 'CLA_EAST_WEST_SKYWALK',
+        name: 'Nehru Nagar East-West Pedestrian Skywalk',
+        connectedPlatforms: ['CLA_1', 'CLA_2', 'CLA_3', 'CLA_4', 'CLA_7', 'CLA_8'],
+        level: 2,
+        lengthMeters: 420,
+        typicalWalkMinutes: 7,
+        hasLifts: true,
+        hasEscalators: false,
+        isCovered: true,
+        crowdFactor: 1.3,
+        x1: 40,
+        y1: 240,
+        x2: 365,
+        y2: 240
+      }
+    ],
+    amenities: [
+      { id: 'CLA_AM_1', type: 'atvm_ticket', name: 'Main Interchange Ticket Concourse', platformId: 'CLA_4', level: 1, x: 170, y: 150, z: 1, isAccessible: true },
+      { id: 'CLA_AM_2', type: 'rpf_post', name: 'RPF Central Police Post', platformId: 'CLA_1', level: 0, x: 50, y: 150, z: 0, isAccessible: true },
+      { id: 'CLA_AM_3', type: 'lift', name: 'Harbour PF 7-8 Lift to Concourse', platformId: 'CLA_7', level: 0, x: 320, y: 150, z: 0, isAccessible: true },
+      { id: 'CLA_AM_4', type: 'exit_gate', name: 'East Gate (Nehru Nagar / LTT Link)', platformId: 'CLA_8', level: 0, x: 370, y: 150, z: 0, isAccessible: true }
+    ]
+  },
+
+  CCG: {
+    stationCode: 'CCG',
+    stationName: 'Churchgate Terminus',
+    hindiName: 'चर्चगेट टर्मिनस',
+    marathiName: 'चर्चगेट टर्मिनस',
+    city: 'Mumbai',
+    zone: 'WR',
+    division: 'Mumbai Central (WR)',
+    isMajorInterchange: true,
+    levelsCount: 2,
+    description: 'Southern terminus of the Western Railway Suburban Network. 4 terminal platforms handle Churchgate-originating fast and slow locals carrying over 500,000 commuters daily.',
+    platforms: [
+      { id: 'CCG_1', number: '1 (WR Slow Departure)', line: 'western', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 60, y: 60, width: 24, height: 260, currentTrain: { trainNumber: '90021', trainName: 'Borivali Slow Local', destination: 'Borivali', etaMinutes: 2, rakeType: 'SLOW', carCount: 15 } },
+      { id: 'CCG_2', number: '2 (WR Slow Arrival)', line: 'western', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'HEAVY', x: 110, y: 60, width: 24, height: 260 },
+      { id: 'CCG_3', number: '3 (WR Fast Departure)', line: 'western', serviceType: 'fast', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 160, y: 60, width: 24, height: 280, currentTrain: { trainNumber: '92015', trainName: 'Virar Fast Local', destination: 'Virar', etaMinutes: 4, rakeType: 'FAST', carCount: 15 } },
+      { id: 'CCG_4', number: '4 (WR Fast Arrival)', line: 'western', serviceType: 'fast', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 210, y: 60, width: 24, height: 280 }
+    ],
+    bridges: [
+      {
+        id: 'CCG_MAIN_CONCOURSE',
+        name: 'Churchgate Heritage Ground Concourse',
+        connectedPlatforms: ['CCG_1', 'CCG_2', 'CCG_3', 'CCG_4'],
+        level: 0,
+        lengthMeters: 220,
+        typicalWalkMinutes: 2,
+        hasLifts: true,
+        hasEscalators: false,
+        isCovered: true,
+        crowdFactor: 1.4,
+        x1: 50,
+        y1: 330,
+        x2: 230,
+        y2: 330
+      },
+      {
+        id: 'CCG_NORTH_SUBWAY',
+        name: 'Maharshi Karve Road Pedestrian Subway',
+        connectedPlatforms: ['CCG_1', 'CCG_2', 'CCG_3', 'CCG_4'],
+        level: 1,
+        lengthMeters: 260,
+        typicalWalkMinutes: 3,
+        hasLifts: true,
+        hasEscalators: true,
+        isCovered: true,
+        crowdFactor: 1.2,
+        x1: 50,
+        y1: 150,
+        x2: 230,
+        y2: 150
+      }
+    ],
+    amenities: [
+      { id: 'CCG_AM_1', type: 'atvm_ticket', name: 'WR Headquarters UTS Concourse', platformId: 'CCG_1', level: 0, x: 50, y: 340, z: 0, isAccessible: true },
+      { id: 'CCG_AM_2', type: 'rpf_post', name: 'Churchgate RPF Security Post', platformId: 'CCG_4', level: 0, x: 220, y: 340, z: 0, isAccessible: true },
+      { id: 'CCG_AM_3', type: 'exit_gate', name: 'Veer Nariman Road & Oval Maidan Exit', platformId: 'CCG_1', level: 0, x: 40, y: 340, z: 0, isAccessible: true },
+      { id: 'CCG_AM_4', type: 'water_atm', name: 'IRCTC Pure Water ATM', platformId: 'CCG_2', level: 0, x: 100, y: 200, z: 0, isAccessible: true }
+    ]
   }
 };
 
@@ -487,19 +689,41 @@ export function calculateStationTransferRoute(
   );
 
   let chosenBridge: FootOverBridge | undefined;
+  let stepFreeAvailable = false;
 
-  if (requireStepFreeAccess) {
-    chosenBridge = connectingBridges.find(b => b.hasLifts);
+  if (connectingBridges.length > 0) {
+    if (requireStepFreeAccess) {
+      const stepFreeBridges = connectingBridges.filter(b => b.hasLifts);
+      if (stepFreeBridges.length > 0) {
+        chosenBridge = stepFreeBridges.sort(
+          (a, b) => (a.typicalWalkMinutes * a.crowdFactor) - (b.typicalWalkMinutes * b.crowdFactor)
+        )[0];
+        stepFreeAvailable = true;
+      } else {
+        // No connecting bridge has lifts. Select best connecting bridge, but flag stepFree as false
+        chosenBridge = connectingBridges.sort(
+          (a, b) => (a.typicalWalkMinutes * a.crowdFactor) - (b.typicalWalkMinutes * b.crowdFactor)
+        )[0];
+        stepFreeAvailable = false;
+      }
+    } else {
+      // Choose bridge with lowest walk time * crowd factor
+      chosenBridge = connectingBridges.sort(
+        (a, b) => (a.typicalWalkMinutes * a.crowdFactor) - (b.typicalWalkMinutes * b.crowdFactor)
+      )[0];
+      stepFreeAvailable = !!chosenBridge.hasLifts;
+    }
   } else {
-    // Choose bridge with lowest walk time * crowd factor
-    chosenBridge = connectingBridges.sort(
-      (a, b) => (a.typicalWalkMinutes * a.crowdFactor) - (b.typicalWalkMinutes * b.crowdFactor)
-    )[0];
-  }
-
-  if (!chosenBridge) {
-    // If no direct single bridge, choose closest available bridge
-    chosenBridge = station.bridges[0];
+    // No direct single bridge connects both platforms
+    return {
+      success: false,
+      distanceMeters: 0,
+      walkMinutes: 0,
+      stepFreeAvailable: false,
+      steps: [
+        `No single Foot-Over-Bridge directly connects Platform ${fromPlatform.number} and Platform ${toPlatform.number}. Please inquire at the Station Master or RPF assistance post for concourse transfer.`
+      ]
+    };
   }
 
   // Calculate distance between platform center X coordinates
@@ -508,11 +732,13 @@ export function calculateStationTransferRoute(
 
   const steps = [
     `Alight from train onto Platform ${fromPlatform.number}.`,
-    requireStepFreeAccess && chosenBridge?.hasLifts
+    requireStepFreeAccess && !stepFreeAvailable
+      ? `Notice: Direct elevator / lift access is not available on ${chosenBridge.name} for this transfer. Station staff assistance or ramp transfer required.`
+      : requireStepFreeAccess && stepFreeAvailable
       ? `Take the accessible elevator up to ${chosenBridge.name}.`
-      : `Ascend stairs / escalator onto ${chosenBridge ? chosenBridge.name : 'Foot-Over-Bridge'}.`,
+      : `Ascend stairs / escalator onto ${chosenBridge.name}.`,
     `Walk along the bridge walkway toward Platform ${toPlatform.number} indicators (${physicalDistance}m).`,
-    requireStepFreeAccess && chosenBridge?.hasLifts
+    requireStepFreeAccess && stepFreeAvailable
       ? `Take the elevator down directly onto Platform ${toPlatform.number}.`
       : `Descend stairs / escalator onto Platform ${toPlatform.number}.`,
     `Arrive at Platform ${toPlatform.number}. Check digital indicator board for coach alignment.`
@@ -523,7 +749,7 @@ export function calculateStationTransferRoute(
     recommendedBridge: chosenBridge,
     distanceMeters: physicalDistance,
     walkMinutes: baseWalkTime,
-    stepFreeAvailable: !!(chosenBridge && chosenBridge.hasLifts),
+    stepFreeAvailable,
     steps
   };
 }

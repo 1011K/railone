@@ -62,12 +62,12 @@
 - [x] Complete GSD and Ponytail deep audit document (`DEEP_AUDIT_REPORT.md`).
 
 ### Wave 8: 3D Station Navigation, God's Eye Engine & Institutional Documentation Library
-- [x] Multi-level 3D Station Navigation & God's Eye modal (`StationGodsEyeModal.tsx`) supporting Dadar Junction, CSMT, Thane, Andheri, Kalyan, and New Delhi.
+- [x] Multi-level 3D Station Navigation & God's Eye modal (`StationGodsEyeModal.tsx`) supporting Dadar Junction, CSMT, Thane, Andheri, Kalyan, New Delhi, Kurla, Borivali, and Churchgate.
 - [x] True elevation layer separation: Level 0 (Platforms/Tracks), Level 1 (Foot-Over-Bridges/Concourses), Level 2 (Skywalks & Elevated Metro Links).
-- [x] Foot-Over-Bridge transfer pathfinding algorithm (`calculateStationTransferRoute()`) with step-by-step pedestrian navigation and realistic 6-8 minute walk times.
-- [x] Step-free accessible pathfinder prioritizing elevator-equipped bridges for Divyangjan commuters.
+- [x] Foot-Over-Bridge transfer pathfinding algorithm (`calculateStationTransferRoute()`) with step-by-step pedestrian navigation and realistic walk times across full station breadth.
+- [x] Step-free accessible pathfinder prioritizing elevator-equipped bridges for Divyangjan commuters with explicit absence notices.
 - [x] Live platform occupancy visualization and amenities indexing (ATVMs, Lifts, Escalators, RPF Police posts, Medical clinics, Metro links).
-- [x] Automated Verification Suite 18 with 14 new assertions, expanding test suite total to 127/127 passing tests (100% pass rate).
+- [x] Automated Verification Suite 18 with 22 assertions, expanding test suite total to 135/135 passing tests (100% pass rate).
 - [x] Complete institutional documentation library in `docs/`:
   - `docs/INTERNATIONAL_BENCHMARK_MATRIX.md` (JR East, TfL, SBB, SNCF, MTA, Singapore LTA benchmarking).
   - `docs/COMPETITOR_PROBLEM_TO_SOLUTION.md` (Analysis of store review failure modes & deterministic solutions).
@@ -86,7 +86,7 @@
 
 ## Active State & Next Steps
 - **Branch:** `feature/railone-decision-core` verified and ready for push to origin.
-- **Verification Evidence:** All 127 unit and integration tests passing cleanly (100% pass rate).
+- **Verification Evidence:** All 135 unit and integration tests passing cleanly (100% pass rate).
 - **Typecheck & Lint Status:** 0 errors via `npm run lint`.
-- **Production Build:** Clean bundle in 794ms via `npm run build`.
+- **Production Build:** Clean bundle in 897ms via `npm run build`.
 
