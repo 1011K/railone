@@ -69,7 +69,7 @@ The suite tests all P0 boundary conditions and canonical master plan acceptance 
 ```bash
 npm test
 ```
-**Results (84/84 Tests Passing, 0 Failed)**:
+**Results (127/127 Tests Passing, 0 Failed, 100% Pass Rate)**:
 - **Section A: Canonical Acceptance Scenarios (G1–G18)**:
   - **[G1] Thane -> Churchgate via Dadar**: Arrive-by 12:30 deadline, minimum 7 min FOB walking buffer, Class II vs I fares (7/7 PASS)
   - **[G2] Dadar -> Kalyan Section 138 Eligibility**: Strict gating on non-MST Express with penalties (4/4 PASS)
@@ -89,37 +89,61 @@ npm test
   - **[G16] Offline Resilient Caching**: In-memory station catalog, offline timetable, specimen watermark (4/4 PASS)
   - **[G17] Safe Failure for Unknown Providers**: Truthful error responses for missing entities (2/2 PASS)
   - **[G18] Responsive Tokens & Accessibility**: High-contrast WCAG AAA and theme tokens (3/3 PASS)
-- **Section B: Architectural Integration Suites (Suites 1–17)**:
-  - Station Graph, Tariffs, Operations Control API, and Heatmaps (15/15 PASS)
-  - **Suite 17: Interactive 2D/3D Network Map Engine & Multi-Train Delays** (23/23 PASS):
-    - Mumbai suburban & Pan-India network station topology
-    - Multi-train track corridor aggregation with average delay (`averageDelayMinutes`)
-    - Operational disruption reason attribution
-    - 3D Isometric projection coordinate mathematics
+- **Section B: Architectural Integration Suites (Suites 1–18)**:
+  - **Suite 1**: Station Graph & Alias Normalization (5/5 PASS)
+  - **Suite 8**: Official Suburban & Express Fare Tariffs (6/6 PASS)
+  - **Suite 13**: Network Service Alerts & OCC Operations API (2/2 PASS)
+  - **Suite 16**: Visual Route Delay & Congestion Heatmap Engine (2/2 PASS)
+  - **Suite 17**: Interactive 2D/3D Network Map Engine & Multi-Train Delays (29/29 PASS)
+  - **Suite 18**: 3D Station Navigation, God's Eye Topological Layouts & FOB Transfer Routing (14/14 PASS)
 
-**Total**: **113/113 Automated Tests Passing (0 Failed)**.
+**Total**: **127/127 Automated Tests Passing (0 Failed)**.
 
 ---
 
-## 6. Interactive 2D & 3D Rail Network Map
+## 6. Interactive 2D/3D Rail Network Map & God's Eye Station Navigation
 
-RailOne Next includes an interactive visual network map:
+RailOne Next includes rich spatial transit visualization:
 - **Mumbai Suburban Local Network**: Complete coverage of all 80+ real suburban stations across Western Line (Churchgate to Dahanu Road), Central Main Line (CSMT to Kasara / Karjat / Khopoli), Harbour Line (CSMT to Panvel & Wadala-Andheri branch), Trans-Harbour Line (Thane to Turbhe/Panvel), and Uran Line (Nerul to Uran).
 - **Pan-India National Rail Network**: 40+ national railway hubs and trunk corridors connecting New Delhi, Mumbai, Howrah (Kolkata), Chennai Central, KSR Bengaluru, Secunderabad, Ahmedabad, Pune, Nagpur, Kanpur, Prayagraj, Varanasi, Raipur, Bilaspur, Tatanagar, and Jammu Tawi.
 - **Track Delay Intelligence**: Computes average delays across all trains traversing physical tracks and displays root-cause operational disruption reasons (fog, OHE faults, signal point locks, cautionary speed orders).
 - **Train Route Illumination**: Click or search any train to illuminate its entire physical route across India or Mumbai Suburban with glowing visual paths.
-- **Live Autocomplete Search & Line Filtering**: Search by station name, English/Devanagari spellings, or train numbers, and filter by suburban line (Western, Central, Harbour, Trans-Harbour, Uran).
-- **2D Schematic & 3D Isometric Projection**: Switch seamlessly between crisp transit schematic and isometric 3D perspective with pitch/rotation controls.
+- **3D God's Eye Station Navigation (`StationGodsEyeModal.tsx`)**:
+  - Interactive multi-level 3D station models for major junctions (Dadar, CSMT, Thane, Andheri, Kalyan, New Delhi).
+  - True elevation separation: Level 0 Platforms & Tracks, Level 1 Foot-Over-Bridges & Concourses, Level 2 Elevated Skywalks (Andheri Metro Line 1, Thane SATIS bus deck).
+  - Foot-Over-Bridge Transfer Pathfinder with step-by-step turns and realistic walk times (e.g. Dadar Western PF 1 to Central PF 4 via North FOB).
+  - Step-Free Accessible route filter prioritizing elevator-equipped bridges.
+  - Live platform occupancy visualization and amenities locator (ATVMs, Lifts, Escalators, RPF Police, Medical Centers).
 
 ---
 
-## 7. Running Locally
+## 7. Institutional Documentation Library
+
+All formal specifications are archived in the `docs/` directory:
+- [International Benchmark Matrix](file:///c:/Users/mishka/Desktop/RailOne/docs/INTERNATIONAL_BENCHMARK_MATRIX.md): Benchmarking against JR East, TfL, SBB, SNCF, MTA, and Singapore LTA.
+- [Competitor Problem-to-Solution](file:///c:/Users/mishka/Desktop/RailOne/docs/COMPETITOR_PROBLEM_TO_SOLUTION.md): Root-cause solutions for public review complaints (RailOne, IRCTC, UTS, Yatri, m-Indicator, ConfirmTkt).
+- [GitHub Integration Register](file:///c:/Users/mishka/Desktop/RailOne/docs/GITHUB_INTEGRATION_REGISTER.md): Legal and security audit of 29 candidate repositories under "Integrate, Don't Collect".
+- [Government Readiness](file:///c:/Users/mishka/Desktop/RailOne/docs/GOVERNMENT_READINESS.md): Statutory compliance with Railways Act 1989 Section 138, DPDP Act 2023, and Rajbhasha policies.
+- [Security & Accessibility Evidence](file:///c:/Users/mishka/Desktop/RailOne/docs/SECURITY_ACCESSIBILITY_EVIDENCE.md): OWASP Top 10 mitigation and WCAG 2.1 AAA luminance contrast verification.
+- [System Architecture](file:///c:/Users/mishka/Desktop/RailOne/docs/SYSTEM_ARCHITECTURE.md): Asia/Kolkata timezone handling and deterministic engine contracts.
+- [Disruption & Delay Recovery](file:///c:/Users/mishka/Desktop/RailOne/docs/DISRUPTION_DELAY_RECOVERY.md): Mathematical compounding delay propagation and OCC reason attribution.
+- [3D Station Navigation Spec](file:///c:/Users/mishka/Desktop/RailOne/docs/STATION_3D_NAVIGATION_SPEC.md): Platform topology and multi-level FOB pathfinder algorithms.
+- [Ticketing State Machine](file:///c:/Users/mishka/Desktop/RailOne/docs/TICKETING_STATE_MACHINE.md): Idempotency keys and ambiguous timeout reconciliation.
+- [Passenger Convenience Guide](file:///c:/Users/mishka/Desktop/RailOne/docs/PASSENGER_CONVENIENCE_GUIDE.md): RPF safety, coach alignment, and RailMadad grievance assistant.
+- [RailSathi Voice Assistant](file:///c:/Users/mishka/Desktop/RailOne/docs/VOICE_ASSISTANT_SPEC.md): 100% deterministic function parity between voice and UI.
+- [ASTRA Design Tokens](file:///c:/Users/mishka/Desktop/RailOne/docs/ASTRA_DESIGN_TOKENS.md): 8 accessible Indian Railway livery themes and mobile ergonomics.
+- [Offline PWA Deployment](file:///c:/Users/mishka/Desktop/RailOne/docs/OFFLINE_PWA_DEPLOYMENT.md): Service Worker caching and standalone PWA manifest.
+- [Testing & Quality Gates](file:///c:/Users/mishka/Desktop/RailOne/docs/TESTING_AND_QUALITY_GATES.md): Complete automated test suites and continuous quality gates.
+
+---
+
+## 8. Running Locally
 
 ```bash
 # Install dependencies
 npm install
 
-# Run automated verification suite (113 tests)
+# Run automated verification suite (127 tests)
 npm test
 
 # Typecheck and lint
