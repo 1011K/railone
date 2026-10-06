@@ -107,9 +107,9 @@ export const VoiceDialerModal: React.FC<VoiceDialerModalProps> = ({
       }
     };
 
-    // Query Pattern 1: Search Thane to Dadar / Churchgate
-    if (q.includes('thane') && (q.includes('dadar') || q.includes('churchgate'))) {
-      const destCode = q.includes('churchgate') ? 'CCG' : 'DR';
+    // Query Pattern 1: Search Thane to Dadar / Churchgate (supports English, Hindi, and Marathi)
+    if ((q.includes('thane') || q.includes('ठाणे')) && (q.includes('dadar') || q.includes('दादर') || q.includes('churchgate') || q.includes('चर्चगेट'))) {
+      const destCode = (q.includes('churchgate') || q.includes('चर्चगेट')) ? 'CCG' : 'DR';
       const result = RailBackendTools.searchTrains('TNA', destCode, '10:40');
       
       if (result.status === 'success') {
@@ -134,7 +134,7 @@ export const VoiceDialerModal: React.FC<VoiceDialerModalProps> = ({
     }
 
     // Query Pattern 2: Live status of 95112 or delayed train
-    if (q.includes('95112') || (q.includes('status') && q.includes('fast'))) {
+    if (q.includes('95112') || (q.includes('status') && q.includes('fast')) || q.includes('स्थिति') || q.includes('स्थिती')) {
       const statusRes = RailBackendTools.getLiveStatus('95112');
       if (statusRes.status === 'success') {
         setExecutedToolCalls(prev => [
@@ -154,7 +154,7 @@ export const VoiceDialerModal: React.FC<VoiceDialerModalProps> = ({
     }
 
     // Query Pattern 3: Dadar to Kalyan Express eligibility
-    if (q.includes('express') || (q.includes('dadar') && q.includes('kalyan'))) {
+    if (q.includes('express') || ((q.includes('dadar') || q.includes('दादर')) && (q.includes('kalyan') || q.includes('कल्याण')))) {
       const eligRes = RailBackendTools.validateEligibility('12123', 'DR', 'KYN', 'suburban_season_pass', 'II');
       setExecutedToolCalls(prev => [
         ...prev,

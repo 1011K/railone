@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MockBookingStore } from '../engine/mockBookingStore';
 import { SpecimenTicket } from '../types/railway';
 import { VisualQRCode } from './VisualQRCode';
@@ -23,6 +23,12 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
 }) => {
   const [tickets, setTickets] = useState<SpecimenTicket[]>(() => MockBookingStore.listBookings());
   const [selectedTicket, setSelectedTicket] = useState<SpecimenTicket | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTickets(MockBookingStore.listBookings());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

@@ -69,47 +69,52 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
     };
   }
 
-  // 2. Exact Devanagari Match (Hindi or Marathi)
-  for (const station of Object.values(STATIONS)) {
-    if (
-      (station.hindiName && station.hindiName.trim() === query) ||
-      (station.marathiName && station.marathiName.trim() === query)
-    ) {
+  const isDevanagariQuery = /[\u0900-\u097F]/.test(query);
+
+  // 2. Exact Devanagari Match (Hindi or Marathi or Devanagari Alias)
+  if (isDevanagariQuery) {
+    for (const station of Object.values(STATIONS)) {
+      if (
+        (station.hindiName && station.hindiName.trim() === query) ||
+        (station.marathiName && station.marathiName.trim() === query) ||
+        station.aliases.some(a => /[\u0900-\u097F]/.test(a) && a.trim() === query)
+      ) {
+        return {
+          query,
+          matchedStation: station,
+          candidates: [station],
+          isAmbiguous: false,
+          confidence: 'EXACT',
+          explanation: `Exact Devanagari script match: ${station.name} (${station.code})`
+        };
+      }
+    }
+
+    // 3. Devanagari Substring & Alias Match (e.g. "कल्याण", "सीएसएमटी", "बोरीबंदर")
+    const devanagariMatches = Object.values(STATIONS).filter(s => 
+      (s.hindiName && (s.hindiName.includes(query) || query.includes(s.hindiName))) ||
+      (s.marathiName && (s.marathiName.includes(query) || query.includes(s.marathiName))) ||
+      s.aliases.some(a => /[\u0900-\u097F]/.test(a) && (a.trim() === query || (query.length >= 3 && a.includes(query))))
+    );
+
+    if (devanagariMatches.length === 1) {
       return {
         query,
-        matchedStation: station,
-        candidates: [station],
+        matchedStation: devanagariMatches[0],
+        candidates: devanagariMatches,
         isAmbiguous: false,
-        confidence: 'EXACT',
-        explanation: `Exact Devanagari script match: ${station.name} (${station.code})`
+        confidence: 'TRANSLITERATED',
+        explanation: `Devanagari match resolved to ${devanagariMatches[0].name} (${devanagariMatches[0].code})`
+      };
+    } else if (devanagariMatches.length > 1) {
+      return {
+        query,
+        candidates: devanagariMatches,
+        isAmbiguous: true,
+        confidence: 'TRANSLITERATED',
+        explanation: `Multiple stations match Devanagari input "${query}". Please select: ${devanagariMatches.map(s => `${s.name} [${s.code}]`).join(', ')}`
       };
     }
-  }
-
-  // 3. Devanagari Substring & Alias Match (e.g. "कल्याण", "सीएसएमटी", "बोरीबंदर")
-  const devanagariMatches = Object.values(STATIONS).filter(s => 
-    (s.hindiName && (s.hindiName.includes(query) || query.includes(s.hindiName))) ||
-    (s.marathiName && (s.marathiName.includes(query) || query.includes(s.marathiName))) ||
-    s.aliases.some(a => a.trim() === query || (query.length >= 3 && a.includes(query)))
-  );
-
-  if (devanagariMatches.length === 1) {
-    return {
-      query,
-      matchedStation: devanagariMatches[0],
-      candidates: devanagariMatches,
-      isAmbiguous: false,
-      confidence: 'TRANSLITERATED',
-      explanation: `Devanagari match resolved to ${devanagariMatches[0].name} (${devanagariMatches[0].code})`
-    };
-  } else if (devanagariMatches.length > 1) {
-    return {
-      query,
-      candidates: devanagariMatches,
-      isAmbiguous: true,
-      confidence: 'TRANSLITERATED',
-      explanation: `Multiple stations match Devanagari input "${query}". Please select: ${devanagariMatches.map(s => `${s.name} [${s.code}]`).join(', ')}`
-    };
   }
 
   // 4. Exact English Name or Alias Match

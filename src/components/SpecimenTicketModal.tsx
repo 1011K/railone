@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { JourneyItinerary, TravelClass, SpecimenTicket } from '../types/railway';
 import { MockBookingStore } from '../engine/mockBookingStore';
 import { VisualQRCode } from './VisualQRCode';
@@ -10,7 +10,7 @@ import {
   X, 
   QrCode, 
   AlertTriangle,
-  RotateCcw,
+  RotateCcw, 
   Printer
 } from 'lucide-react';
 
@@ -38,6 +38,16 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
   const [createdTicket, setCreatedTicket] = useState<SpecimenTicket | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cancellationResult, setCancellationResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep('details');
+      setCreatedTicket(null);
+      setCancellationResult(null);
+      setIsProcessing(false);
+      setOtpCode('');
+    }
+  }, [isOpen, itinerary?.id]);
 
   if (!isOpen || !itinerary) return null;
 

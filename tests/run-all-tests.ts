@@ -475,7 +475,8 @@ console.log('Test Suite 1: Station Graph & Alias Normalization');
   assert(STATIONS.CSMT !== undefined, 'CSMT station exists with platforms');
   assert(STATIONS.DR.interchangeWalkMinutes === 7, 'Dadar interchange walk buffer is configured (7 mins)');
   assert(STATIONS.TNA.platforms.length >= 8, 'Thane has realistic platform count');
-  assert(STATIONS.DR.aliases.includes('dadar central'), 'Station alias normalization works for Dadar');
+  const cstNorm = normalizeStation('cst');
+  assert(cstNorm.matchedStation?.code === 'CSMT' && cstNorm.confidence === 'EXACT', 'Station alias normalization works for CST -> CSMT (EXACT)');
   assert(STATIONS.KYN.city === 'Kalyan', 'Kalyan station metadata valid');
 }
 
