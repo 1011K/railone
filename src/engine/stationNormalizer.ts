@@ -86,10 +86,11 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
     }
   }
 
-  // 3. Devanagari Substring Match (e.g. "कल्याण" in "कल्याण जंक्शन" or "ठाणे")
+  // 3. Devanagari Substring & Alias Match (e.g. "कल्याण", "सीएसएमटी", "बोरीबंदर")
   const devanagariMatches = Object.values(STATIONS).filter(s => 
     (s.hindiName && (s.hindiName.includes(query) || query.includes(s.hindiName))) ||
-    (s.marathiName && (s.marathiName.includes(query) || query.includes(s.marathiName)))
+    (s.marathiName && (s.marathiName.includes(query) || query.includes(s.marathiName))) ||
+    s.aliases.some(a => a.trim() === query || (query.length >= 3 && a.includes(query)))
   );
 
   if (devanagariMatches.length === 1) {
@@ -144,11 +145,11 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
     };
   }
 
-  // 5. Substring / Prefix Match in Aliases and Names
-  const substringMatches = Object.values(STATIONS).filter(s => 
+  // 5. Substring / Prefix Match in Aliases and Names (requires at least 3 chars)
+  const substringMatches = cleaned.length >= 3 ? Object.values(STATIONS).filter(s => 
     cleanText(s.name).includes(cleaned) ||
-    s.aliases.some(a => cleanText(a).includes(cleaned) || cleaned.includes(cleanText(a)))
-  );
+    s.aliases.some(a => cleanText(a).includes(cleaned) || (cleaned.length >= 4 && cleanText(a).length >= 4 && cleaned.includes(cleanText(a))))
+  ) : [];
 
   if (substringMatches.length === 1) {
     return {
@@ -170,16 +171,20 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
     };
   }
 
-  // 6. Fuzzy Distance Match (Levenshtein distance <= 2 for spelling errors, e.g. "Tane" -> "Thane", "Dombivali" -> "Dombivli")
+  // 6. Fuzzy Distance Match (Levenshtein: scale max distance by query length to prevent false positives)
+  const maxAllowedDist = cleaned.length >= 6 ? 2 : cleaned.length >= 4 ? 1 : 0;
   const fuzzyCandidates: { station: Station; dist: number }[] = [];
-  for (const station of Object.values(STATIONS)) {
-    let bestDist = levenshteinDistance(cleaned, cleanText(station.name));
-    for (const alias of station.aliases) {
-      const dist = levenshteinDistance(cleaned, cleanText(alias));
-      if (dist < bestDist) bestDist = dist;
-    }
-    if (bestDist <= 2) {
-      fuzzyCandidates.push({ station, dist: bestDist });
+
+  if (maxAllowedDist > 0) {
+    for (const station of Object.values(STATIONS)) {
+      let bestDist = levenshteinDistance(cleaned, cleanText(station.name));
+      for (const alias of station.aliases) {
+        const dist = levenshteinDistance(cleaned, cleanText(alias));
+        if (dist < bestDist) bestDist = dist;
+      }
+      if (bestDist <= maxAllowedDist) {
+        fuzzyCandidates.push({ station, dist: bestDist });
+      }
     }
   }
 

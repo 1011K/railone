@@ -44,19 +44,27 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   let originCode = rawOriginCode;
   let isOnboardBacktrackForbidden = false;
 
-  if (userContext === 'onboard' && onboardTrainNumber && onboardCurrentStation) {
-    const onboardTrain = TRAIN_TRIPS.find(t => t.trainNumber === onboardTrainNumber);
-    if (onboardTrain) {
-      const currentHaltIdx = onboardTrain.stops.findIndex(s => s.stationCode === onboardCurrentStation);
-      const requestedOriginIdx = onboardTrain.stops.findIndex(s => s.stationCode === rawOriginCode);
+  if (userContext === 'onboard' && onboardCurrentStation) {
+    if (onboardTrainNumber) {
+      const onboardTrain = TRAIN_TRIPS.find(t => t.trainNumber === onboardTrainNumber);
+      if (onboardTrain) {
+        const currentHaltIdx = onboardTrain.stops.findIndex(s => s.stationCode === onboardCurrentStation);
+        const requestedOriginIdx = onboardTrain.stops.findIndex(s => s.stationCode === rawOriginCode);
 
-      // If requested origin is before current station, forbid backtracking and clamp origin to current station
-      if (requestedOriginIdx !== -1 && requestedOriginIdx < currentHaltIdx) {
+        // If requested origin is before current station, forbid backtracking and clamp origin to current station
+        if (requestedOriginIdx !== -1 && requestedOriginIdx < currentHaltIdx) {
+          originCode = onboardCurrentStation;
+          isOnboardBacktrackForbidden = true;
+        } else if (!rawOriginCode || rawOriginCode === onboardTrain.originStation) {
+          originCode = onboardCurrentStation;
+        }
+      } else {
         originCode = onboardCurrentStation;
-        isOnboardBacktrackForbidden = true;
-      } else if (!rawOriginCode || rawOriginCode === onboardTrain.originStation) {
-        originCode = onboardCurrentStation;
+        isOnboardBacktrackForbidden = rawOriginCode !== onboardCurrentStation;
       }
+    } else {
+      originCode = onboardCurrentStation;
+      isOnboardBacktrackForbidden = rawOriginCode !== onboardCurrentStation;
     }
   }
 
@@ -130,7 +138,9 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       dataStatus: fromStop.dataStatus,
       crowding,
       skippedStopsCount,
-      stoppingPatternLabel
+      stoppingPatternLabel,
+      depDayOffset: fromStop.dayOffset || 0,
+      arrDayOffset: toStop.dayOffset || 0
     };
   };
 
@@ -145,14 +155,18 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
       // Filter by arrive-by deadline if specified
       if (arriveByDeadline) {
-        const diffToDeadline = getMinutesDifference(leg.predictedArr, arriveByDeadline);
+        const diffToDeadline = getMinutesDifference(leg.predictedArr, arriveByDeadline, leg.arrDayOffset || 0, 0);
         if (diffToDeadline < 0) {
           // Arrives AFTER deadline! Strictly excluded
           continue;
         }
+        if (departureTime) {
+          const diffFromDep = getMinutesDifference(departureTime, leg.predictedDep, 0, leg.depDayOffset || 0);
+          if (diffFromDep < -10) continue;
+        }
       } else {
         // Standard depart-after filter: allow trains within realistic window (-10 min to +180 min)
-        const diffFromQuery = getMinutesDifference(departureTime, leg.predictedDep);
+        const diffFromQuery = getMinutesDifference(departureTime, leg.predictedDep, 0, leg.depDayOffset || 0);
         if (diffFromQuery < -10 || diffFromQuery > 180) continue;
       }
 
@@ -178,7 +192,12 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         hasMST: preferences.hasSeasonPass
       });
 
-      const totalDurationMinutes = getMinutesDifference(leg.predictedDep, leg.predictedArr);
+      const totalDurationMinutes = Math.max(1, getMinutesDifference(
+        leg.predictedDep, 
+        leg.predictedArr,
+        leg.depDayOffset || 0,
+        leg.arrDayOffset || 0
+      ));
       const isAc = train.serviceType.includes('ac');
 
       // Leave-home calculation
@@ -249,8 +268,13 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       const leg1 = buildLeg(train1, leg1FromStation, leg1ToStation, 0);
       if (!leg1) continue;
 
-      if (!arriveByDeadline) {
-        const diffFromQuery = getMinutesDifference(departureTime, leg1.predictedDep);
+      if (arriveByDeadline) {
+        if (departureTime) {
+          const diffFromQuery = getMinutesDifference(departureTime, leg1.predictedDep, 0, leg1.depDayOffset || 0);
+          if (diffFromQuery < -10) continue;
+        }
+      } else {
+        const diffFromQuery = getMinutesDifference(departureTime, leg1.predictedDep, 0, leg1.depDayOffset || 0);
         if (diffFromQuery < -10 || diffFromQuery > 180) continue;
       }
 
@@ -262,7 +286,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
         // Check arrive-by deadline on second leg arrival
         if (arriveByDeadline) {
-          const diffToDeadline = getMinutesDifference(leg2.predictedArr, arriveByDeadline);
+          const diffToDeadline = getMinutesDifference(leg2.predictedArr, arriveByDeadline, leg2.arrDayOffset || 0, 0);
           if (diffToDeadline < 0) {
             // Arrives after deadline
             continue;
@@ -270,7 +294,12 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         }
 
         // Check transfer buffer
-        const transferBufferMinutes = getMinutesDifference(leg1.predictedArr, leg2.predictedDep);
+        const transferBufferMinutes = getMinutesDifference(
+          leg1.predictedArr, 
+          leg2.predictedDep,
+          leg1.arrDayOffset || 0,
+          leg2.depDayOffset || 0
+        );
         const minWalkTime = interchange.walkMinutes;
         const isMissedConnection = transferBufferMinutes < minWalkTime;
         const isTightConnection = transferBufferMinutes >= minWalkTime && transferBufferMinutes < minWalkTime + 4;
@@ -289,7 +318,12 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
           transferGuide: `Interchange at ${interchange.station.name}: Walk from Platform ${leg1.arrivalPlatform} across Foot Over Bridge to Platform ${leg2.departurePlatform} (est. ${minWalkTime} min walk, ${transferBufferMinutes} min buffer available).`
         };
 
-        const totalDurationMinutes = getMinutesDifference(leg1.predictedDep, leg2.predictedArr);
+        const totalDurationMinutes = Math.max(1, getMinutesDifference(
+          leg1.predictedDep, 
+          leg2.predictedArr,
+          leg1.depDayOffset || 0,
+          leg2.arrDayOffset || 0
+        ));
         const walkMargin = preferences.walkToStationMinutes || 15;
         const leaveHomeTime = addMinutesToTimeString(leg1.predictedDep, -walkMargin);
 
@@ -467,9 +501,12 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   for (const it of candidateItineraries) {
     let score = 1000;
 
+    const lastLeg = it.legs[it.legs.length - 1];
+    const arrOffset = lastLeg?.arrDayOffset || 0;
+
     if (arriveByDeadline) {
       // Arrive-by scoring: rewards journeys arriving before deadline with minimum idle time
-      const marginBeforeDeadline = getMinutesDifference(it.predictedArrival, arriveByDeadline);
+      const marginBeforeDeadline = getMinutesDifference(it.predictedArrival, arriveByDeadline, arrOffset, 0);
       if (marginBeforeDeadline >= 0) {
         score += Math.max(0, 400 - marginBeforeDeadline * 3);
       } else {
@@ -477,7 +514,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       }
     } else {
       // Depart-after scoring: earlier arrival is better
-      const minutesToArr = getMinutesDifference(departureTime, it.predictedArrival);
+      const minutesToArr = getMinutesDifference(departureTime, it.predictedArrival, 0, arrOffset);
       score -= minutesToArr * 4;
     }
 
@@ -533,7 +570,8 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     if (best.delayInversionNote) {
       best.rankReason = 'Recommended: Arrives earliest by taking unaffected Slow track while Fast track is held up.';
     } else if (arriveByDeadline) {
-      const margin = getMinutesDifference(best.predictedArrival, arriveByDeadline);
+      const bestArrOffset = best.legs[best.legs.length - 1]?.arrDayOffset || 0;
+      const margin = getMinutesDifference(best.predictedArrival, arriveByDeadline, bestArrOffset, 0);
       best.rankReason = `Recommended: Arrives safely at ${best.predictedArrival} (${margin} min before your ${arriveByDeadline} deadline).`;
     } else if (best.transfers.length === 0) {
       best.rankReason = `Recommended: Direct service with best arrival time (${best.predictedArrival}) and ${best.legs[0].crowding.level.toLowerCase()} crowd.`;

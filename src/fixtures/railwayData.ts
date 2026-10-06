@@ -13,7 +13,7 @@ export const STATIONS: Record<string, Station> = {
     platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
     isInterchange: true,
     interchangeWalkMinutes: 4,
-    aliases: ['cst', 'vt', 'victoria terminus', 'mumbai cst', 'csmt']
+    aliases: ['cst', 'vt', 'victoria terminus', 'mumbai cst', 'csmt', 'bori bunder', 'boribunder', 'सीएसएमटी', 'सी.एस.एम.टी.', 'व्हीटी', 'बोरीबंदर']
   },
   BY: {
     id: 'BY',

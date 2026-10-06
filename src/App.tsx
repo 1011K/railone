@@ -33,7 +33,7 @@ import {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('journey');
-  const [is3DTrainOpen, setIs3DTrainOpen] = useState(true); // 3D train moving opening experience
+  const [is3DTrainOpen, setIs3DTrainOpen] = useState(false); // 3D train moving experience available on demand
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);

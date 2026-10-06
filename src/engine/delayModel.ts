@@ -18,9 +18,10 @@ export interface PredictedStop {
  * Add minutes to "HH:MM" string, returns "HH:MM"
  */
 export function addMinutesToTimeString(timeStr: string, minutesToAdd: number): string {
-  const [hStr, mStr] = timeStr.split(':');
-  let h = parseInt(hStr, 10);
-  let m = parseInt(mStr, 10) + minutesToAdd;
+  const safeStr = timeStr || '00:00';
+  const [hStr, mStr] = safeStr.split(':');
+  let h = parseInt(hStr || '0', 10);
+  let m = parseInt(mStr || '0', 10) + minutesToAdd;
 
   while (m >= 60) {
     m -= 60;
@@ -43,8 +44,9 @@ export function addMinutesWithDayOffset(
   minutesToAdd: number, 
   baseDayOffset: number = 0
 ): { time: string; dayOffset: number } {
-  const [hStr, mStr] = timeStr.split(':');
-  let totalMinutes = parseInt(hStr, 10) * 60 + parseInt(mStr, 10) + minutesToAdd;
+  const safeStr = timeStr || '00:00';
+  const [hStr, mStr] = safeStr.split(':');
+  let totalMinutes = parseInt(hStr || '0', 10) * 60 + parseInt(mStr || '0', 10) + minutesToAdd;
   let dayOffset = baseDayOffset;
 
   while (totalMinutes >= 1440) {
@@ -71,10 +73,10 @@ export function getMinutesDifference(
   dayOffsetA: number = 0, 
   dayOffsetB: number = 0
 ): number {
-  const [hA, mA] = timeA.split(':').map(Number);
-  const [hB, mB] = timeB.split(':').map(Number);
-  const totalMinA = dayOffsetA * 1440 + (hA * 60 + mA);
-  const totalMinB = dayOffsetB * 1440 + (hB * 60 + mB);
+  const [hA, mA] = (timeA || '00:00').split(':').map(Number);
+  const [hB, mB] = (timeB || '00:00').split(':').map(Number);
+  const totalMinA = dayOffsetA * 1440 + ((hA || 0) * 60 + (mA || 0));
+  const totalMinB = dayOffsetB * 1440 + ((hB || 0) * 60 + (mB || 0));
   return totalMinB - totalMinA;
 }
 

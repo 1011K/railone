@@ -148,6 +148,8 @@ export interface ItineraryLeg {
   crowding: CrowdingEstimate;
   skippedStopsCount: number;
   stoppingPatternLabel: string;
+  depDayOffset?: number;
+  arrDayOffset?: number;
 }
 
 export interface TransferInfo {

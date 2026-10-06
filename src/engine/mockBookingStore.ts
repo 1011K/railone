@@ -175,6 +175,15 @@ export class MockBookingStore {
       };
     }
 
+    if (ticket.paymentStatus === 'CANCELLED_REFUNDED' || ticket.bookingState === 'REFUNDED_DEMO' || ticket.bookingState === 'CANCELLED_DEMO') {
+      return {
+        success: false,
+        ticket,
+        message: 'Cannot reconcile: order was already cancelled and refunded.',
+        wasAlreadyIssued: false
+      };
+    }
+
     if (ticket.paymentStatus === 'PAID_MOCK' && ticket.bookingState === 'TICKET_ISSUED_DEMO') {
       return {
         success: true,
@@ -214,15 +223,17 @@ export class MockBookingStore {
     preferredRefundType: 'wallet' | 'cash' | 'voucher' = 'wallet'
   ): { 
     success: boolean; 
+    refundAmount: number;
     refundBreakdown: RefundBreakdown; 
     message: string 
   } {
     const list = this.getStore();
-    const item = list.find(t => t.id === ticketId);
+    const item = list.find(t => t.id === ticketId || t.pnrMock === ticketId || t.idempotencyKey === ticketId);
     
     if (!item) {
       return { 
         success: false, 
+        refundAmount: 0,
         refundBreakdown: {
           totalPaid: 0,
           cashRefund: 0,
@@ -239,6 +250,7 @@ export class MockBookingStore {
     if (item.paymentStatus === 'CANCELLED_REFUNDED') {
       return { 
         success: false, 
+        refundAmount: item.refundAmount || item.farePaid,
         refundBreakdown: item.refundBreakdown || {
           totalPaid: item.farePaid,
           cashRefund: 0,
@@ -293,6 +305,7 @@ export class MockBookingStore {
 
     return {
       success: true,
+      refundAmount: netRefund,
       refundBreakdown: breakdown,
       message: `Specimen ticket ${item.pnrMock} successfully cancelled. ₹${netRefund} refunded via ${preferredRefundType}.`
     };
