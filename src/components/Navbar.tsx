@@ -15,7 +15,8 @@ import {
   Sparkles,
   Zap,
   Check,
-  ChevronDown
+  ChevronDown,
+  Navigation
 } from 'lucide-react';
 import { useTheme, ColorTheme, AppLanguage, THEME_CONFIG } from './ThemeContext';
 
@@ -38,7 +39,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navItems = [
     { id: 'journey', label: language === 'hi' ? 'यात्रा निर्णय' : language === 'mr' ? 'प्रवास निर्णय' : 'Journey Decision', icon: Train },
-    { id: 'ai_tasks', label: language === 'hi' ? 'AI टास्क' : language === 'mr' ? 'AI कार्ये' : 'AI Copilot & Tasks', icon: Bot, isNew: true },
+    { id: 'map', label: language === 'hi' ? 'नेटवर्क मैप' : language === 'mr' ? 'नेटवर्क नकाशा' : 'Live Rail Map', icon: Navigation, isNew: true },
+    { id: 'ai_tasks', label: language === 'hi' ? 'AI टास्क' : language === 'mr' ? 'AI कार्ये' : 'AI Copilot & Tasks', icon: Bot },
     { id: 'scenarios', label: language === 'hi' ? 'परिदृश्य लैब' : language === 'mr' ? 'परिदृश्य लॅब' : 'Scenarios Lab', icon: Layers },
     { id: 'tracker', label: language === 'hi' ? 'लाइव ट्रैकर' : language === 'mr' ? 'थेट ट्रॅकर' : 'Live OCC Status', icon: Radio },
     { id: 'voice', label: language === 'hi' ? 'रेलसाथी आवाज़' : language === 'mr' ? 'रेलसाथी आवाज' : 'RailSathi Voice', icon: Mic },
@@ -103,8 +105,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
                   {item.isNew && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-gradient-to-r from-purple-500 to-indigo-500 text-white uppercase tracking-wider animate-pulse">
-                      AI
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 text-white uppercase tracking-wider">
+                      {item.id === 'map' ? '2D/3D' : 'AI'}
                     </span>
                   )}
                   {item.badge !== undefined && item.badge > 0 && (
@@ -260,8 +262,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
                   {item.isNew && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-600 text-white uppercase">
-                      AI
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-600 text-white uppercase">
+                      {item.id === 'map' ? '2D/3D' : 'AI'}
                     </span>
                   )}
                 </div>

@@ -16,6 +16,7 @@ import { VoiceDialerModal } from './components/VoiceDialerModal';
 import { SpecimenTicketModal } from './components/SpecimenTicketModal';
 import { TicketWalletModal } from './components/TicketWalletModal';
 import { MovingTrain3DModal } from './components/MovingTrain3DModal';
+import { NetworkMapViewer } from './components/NetworkMapViewer';
 import { MockBookingStore } from './engine/mockBookingStore';
 import { JourneyItinerary, TravelClass, SpecimenTicket } from './types/railway';
 import { 
@@ -91,6 +92,10 @@ export default function App() {
               onBookSpecimen={handleOpenBooking}
               onInspectTrain={handleInspectTrain}
             />
+          )}
+
+          {activeTab === 'map' && (
+            <NetworkMapViewer />
           )}
 
           {activeTab === 'ai_tasks' && (

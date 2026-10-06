@@ -260,3 +260,69 @@ export interface CommuterScenario {
   description: string;
   keyLearning: string;
 }
+
+export type MapScope = 'mumbai_suburban' | 'pan_india';
+export type MapRenderMode = '2d' | '3d';
+
+export interface MapStationNode {
+  id: string;
+  code: string;
+  name: string;
+  hindiName?: string;
+  marathiName?: string;
+  line: RegionalLine;
+  city: string;
+  zone?: string;
+  x: number;
+  y: number;
+  z?: number;
+  platforms: number[];
+  isInterchange?: boolean;
+  isMajorHub?: boolean;
+  passingTrainCount?: number;
+}
+
+export interface MapTrackSegment {
+  id: string;
+  fromCode: string;
+  toCode: string;
+  fromName: string;
+  toName: string;
+  distanceKm: number;
+  line: RegionalLine;
+  zone?: string;
+  trackType: 'quad_fast_slow' | 'twin_through' | 'single_branch' | 'trunk_double';
+  speedLimitKmh: number;
+  trainsPassing: string[];
+  averageDelayMinutes: number;
+  maxDelayMinutes: number;
+  trainDelays: Record<string, number>;
+  congestionLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+  disruptionReason?: string;
+  isBottleneck: boolean;
+  coordinates: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  };
+}
+
+export interface MapTrainMarker {
+  trainNumber: string;
+  trainName: string;
+  serviceType: TrainServiceType;
+  originStation: string;
+  destinationStation: string;
+  currentSegmentId: string;
+  fromStationCode: string;
+  toStationCode: string;
+  delayMinutes: number;
+  progressPercent: number;
+  position: { x: number; y: number; z?: number };
+  disruptionReason?: string;
+  scheduledArrival: string;
+  predictedArrival: string;
+  availableClasses: TravelClass[];
+}
+

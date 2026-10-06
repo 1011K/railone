@@ -509,6 +509,67 @@ console.log('\nTest Suite 16: Visual Route Delay & Congestion Heatmap Engine');
   assert(segments.some(s => s.intensity === 'CRITICAL'), 'Identifies CRITICAL thermal intensity for +22m delay section');
 }
 
+console.log('\nTest Suite 17: Interactive 2D/3D Network Map Engine & Multi-Train Track Delays');
+{
+  const { 
+    getStationsForScope, 
+    getTrackSegmentsForScope, 
+    getTrainMarkersForScope, 
+    project3DIsometric 
+  } = await import('../src/engine/networkMapEngine');
+
+  // 17.1 Mumbai Suburban scope station nodes
+  const subStations = getStationsForScope('mumbai_suburban');
+  assert(subStations.length >= 15, '17.1: Mumbai suburban network nodes loaded (at least 15 stations)');
+  const dadarNode = subStations.find(s => s.code === 'DR');
+  assert(dadarNode !== undefined && dadarNode.isInterchange === true, '17.2: Dadar junction node is registered interchange');
+
+  // 17.2 Pan-India national scope station nodes
+  const natStations = getStationsForScope('pan_india');
+  assert(natStations.length >= 20, '17.3: Pan-India national trunk nodes loaded (at least 20 hubs)');
+  assert(natStations.some(s => s.code === 'NDLS'), '17.4: New Delhi national terminus present');
+  assert(natStations.some(s => s.code === 'HWH'), '17.5: Howrah Eastern hub terminus present');
+  assert(natStations.some(s => s.code === 'MAS'), '17.6: Chennai Central Southern hub present');
+  assert(natStations.some(s => s.code === 'SBC'), '17.7: Bengaluru South Western hub present');
+
+  // 17.3 Track segments and multi-train routes ("which trains run through what")
+  const subSegments = getTrackSegmentsForScope('mumbai_suburban');
+  assert(subSegments.length > 0, '17.8: Mumbai suburban track segments created');
+  const claDrSeg = subSegments.find(s => s.id === 'CLA-DR' || s.id === 'DR-CLA');
+  assert(claDrSeg !== undefined, '17.9: Kurla-Dadar track segment exists');
+  if (claDrSeg) {
+    assert(claDrSeg.trainsPassing.length >= 3, '17.10: Multiple trains run through Kurla-Dadar segment');
+    assert(claDrSeg.averageDelayMinutes > 0, '17.11: Computes average delay across all trains traversing track');
+    assert(claDrSeg.disruptionReason !== undefined && claDrSeg.disruptionReason.length > 10, '17.12: Provides explicit disruption reason for track delay');
+    assert(claDrSeg.isBottleneck === true, '17.13: Accurately flags Kurla-Dadar as congestion bottleneck');
+  }
+
+  // 17.4 Pan-India track segments and delay metrics
+  const natSegments = getTrackSegmentsForScope('pan_india');
+  assert(natSegments.length > 0, '17.14: Pan-India trunk track segments generated');
+  const foggyTrack = natSegments.find(s => (s.fromCode === 'NDLS' && s.toCode === 'CNB') || (s.fromCode === 'CNB' && s.toCode === 'NDLS'));
+  if (foggyTrack) {
+    assert(foggyTrack.trainsPassing.includes('12301'), '17.15: Tracks Howrah Rajdhani on New Delhi - Kanpur corridor');
+    assert(foggyTrack.disruptionReason!.toLowerCase().includes('fog'), '17.16: Identifies fog/visibility disruption reason on Northern corridor');
+    assert(foggyTrack.averageDelayMinutes >= 20, '17.17: Average corridor delay reflects fog speed restrictions');
+  }
+
+  // 17.5 Live train markers
+  const subMarkers = getTrainMarkersForScope('mumbai_suburban');
+  assert(subMarkers.length > 0, '17.18: Generates live train markers for suburban services');
+  const fastLocalMarker = subMarkers.find(m => m.trainNumber === '95112');
+  assert(fastLocalMarker !== undefined, '17.19: Fast Local 95112 marker present');
+  if (fastLocalMarker) {
+    assert(fastLocalMarker.delayMinutes === 22, '17.20: Fast Local marker reflects current delay (+22m)');
+    assert(fastLocalMarker.position.x > 0 && fastLocalMarker.position.y > 0, '17.21: Marker carries valid screen coordinates');
+  }
+
+  // 17.6 3D Isometric projection math
+  const isoResult = project3DIsometric(400, 300, 20, 38, -15);
+  assert(!isNaN(isoResult.projX) && !isNaN(isoResult.projY), '17.22: 3D Isometric projection computes valid numerical coordinates');
+  assert(isoResult.projX > 0 && isoResult.projY > 0, '17.23: 3D Projection lies within valid positive canvas space');
+}
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');
@@ -518,3 +579,4 @@ if (failedTests > 0) {
 } else {
   process.exit(0);
 }
+

@@ -89,24 +89,46 @@ npm test
   - **[G16] Offline Resilient Caching**: In-memory station catalog, offline timetable, specimen watermark (4/4 PASS)
   - **[G17] Safe Failure for Unknown Providers**: Truthful error responses for missing entities (2/2 PASS)
   - **[G18] Responsive Tokens & Accessibility**: High-contrast WCAG AAA and theme tokens (3/3 PASS)
-- **Section B: Architectural Integration Suites (Suites 1–16)**:
+- **Section B: Architectural Integration Suites (Suites 1–17)**:
   - Station Graph, Tariffs, Operations Control API, and Heatmaps (15/15 PASS)
+  - **Suite 17: Interactive 2D/3D Network Map Engine & Multi-Train Delays** (23/23 PASS):
+    - Mumbai suburban & Pan-India network station topology
+    - Multi-train track corridor aggregation with average delay (`averageDelayMinutes`)
+    - Operational disruption reason attribution
+    - 3D Isometric projection coordinate mathematics
 
-**Total**: **84/84 Automated Tests Passing (0 Failed)**.
+**Total**: **107/107 Automated Tests Passing (0 Failed)**.
 
 ---
 
-## 6. Running Locally
+## 6. Interactive 2D & 3D Rail Network Map
+
+RailOne Next includes an interactive visual network map:
+- **Mumbai Suburban Network**: Complete topology across Western Line (Churchgate to Dahanu Road / Virar), Central Main Line (CSMT to Kasara / Karjat), Harbour Line (CSMT to Panvel), and Trans-Harbour Line (Thane to Panvel).
+- **Pan-India National Rail Network**: Key trunk corridors connecting New Delhi, Mumbai, Howrah, Chennai Central, Bengaluru, Secunderabad, Ahmedabad, Pune, Nagpur, Kanpur, and Varanasi.
+- **Track Delay Intelligence**: Computes average delays across all trains traversing physical tracks and displays root-cause operational disruption reasons (fog, OHE faults, signal point locks, caution orders).
+- **2D Schematic & 3D Isometric Projection**: Switch seamlessly between crisp transit schematic and isometric 3D perspective with pitch/rotation controls.
+
+---
+
+## 7. Running Locally
 
 ```bash
 # Install dependencies
 npm install
 
-# Run automated verification suite
+# Run automated verification suite (107 tests)
 npm test
+
+# Typecheck and lint
+npm run lint
+
+# Production build
+npm run build
 
 # Launch development server
 npm run dev
 ```
 
 Open `http://localhost:3000` to interact with the platform.
+
