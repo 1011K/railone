@@ -163,6 +163,190 @@ export function generateMetroTrips(depTime: string): TrainTrip[] {
   return trips;
 }
 
+// Synthetic high-frequency Suburban Cadence trips generator ensuring all-day timetable availability
+export function generateSuburbanCadenceTrips(depTime: string): TrainTrip[] {
+  const trips: TrainTrip[] = [];
+  const offsets = [-15, -5, 8, 20, 32, 45, 60, 75, 95, 115];
+
+  offsets.forEach((offset, idx) => {
+    const tDep = addMinutesToTimeString(depTime, offset);
+
+    // 1. Central Fast Southbound (KYN -> CSMT)
+    const crFastStops = [
+      { stationCode: 'KYN', stationName: 'Kalyan', min: 0, pf: '4', km: 0 },
+      { stationCode: 'DI', stationName: 'Dombivli', min: 9, pf: '3', km: 5.3 },
+      { stationCode: 'TNA', stationName: 'Thane', min: 24, pf: '5', km: 19.9 },
+      { stationCode: 'GC', stationName: 'Ghatkopar', min: 38, pf: '4', km: 34.2 },
+      { stationCode: 'CLA', stationName: 'Kurla', min: 44, pf: '6', km: 38.2 },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', min: 53, pf: '4', km: 44.5 },
+      { stationCode: 'BY', stationName: 'Byculla', min: 61, pf: '4', km: 48.7 },
+      { stationCode: 'CSMT', stationName: 'CSMT', min: 70, pf: '5', km: 53.5 }
+    ];
+    const isAcCr = idx % 3 === 1;
+    trips.push({
+      trainNumber: isAcCr ? `CR-AC-${95300 + idx * 2}` : `CR-${95200 + idx * 2}`,
+      trainName: isAcCr ? 'Kalyan - CSMT AC Fast Local' : 'Kalyan - CSMT Fast Local',
+      hindiName: isAcCr ? 'कल्याण - सीएसएमटी एसी फास्ट लोकल' : 'कल्याण - सीएसएमटी फास्ट लोकल',
+      marathiName: isAcCr ? 'कल्याण - सीएसएमटी एसी जलद लोकल' : 'कल्याण - सीएसएमटी जलद लोकल',
+      originStation: 'KYN',
+      destinationStation: 'CSMT',
+      serviceType: isAcCr ? 'suburban_ac_fast' : 'suburban_fast',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      rakeType: '12_car',
+      availableClasses: isAcCr ? ['AC_LOCAL'] : ['II', 'I'],
+      stops: crFastStops.map(s => {
+        const h = addMinutesToTimeString(tDep, s.min);
+        return { stationCode: s.stationCode, stationName: s.stationName, scheduledArrival: h, scheduledDeparture: h, platform: s.pf, distanceKm: s.km, isHalt: true };
+      })
+    });
+
+    // 2. Central Fast Northbound (CSMT -> KYN)
+    const crFastNorthStops = [...crFastStops].reverse();
+    trips.push({
+      trainNumber: isAcCr ? `CR-AC-${95301 + idx * 2}` : `CR-${95201 + idx * 2}`,
+      trainName: isAcCr ? 'CSMT - Kalyan AC Fast Local' : 'CSMT - Kalyan Fast Local',
+      hindiName: isAcCr ? 'सीएसएमटी - कल्याण एसी फास्ट लोकल' : 'सीएसएमटी - कल्याण फास्ट लोकल',
+      marathiName: isAcCr ? 'सीएसएमटी - कल्याण एसी जलद लोकल' : 'सीएसएमटी - कल्याण जलद लोकल',
+      originStation: 'CSMT',
+      destinationStation: 'KYN',
+      serviceType: isAcCr ? 'suburban_ac_fast' : 'suburban_fast',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      rakeType: '12_car',
+      availableClasses: isAcCr ? ['AC_LOCAL'] : ['II', 'I'],
+      stops: crFastNorthStops.map((s, sIdx) => {
+        const h = addMinutesToTimeString(tDep, [0, 9, 17, 26, 32, 46, 61, 70][sIdx]);
+        return { stationCode: s.stationCode, stationName: s.stationName, scheduledArrival: h, scheduledDeparture: h, platform: s.pf === '4' ? '5' : '4', distanceKm: Number((53.5 - s.km).toFixed(1)), isHalt: true };
+      })
+    });
+
+    // 3. Central Slow Southbound (TNA -> CSMT)
+    const crSlowStops = [
+      { stationCode: 'TNA', stationName: 'Thane', min: 0, pf: '3', km: 0 },
+      { stationCode: 'MLND', stationName: 'Mulund', min: 4, pf: '1', km: 2.8 },
+      { stationCode: 'BND', stationName: 'Bhandup', min: 9, pf: '1', km: 7.1 },
+      { stationCode: 'VK', stationName: 'Vikhroli', min: 14, pf: '1', km: 10.6 },
+      { stationCode: 'GC', stationName: 'Ghatkopar', min: 20, pf: '1', km: 14.3 },
+      { stationCode: 'CLA', stationName: 'Kurla', min: 27, pf: '1', km: 18.3 },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', min: 38, pf: '2', km: 24.6 },
+      { stationCode: 'BY', stationName: 'Byculla', min: 46, pf: '2', km: 28.8 },
+      { stationCode: 'CSMT', stationName: 'CSMT', min: 54, pf: '2', km: 33.6 }
+    ];
+    trips.push({
+      trainNumber: `CR-SL-${97200 + idx * 2}`,
+      trainName: 'Thane - CSMT Slow Local',
+      hindiName: 'ठाणे - सीएसएमटी धीमी लोकल',
+      marathiName: 'ठाणे - सीएसएमटी धीम्या लोकल',
+      originStation: 'TNA',
+      destinationStation: 'CSMT',
+      serviceType: 'suburban_slow',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      rakeType: '12_car',
+      availableClasses: ['II', 'I'],
+      stops: crSlowStops.map(s => {
+        const h = addMinutesToTimeString(tDep, s.min);
+        return { stationCode: s.stationCode, stationName: s.stationName, scheduledArrival: h, scheduledDeparture: h, platform: s.pf, distanceKm: s.km, isHalt: true };
+      })
+    });
+
+    // 4. Western Fast Southbound (BVI -> CCG)
+    const wrFastStops = [
+      { stationCode: 'BVI', stationName: 'Borivali', min: 0, pf: '3', km: 0 },
+      { stationCode: 'ADH', stationName: 'Andheri', min: 15, pf: '4', km: 12.4 },
+      { stationCode: 'BA', stationName: 'Bandra', min: 23, pf: '5', km: 19.1 },
+      { stationCode: 'DDR', stationName: 'Dadar (Western)', min: 30, pf: '3', km: 24.0 },
+      { stationCode: 'MMCT', stationName: 'Mumbai Central', min: 37, pf: '3', km: 29.9 },
+      { stationCode: 'CCG', stationName: 'Churchgate', min: 45, pf: '3', km: 34.2 }
+    ];
+    const isAcWr = idx % 3 === 2;
+    trips.push({
+      trainNumber: isAcWr ? `WR-AC-${90400 + idx * 2}` : `WR-${90300 + idx * 2}`,
+      trainName: isAcWr ? 'Borivali - Churchgate AC Fast Local' : 'Borivali - Churchgate Fast Local',
+      hindiName: isAcWr ? 'बोरिवली - चर्चगेट एसी फास्ट लोकल' : 'बोरिवली - चर्चगेट फास्ट लोकल',
+      marathiName: isAcWr ? 'बोरिवली - चर्चगेट एसी जलद लोकल' : 'बोरिवली - चर्चगेट जलद लोकल',
+      originStation: 'BVI',
+      destinationStation: 'CCG',
+      serviceType: isAcWr ? 'suburban_ac_fast' : 'suburban_fast',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      rakeType: '15_car',
+      availableClasses: isAcWr ? ['AC_LOCAL'] : ['II', 'I'],
+      stops: wrFastStops.map(s => {
+        const h = addMinutesToTimeString(tDep, s.min);
+        return { stationCode: s.stationCode, stationName: s.stationName, scheduledArrival: h, scheduledDeparture: h, platform: s.pf, distanceKm: s.km, isHalt: true };
+      })
+    });
+
+    // 5. Western Fast Northbound (CCG -> BVI)
+    const wrFastNorthStops = [...wrFastStops].reverse();
+    trips.push({
+      trainNumber: isAcWr ? `WR-AC-${90401 + idx * 2}` : `WR-${90301 + idx * 2}`,
+      trainName: isAcWr ? 'Churchgate - Borivali AC Fast Local' : 'Churchgate - Borivali Fast Local',
+      hindiName: isAcWr ? 'चर्चगेट - बोरिवली एसी फास्ट लोकल' : 'चर्चगेट - बोरिवली फास्ट लोकल',
+      marathiName: isAcWr ? 'चर्चगेट - बोरिवली एसी जलद लोकल' : 'चर्चगेट - बोरिवली जलद लोकल',
+      originStation: 'CCG',
+      destinationStation: 'BVI',
+      serviceType: isAcWr ? 'suburban_ac_fast' : 'suburban_fast',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      rakeType: '15_car',
+      availableClasses: isAcWr ? ['AC_LOCAL'] : ['II', 'I'],
+      stops: wrFastNorthStops.map((s, sIdx) => {
+        const h = addMinutesToTimeString(tDep, [0, 8, 15, 22, 30, 45][sIdx]);
+        return { stationCode: s.stationCode, stationName: s.stationName, scheduledArrival: h, scheduledDeparture: h, platform: s.pf, distanceKm: Number((34.2 - s.km).toFixed(1)), isHalt: true };
+      })
+    });
+
+    // 6. Harbour Line Southbound (PNVL -> CSMT)
+    const hbStops = [
+      { stationCode: 'PNVL', stationName: 'Panvel', min: 0, pf: '2', km: 0 },
+      { stationCode: 'VSH', stationName: 'Vashi', min: 25, pf: '2', km: 28.5 },
+      { stationCode: 'CLA', stationName: 'Kurla (Harbour)', min: 42, pf: '7', km: 38.0 },
+      { stationCode: 'VDLR', stationName: 'Vadala Road', min: 54, pf: '2', km: 42.0 },
+      { stationCode: 'CSMT', stationName: 'CSMT (Harbour)', min: 72, pf: '1', km: 48.9 }
+    ];
+    trips.push({
+      trainNumber: `HB-${98200 + idx * 2}`,
+      trainName: 'Panvel - CSMT Harbour Local',
+      hindiName: 'पनवेल - सीएसएमटी हार्बर लोकल',
+      marathiName: 'पनवेल - सीएसएमटी हार्बर लोकल',
+      originStation: 'PNVL',
+      destinationStation: 'CSMT',
+      serviceType: 'suburban_slow',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      rakeType: '12_car',
+      availableClasses: ['II', 'I'],
+      stops: hbStops.map(s => {
+        const h = addMinutesToTimeString(tDep, s.min);
+        return { stationCode: s.stationCode, stationName: s.stationName, scheduledArrival: h, scheduledDeparture: h, platform: s.pf, distanceKm: s.km, isHalt: true };
+      })
+    });
+
+    // 7. Andheri - CSMT Harbour Local (Western-Harbour branch)
+    const adhCsmtStops = [
+      { stationCode: 'ADH', stationName: 'Andheri', min: 0, pf: '6', km: 0 },
+      { stationCode: 'BA', stationName: 'Bandra', min: 12, pf: '6', km: 6.7 },
+      { stationCode: 'VDLR', stationName: 'Vadala Road', min: 26, pf: '4', km: 13.9 },
+      { stationCode: 'CSMT', stationName: 'CSMT (Harbour)', min: 44, pf: '2', km: 20.8 }
+    ];
+    trips.push({
+      trainNumber: `HB-${98830 + idx * 2}`,
+      trainName: 'Andheri - CSMT Harbour Local',
+      hindiName: 'अंधेरी - सीएसएमटी हार्बर लोकल',
+      marathiName: 'अंधेरी - सीएसएमटी हार्बर लोकल',
+      originStation: 'ADH',
+      destinationStation: 'CSMT',
+      serviceType: 'suburban_slow',
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      rakeType: '12_car',
+      availableClasses: ['II', 'I'],
+      stops: adhCsmtStops.map(s => {
+        const h = addMinutesToTimeString(tDep, s.min);
+        return { stationCode: s.stationCode, stationName: s.stationName, scheduledArrival: h, scheduledDeparture: h, platform: s.pf, distanceKm: s.km, isHalt: true };
+      })
+    });
+  });
+
+  return trips;
+}
+
 export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   const {
     originCode: rawOriginCode,
@@ -217,7 +401,8 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
   // Combined train catalog including suburban services, active metro services, and Pan-India national trains
   const metroTrips = generateMetroTrips(departureTime);
-  const allAvailableTrains = [...TRAIN_TRIPS, ...metroTrips, ...PAN_INDIA_TRAINS];
+  const suburbanTrips = generateSuburbanCadenceTrips(departureTime);
+  const allAvailableTrains = [...TRAIN_TRIPS, ...suburbanTrips, ...metroTrips, ...PAN_INDIA_TRAINS];
 
   let candidateItineraries: JourneyItinerary[] = [];
 
@@ -325,10 +510,12 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         if (diffFromQuery < -10 || diffFromQuery > 180) continue;
       }
 
-      // Legal eligibility check
-      const userClassForEligibility = preferences.classPreference === 'ac_mandatory' || preferences.classPreference === 'ac_preferred'
-        ? 'AC_LOCAL'
-        : preferences.classPreference === 'first' ? 'I' : 'II';
+      // Legal eligibility check: when 'any' class is selected, evaluate based on the train's offered class (AC for AC trains, II for ordinary)
+      const userClassForEligibility = preferences.classPreference === 'ac_mandatory' ? 'AC_LOCAL'
+        : preferences.classPreference === 'ac_preferred' ? (train.serviceType.includes('ac') ? 'AC_LOCAL' : 'II')
+        : preferences.classPreference === 'first' ? 'I'
+        : preferences.classPreference === 'second' ? 'II'
+        : (train.serviceType.includes('ac') ? 'AC_LOCAL' : 'II');
 
       const isMetro = train.trainNumber.startsWith('M1') || train.trainNumber.startsWith('M2') || train.trainNumber.startsWith('M7');
 
@@ -450,6 +637,10 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
       const fIdx = t.stops.findIndex(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode);
       const tIdx = t.stops.findIndex(s => destCodes.includes(s.stationCode));
       return fIdx !== -1 && tIdx !== -1 && fIdx < tIdx;
+    }).sort((a, b) => {
+      const sA = a.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode);
+      const sB = b.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode);
+      return (sA?.scheduledDeparture || '').localeCompare(sB?.scheduledDeparture || '');
     });
 
     for (const train1 of firstLegTrains) {
@@ -469,7 +660,9 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         if (diffFromQuery < -10 || diffFromQuery > 180) continue;
       }
 
+      let connectedSecondLegsCount = 0;
       for (const train2 of secondLegTrains) {
+        if (connectedSecondLegsCount >= 3) break;
         const leg2FromStation = resolveStation(train2.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode)!.stationCode)!;
         const leg2ToStopCode = train2.stops.find(s => destCodes.includes(s.stationCode))!.stationCode;
         const leg2ToStation = resolveStation(leg2ToStopCode) || destStation;
@@ -499,16 +692,24 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         if (transferBufferMinutes > 50) continue;
 
         // Verify eligibility for BOTH legs
-        const userClassForEligibility = preferences.classPreference === 'ac_mandatory' || preferences.classPreference === 'ac_preferred'
-          ? 'AC_LOCAL'
-          : preferences.classPreference === 'first' ? 'I' : 'II';
+        const userClassForEligibility1 = preferences.classPreference === 'ac_mandatory' ? 'AC_LOCAL'
+          : preferences.classPreference === 'ac_preferred' ? (train1.serviceType.includes('ac') ? 'AC_LOCAL' : 'II')
+          : preferences.classPreference === 'first' ? 'I'
+          : preferences.classPreference === 'second' ? 'II'
+          : (train1.serviceType.includes('ac') ? 'AC_LOCAL' : 'II');
+
+        const userClassForEligibility2 = preferences.classPreference === 'ac_mandatory' ? 'AC_LOCAL'
+          : preferences.classPreference === 'ac_preferred' ? (train2.serviceType.includes('ac') ? 'AC_LOCAL' : 'II')
+          : preferences.classPreference === 'first' ? 'I'
+          : preferences.classPreference === 'second' ? 'II'
+          : (train2.serviceType.includes('ac') ? 'AC_LOCAL' : 'II');
 
         const eligibility1 = evaluateJourneyEligibility({
           train: train1,
           fromStationCode: originCode,
           toStationCode: leg1ToStation.code,
           userTicketType: preferences.hasSeasonPass ? 'suburban_season_pass' : 'suburban_single',
-          userClass: userClassForEligibility,
+          userClass: userClassForEligibility1,
           hasMST: preferences.hasSeasonPass
         });
 
@@ -517,7 +718,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
           fromStationCode: leg2FromStation.code,
           toStationCode: destCode,
           userTicketType: preferences.hasSeasonPass ? 'suburban_season_pass' : 'suburban_single',
-          userClass: userClassForEligibility,
+          userClass: userClassForEligibility2,
           hasMST: preferences.hasSeasonPass
         });
 
@@ -620,6 +821,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
           leaveHomeMarginMinutes: walkMargin,
           isAcService: isAc
         });
+        connectedSecondLegsCount++;
       }
     }
   }

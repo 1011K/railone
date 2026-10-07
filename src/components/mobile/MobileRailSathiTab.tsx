@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RailBackendTools } from '../../engine/voiceTools';
+import { STATIONS } from '../../fixtures/railwayData';
 import { SpecimenTicket, JourneyItinerary, TravelClass } from '../../types/railway';
 import { 
   Mic, 
@@ -92,7 +93,54 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
     setTimeout(() => setCallState('IDLE'), 2000);
   };
 
-  // Process User Turn (Voice or Chat)
+  // Helper: Extract origin and destination stations flexibly from query text
+  const extractStationPair = (text: string): { from: string; to: string } => {
+    const q = text.toLowerCase();
+
+    // 1. Regex patterns: "from X to Y", "X to Y", "X se Y", "X te Y", "X -> Y"
+    const regex = /(?:from\s+)?([a-z\u0900-\u097f\s\.\(\)]+?)\s+(?:to|se|te|->|tak|and)\s+([a-z\u0900-\u097f\s\.\(\)]+)/i;
+    const match = q.match(regex);
+    if (match) {
+      const s1 = RailBackendTools.normalizeStation(match[1].trim());
+      const s2 = RailBackendTools.normalizeStation(match[2].trim());
+      if (s1.matchedStation && s2.matchedStation) {
+        return { from: s1.matchedStation.code, to: s2.matchedStation.code };
+      }
+    }
+
+    // 2. Scan all known stations in STATIONS to find station mentions
+    const stationEntries = Object.values(STATIONS);
+    const found: Array<{ code: string; index: number }> = [];
+
+    for (const st of stationEntries) {
+      const nameLower = st.name.toLowerCase();
+      const codeLower = st.code.toLowerCase();
+      const idxName = q.indexOf(nameLower);
+      const idxCode = q.indexOf(codeLower);
+      let bestIdx = -1;
+      if (idxName !== -1 && idxCode !== -1) bestIdx = Math.min(idxName, idxCode);
+      else if (idxName !== -1) bestIdx = idxName;
+      else if (idxCode !== -1) bestIdx = idxCode;
+
+      if (bestIdx !== -1) {
+        if (!found.some(f => f.code === st.code)) {
+          found.push({ code: st.code, index: bestIdx });
+        }
+      }
+    }
+
+    if (found.length >= 2) {
+      found.sort((a, b) => a.index - b.index);
+      return { from: found[0].code, to: found[1].code };
+    } else if (found.length === 1) {
+      return { from: found[0].code, to: 'CSMT' };
+    }
+
+    // Default fallback
+    return { from: 'TNA', to: 'CSMT' };
+  };
+
+  // Process User Turn (Voice or Chat) - Wires all 15 deterministic tools
   const processPassengerQuery = async (queryText: string) => {
     const q = queryText.toLowerCase().trim();
     if (!q) return;
@@ -111,94 +159,196 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
     setCallState('THINKING');
 
     setTimeout(() => {
-      // 1. Check for Confirmation
-      if (activeDraftId && (q.includes('yes') || q.includes('confirm') || q.includes('book') || q.includes('हाँ') || q.includes('हो'))) {
-        const bookRes = RailBackendTools.confirmBooking(activeDraftId);
-        setActiveDraftId(null);
-        setIsProcessing(false);
-        setCallState('SPEAKING');
-
-        const botReply = bookRes.status === 'success' && bookRes.ticket
-          ? `Booking confirmed! Specimen Ticket ID ${bookRes.ticket.id} has been issued and saved to your wallet. Fare: ₹${bookRes.ticket.farePaid}.`
-          : `Failed to confirm booking: ${bookRes.error || 'Unknown error'}`;
-
-        setCallTranscript(botReply);
-        setChatMessages(prev => [
-          ...prev,
-          {
-            id: 'msg-' + Date.now(),
-            sender: 'assistant',
-            text: botReply,
-            timestamp: now,
-            toolCalls: [{ name: 'confirmBooking', output: bookRes }],
-            ticketIssued: bookRes.ticket
-          }
-        ]);
-        return;
-      }
-
-      // 2. Journey search and booking request (e.g. "Dadar to Thane", "Andheri to CSMT")
-      let fromStation = 'TNA';
-      let toStation = 'CSMT';
-      let classPref: TravelClass = 'II';
-
-      if (q.includes('dadar') && q.includes('thane')) {
-        fromStation = 'DR';
-        toStation = 'TNA';
-      } else if (q.includes('thane') && q.includes('churchgate')) {
-        fromStation = 'TNA';
-        toStation = 'CCG';
-      } else if (q.includes('andheri') && q.includes('csmt')) {
-        fromStation = 'ADH';
-        toStation = 'CSMT';
-      } else if (q.includes('andheri') && q.includes('dadar')) {
-        fromStation = 'ADH';
-        toStation = 'DR';
-      } else if (q.includes('kalyan') && q.includes('csmt')) {
-        fromStation = 'KYN';
-        toStation = 'CSMT';
-      }
-
-      if (q.includes('ac')) classPref = 'AC_LOCAL';
-      else if (q.includes('first') || q.includes('1st')) classPref = 'I';
-
-      // Execute searchTrains tool
-      const searchRes = RailBackendTools.searchTrains(fromStation, toStation, '10:35', classPref === 'AC_LOCAL' ? 'ac_mandatory' : 'any');
-      
-      // Execute quoteFare tool
-      const fareRes = RailBackendTools.quoteFare(fromStation, toStation, classPref);
-
       let replyText = '';
       let isConfirm = false;
       let draftIdCreated: string | undefined;
+      const toolCalls: Array<{ name: string; output: any }> = [];
+      let ticketIssued: SpecimenTicket | undefined;
 
-      if (searchRes.status === 'success' && searchRes.itineraries.length > 0) {
-        const top = searchRes.itineraries[0];
-        const fareAmt = fareRes.status === 'success' ? fareRes.fareAmount : (top.fare[classPref] || 10);
+      // 1. Tool: confirmBooking
+      if (activeDraftId && (q.includes('yes') || q.includes('confirm') || q.includes('book') || q.includes('हाँ') || q.includes('हो') || q.includes('proceed') || q.includes('kar do'))) {
+        const bookRes = RailBackendTools.confirmBooking(activeDraftId);
+        setActiveDraftId(null);
+        toolCalls.push({ name: 'confirmBooking', output: bookRes });
 
-        if (q.includes('book') || q.includes('buy') || q.includes('टिकट')) {
-          // Create draft order and demand confirmation
-          const draftRes = RailBackendTools.createBookingDraft({
-            trainNumber: top.legs[0]?.trainNumber || '95112',
-            fromCode: fromStation,
-            toCode: toStation,
-            classCode: classPref,
-            passengers: [{ name: 'Primary Commuter', age: 28, gender: 'M' }]
-          });
+        if (bookRes.status === 'success' && bookRes.ticket) {
+          replyText = `Booking confirmed! Specimen Ticket ID ${bookRes.ticket.id} has been issued and saved to your wallet. Fare: ₹${bookRes.ticket.farePaid}.`;
+          ticketIssued = bookRes.ticket;
+        } else {
+          replyText = `Failed to confirm booking: ${bookRes.error || 'Unknown error'}`;
+        }
+      }
+      // 2. Tool: cancelTicket
+      else if (q.includes('cancel') && (q.includes('ticket') || /\b(tkt|dft)[\w-]+\b/i.test(q))) {
+        const ticketIdMatch = q.match(/\b(tkt-[\w-]+)\b/i);
+        const ticketId = ticketIdMatch ? ticketIdMatch[1].toUpperCase() : (RailBackendTools.listTickets().tickets[0]?.id || 'TKT-DEMO-001');
+        const cancelRes = RailBackendTools.cancelTicket(ticketId);
+        toolCalls.push({ name: 'cancelTicket', output: cancelRes });
 
-          if (draftRes.status === 'success' && draftRes.draft) {
-            draftIdCreated = draftRes.draft.draftId;
-            setActiveDraftId(draftRes.draft.draftId);
-            isConfirm = true;
-            replyText = `Found ${top.legs[0]?.trainName || 'Local'} departing ${top.departure} (arrival ${top.arrival}). ${classPref === 'AC_LOCAL' ? 'AC Local' : classPref} fare is ₹${fareAmt}. Would you like me to confirm and book this ticket for you?`;
+        if (cancelRes.status === 'success') {
+          replyText = `Ticket ${ticketId} cancelled. Gross Fare: ₹${cancelRes.refundBreakdown?.totalPaid || 0}, Cancellation Fee: ₹${cancelRes.refundBreakdown?.clericalDeduction || 0}, Net Refund Credited: ₹${cancelRes.refundBreakdown?.walletRefund || cancelRes.refundBreakdown?.cashRefund || cancelRes.refundAmount || 0}.`;
+        } else {
+          replyText = `Could not cancel ticket ${ticketId}: ${cancelRes.message || 'Ticket not found or already cancelled'}.`;
+        }
+      }
+      // 3. Tool: getRefundStatus
+      else if (q.includes('refund')) {
+        const ticketIdMatch = q.match(/\b(tkt-[\w-]+)\b/i);
+        const ticketId = ticketIdMatch ? ticketIdMatch[1].toUpperCase() : (RailBackendTools.listTickets().tickets[0]?.id || 'TKT-DEMO-001');
+        const refundRes = RailBackendTools.getRefundStatus(ticketId);
+        toolCalls.push({ name: 'getRefundStatus', output: refundRes });
+
+        if (refundRes.status === 'success') {
+          replyText = `Refund status for ${ticketId}: Booking state is ${refundRes.bookingStatus}. ${refundRes.refundDetails ? `Net refund of ₹${refundRes.refundDetails.walletRefund || refundRes.refundDetails.cashRefund} processed.` : `Fare was ₹${refundRes.fare}.`}`;
+        } else {
+          replyText = `Could not retrieve refund status: ${refundRes.message || 'Ticket not found'}.`;
+        }
+      }
+      // 4. Tool: listTickets
+      else if (q.includes('my ticket') || q.includes('my bookings') || q.includes('show ticket') || q.includes('list ticket') || q.includes('wallet') || q.includes('tickets')) {
+        const listRes = RailBackendTools.listTickets();
+        toolCalls.push({ name: 'listTickets', output: listRes });
+
+        if (listRes.count === 0) {
+          replyText = `You have no active or saved tickets in your wallet.`;
+        } else {
+          replyText = `You have ${listRes.count} saved ticket(s): ` + listRes.tickets.slice(0, 3).map(t => `${t.id}: ${t.fromStation.name} ➔ ${t.toStation.name} (₹${t.farePaid}, ${t.classBooked})`).join('; ');
+        }
+      }
+      // 5. Tool: getCoachGuidance (Wagenstandsanzeiger)
+      else if (q.includes('coach') || q.includes('rake') || q.includes('ladies') || q.includes('divyangjan') || q.includes('handicap') || q.includes('compartment') || q.includes('platform position')) {
+        const trainMatch = q.match(/\b\d{5}\b/);
+        const trainNum = trainMatch ? trainMatch[0] : '95112';
+        const stnMatch = q.includes('dadar') ? 'DR' : q.includes('thane') ? 'TNA' : q.includes('andheri') ? 'ADH' : 'DR';
+        const coachRes = RailBackendTools.getCoachGuidance(trainNum, stnMatch, '3');
+        toolCalls.push({ name: 'getCoachGuidance', output: coachRes });
+
+        replyText = `Coach Guidance for ${coachRes.trainName} (${coachRes.rakeType}) at ${coachRes.stationCode} Platform ${coachRes.platform}: Ladies coaches at positions ${coachRes.ladiesCoaches.map(c => c.coachIndex).join(', ')}. Wheelchair accessible Divyangjan coach at position ${coachRes.handicapCoach.coachIndex}. Nearest bridge: ${coachRes.fobStairAlignment.nearestBridge} (Coach ${coachRes.fobStairAlignment.nearestCoachIndex}).`;
+      }
+      // 6. Tool: getDisruptionAlternatives
+      else if (q.includes('disrupt') || q.includes('alternative') || (q.includes('delay') && (q.includes('alternative') || q.includes('option') || q.includes('what should')))) {
+        const trainMatch = q.match(/\b\d{5}\b/);
+        const trainNum = trainMatch ? trainMatch[0] : '95112';
+        const disruptRes = RailBackendTools.getDisruptionAlternatives(trainNum, 'CLA');
+        toolCalls.push({ name: 'getDisruptionAlternatives', output: disruptRes });
+
+        replyText = `Disruption Status for ${disruptRes.trainNumber}: ${disruptRes.recommendedAction} (Delay: +${disruptRes.delayMinutes} min, ${disruptRes.disruptionReason}). Found ${disruptRes.alternativesCount} downstream alternatives.`;
+      }
+      // 7. Tool: getLiveStatus / getTrainStatus
+      else if (/\b\d{5}\b/.test(q) || ((q.includes('status') || q.includes('where is') || q.includes('track') || q.includes('delay') || q.includes('running')) && q.includes('train'))) {
+        const trainMatch = q.match(/\b\d{5}\b/);
+        const trainNum = trainMatch ? trainMatch[0] : '95112';
+        const statusRes = RailBackendTools.getLiveStatus(trainNum);
+        toolCalls.push({ name: 'getLiveStatus', output: statusRes });
+
+        if (statusRes.status === 'success') {
+          replyText = `Train ${statusRes.trainNumber} (${statusRes.trainName}) is currently at ${statusRes.currentStation}. Delay: +${statusRes.currentDelayMinutes} min. Status: ${statusRes.disruptionReason}. Provenance: [${statusRes.dataProvenance.status}] ${statusRes.dataProvenance.source}.`;
+        } else {
+          replyText = `Could not track train ${trainNum}: ${statusRes.message}`;
+        }
+      }
+      // 8. Tool: findNearbyStations
+      else if (q.includes('nearby') || q.includes('stations in') || q.includes('stations near')) {
+        let city = 'Mumbai';
+        if (q.includes('pune')) city = 'Pune';
+        else if (q.includes('delhi')) city = 'Delhi NCR';
+        else if (q.includes('bangalore') || q.includes('bengaluru')) city = 'Bengaluru';
+        else if (q.includes('kolkata')) city = 'Kolkata';
+        else if (q.includes('chennai')) city = 'Chennai';
+        else if (q.includes('hyderabad')) city = 'Hyderabad';
+        else if (q.includes('kochi')) city = 'Kochi';
+
+        const nearbyRes = RailBackendTools.findNearbyStations(undefined, undefined, city);
+        toolCalls.push({ name: 'findNearbyStations', output: nearbyRes });
+
+        replyText = `Key stations in ${nearbyRes.city}: ` + nearbyRes.stations.map(s => `${s.name} (${s.code})`).join(', ');
+      }
+      // 9. Tool: normalizeStation
+      else if ((q.includes('station code') || q.includes('valid station') || q.includes('station info') || q.includes('code for')) && !q.includes(' to ')) {
+        const cleanQuery = q.replace(/(what is the|station code|for|is|valid station|station info|find station)/gi, '').trim();
+        const normRes = RailBackendTools.normalizeStation(cleanQuery || 'Dadar');
+        toolCalls.push({ name: 'normalizeStation', output: normRes });
+
+        if (normRes.matchedStation) {
+          replyText = `Station ${normRes.matchedStation.name} (${normRes.matchedStation.code}) is on the ${normRes.matchedStation.line} line.`;
+        } else {
+          replyText = `Station not recognized: ${normRes.explanation}. Candidates: ${normRes.candidates.map(c => c.name).join(', ')}`;
+        }
+      }
+      // 10. Tool: validateEligibility
+      else if (q.includes('eligible') || q.includes('eligibility') || q.includes('allowed') || q.includes('pass valid')) {
+        const trainMatch = q.match(/\b\d{5}\b/);
+        const trainNum = trainMatch ? trainMatch[0] : '95112';
+        const pair = extractStationPair(q);
+        const isSeason = q.includes('season') || q.includes('pass');
+        const userClass = q.includes('ac') ? 'AC_LOCAL' : q.includes('first') ? 'I' : 'II';
+        const eligRes = RailBackendTools.validateEligibility(trainNum, pair.from, pair.to, isSeason ? 'suburban_season_pass' : 'suburban_single', userClass);
+        toolCalls.push({ name: 'validateEligibility', output: eligRes });
+
+        replyText = `Boarding Eligibility for ${pair.from} ➔ ${pair.to} (${userClass}): [${eligRes.eligibility}]. ${eligRes.summary} ${eligRes.ticketRequiredNote || ''}`;
+      }
+      // 11. Tool: compareItineraries
+      else if (q.includes('compare')) {
+        const pair = extractStationPair(q);
+        const compRes = RailBackendTools.compareItineraries(pair.from, pair.to);
+        toolCalls.push({ name: 'compareItineraries', output: compRes });
+
+        if (compRes.status === 'success' && compRes.options.length > 0) {
+          replyText = `Comparing routes between ${pair.from} and ${pair.to}: Found ${compRes.options.length} options. Fastest departs ${compRes.options[0]?.departure} (duration ${compRes.options[0]?.durationMinutes}m).`;
+        } else {
+          replyText = `No comparable routes found between ${pair.from} and ${pair.to}.`;
+        }
+      }
+      // 12. Tool: quoteFare
+      else if ((q.includes('fare') || q.includes('how much') || q.includes('ticket price') || q.includes('cost')) && !q.includes('book')) {
+        const pair = extractStationPair(q);
+        const userClass: TravelClass = q.includes('ac') ? 'AC_LOCAL' : q.includes('first') || q.includes('1st') ? 'I' : 'II';
+        const fareRes = RailBackendTools.quoteFare(pair.from, pair.to, userClass);
+        toolCalls.push({ name: 'quoteFare', output: fareRes });
+
+        if (fareRes.status === 'success') {
+          replyText = `Suburban Fare from ${fareRes.from} to ${fareRes.to} (${fareRes.distanceKm} km, Class: ${fareRes.class}) is ₹${fareRes.fareAmount}. [${fareRes.disclaimer}]`;
+        } else {
+          replyText = `Could not calculate fare: ${fareRes.message}`;
+        }
+      }
+      // 13. Tools: searchTrains, planJourneys, createBookingDraft (Default Journey / Booking Query)
+      else {
+        const pair = extractStationPair(q);
+        const classPref: TravelClass = q.includes('ac') ? 'AC_LOCAL' : q.includes('first') || q.includes('1st') ? 'I' : 'II';
+        const searchRes = RailBackendTools.searchTrains(pair.from, pair.to, '10:35', classPref === 'AC_LOCAL' ? 'ac_mandatory' : 'any');
+        const fareRes = RailBackendTools.quoteFare(pair.from, pair.to, classPref);
+        toolCalls.push({ name: 'searchTrains', output: searchRes });
+        toolCalls.push({ name: 'quoteFare', output: fareRes });
+
+        if (searchRes.status === 'success' && searchRes.itineraries.length > 0) {
+          const top = searchRes.itineraries[0];
+          const fareAmt = fareRes.status === 'success' ? fareRes.fareAmount : (top.fare[classPref] || 10);
+
+          if (q.includes('book') || q.includes('buy') || q.includes('टिकट')) {
+            const draftRes = RailBackendTools.createBookingDraft({
+              trainNumber: top.legs[0]?.trainNumber || '95112',
+              fromCode: pair.from,
+              toCode: pair.to,
+              classCode: classPref,
+              passengers: [{ name: 'Primary Commuter', age: 28, gender: 'M' }]
+            });
+            toolCalls.push({ name: 'createBookingDraft', output: draftRes });
+
+            if (draftRes.status === 'success' && draftRes.draft) {
+              draftIdCreated = draftRes.draft.draftId;
+              setActiveDraftId(draftRes.draft.draftId);
+              isConfirm = true;
+              replyText = `Found ${top.legs[0]?.trainName || 'Local'} departing ${top.departure} (arrival ${top.arrival}). ${classPref === 'AC_LOCAL' ? 'AC Local' : classPref} fare is ₹${fareAmt}. Would you like me to confirm and book this ticket for you?`;
+            } else {
+              replyText = `Found train departing ${top.departure}, fare is ₹${fareAmt}.`;
+            }
           } else {
-            replyText = `Found train departing ${top.departure}, fare is ₹${fareAmt}.`;
+            replyText = `Next service from ${searchRes.origin} to ${searchRes.destination} departs at ${top.departure} (arrives ${top.arrival}). Travel time: ${top.durationMinutes}m. ${classPref} fare is ₹${fareAmt}.`;
           }
         } else {
-          replyText = `Next service from ${searchRes.origin} to ${searchRes.destination} departs at ${top.departure} (arrives ${top.arrival}). Travel time: ${top.durationMinutes}m. ${classPref} fare is ₹${fareAmt}.`;
+          replyText = `No direct services found between ${pair.from} and ${pair.to} at this time. Would you like me to check transfer options via Dadar?`;
         }
-      } else {
-        replyText = `No direct services found between ${fromStation} and ${toStation} at this time. Would you like me to check transfer options via Dadar?`;
       }
 
       setIsProcessing(false);
@@ -212,15 +362,13 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
           sender: 'assistant',
           text: replyText,
           timestamp: now,
-          toolCalls: [
-            { name: 'searchTrains', output: searchRes },
-            { name: 'quoteFare', output: fareRes }
-          ],
+          toolCalls,
           isConfirmationPrompt: isConfirm,
-          draftId: draftIdCreated
+          draftId: draftIdCreated,
+          ticketIssued
         }
       ]);
-    }, 900);
+    }, 700);
   };
 
   return (

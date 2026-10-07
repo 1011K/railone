@@ -153,15 +153,6 @@ export const MobileDeviceSimulator: React.FC = () => {
           presetDest={presetDest}
         />
 
-        {/* Small floating examiner pill for mobile examiners */}
-        <button
-          onClick={() => setIsInspectorOpen(true)}
-          className="fixed top-2 right-2 z-50 p-1.5 rounded-full bg-slate-900/90 text-white/80 border border-white/20 shadow-lg text-[10px] font-bold"
-          title="Reviewer Inspector"
-        >
-          CRIS
-        </button>
-
         {/* External Reviewer Modals accessible if requested */}
         <InstitutionalDossierModal
           isOpen={isDossierOpen}

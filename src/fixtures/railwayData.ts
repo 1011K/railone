@@ -535,6 +535,236 @@ export const STATIONS: Record<string, Station> = {
     platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     isInterchange: true,
     aliases: ['secunderabad', 'hyderabad', 'sc', 'सिकंदराबाद']
+  },
+
+  // --- Pune Suburban Hubs ---
+  SVJR: {
+    id: 'SVJR',
+    code: 'SVJR',
+    name: 'Shivajinagar',
+    hindiName: 'शिवाजीनगर',
+    marathiName: 'शिवाजीनगर',
+    line: 'national',
+    city: 'Pune',
+    platforms: [1, 2],
+    isInterchange: true,
+    aliases: ['shivajinagar', 'svjr', 'शिवाजीनगर']
+  },
+  CCH: {
+    id: 'CCH',
+    code: 'CCH',
+    name: 'Chinchwad',
+    hindiName: 'चिंचवड',
+    marathiName: 'चिंचवड',
+    line: 'national',
+    city: 'Pune',
+    platforms: [1, 2, 3, 4],
+    isInterchange: false,
+    aliases: ['chinchwad', 'cch', 'चिंचवड']
+  },
+  LNL: {
+    id: 'LNL',
+    code: 'LNL',
+    name: 'Lonavala',
+    hindiName: 'लोणावळा',
+    marathiName: 'लोणावळा',
+    line: 'national',
+    city: 'Pune',
+    platforms: [1, 2, 3],
+    isInterchange: true,
+    aliases: ['lonavala', 'lnl', 'लोणावळा']
+  },
+
+  // --- Delhi NCR Suburban Hubs ---
+  GZB: {
+    id: 'GZB',
+    code: 'GZB',
+    name: 'Ghaziabad Junction',
+    hindiName: 'गाजियाबाद जंक्शन',
+    marathiName: 'गाझियाबाद जंक्शन',
+    line: 'national',
+    city: 'Delhi NCR',
+    platforms: [1, 2, 3, 4, 5, 6],
+    isInterchange: true,
+    aliases: ['ghaziabad', 'gzb', 'गाजियाबाद']
+  },
+  FDB: {
+    id: 'FDB',
+    code: 'FDB',
+    name: 'Faridabad',
+    hindiName: 'फरीदाबाद',
+    marathiName: 'फरीदाबाद',
+    line: 'national',
+    city: 'Delhi NCR',
+    platforms: [1, 2, 3, 4],
+    isInterchange: false,
+    aliases: ['faridabad', 'fdb', 'फरीदाबाद']
+  },
+
+  // --- Bengaluru Commuter Hubs ---
+  YPR: {
+    id: 'YPR',
+    code: 'YPR',
+    name: 'Yesvantpur Junction',
+    hindiName: 'यशवंतपुर जंक्शन',
+    marathiName: 'यशवंतपूर जंक्शन',
+    line: 'national',
+    city: 'Bengaluru',
+    platforms: [1, 2, 3, 4, 5, 6],
+    isInterchange: true,
+    aliases: ['yesvantpur', 'ypr', 'यशवंतपुर']
+  },
+  WFD: {
+    id: 'WFD',
+    code: 'WFD',
+    name: 'Whitefield',
+    hindiName: 'व्हाइटफील्ड',
+    marathiName: 'व्हाईटफील्ड',
+    line: 'national',
+    city: 'Bengaluru',
+    platforms: [1, 2, 3, 4],
+    isInterchange: false,
+    aliases: ['whitefield', 'wfd', 'व्हाइटफील्ड']
+  },
+
+  // --- Kolkata Suburban Hubs ---
+  SDAH: {
+    id: 'SDAH',
+    code: 'SDAH',
+    name: 'Sealdah',
+    hindiName: 'सियालदह',
+    marathiName: 'सियालदह',
+    line: 'national',
+    city: 'Kolkata',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+    isInterchange: true,
+    aliases: ['sealdah', 'sdah', 'सियालदह']
+  },
+  BNGA: {
+    id: 'BNGA',
+    code: 'BNGA',
+    name: 'Bangaon Junction',
+    hindiName: 'बनगांव जंक्शन',
+    marathiName: 'बनगाव जंक्शन',
+    line: 'national',
+    city: 'Kolkata',
+    platforms: [1, 2, 3],
+    isInterchange: false,
+    aliases: ['bangaon', 'bnga', 'बनगांव']
+  },
+  KOAA: {
+    id: 'KOAA',
+    code: 'KOAA',
+    name: 'Kolkata Chitpur',
+    hindiName: 'कोलकाता चितपुर',
+    marathiName: 'कोलकाता चितपूर',
+    line: 'national',
+    city: 'Kolkata',
+    platforms: [1, 2, 3, 4, 5],
+    isInterchange: false,
+    aliases: ['kolkata', 'koaa', 'chitpur']
+  },
+
+  // --- Chennai Suburban Hubs ---
+  MS: {
+    id: 'MS',
+    code: 'MS',
+    name: 'Chennai Egmore',
+    hindiName: 'चेन्नई एग्मोर',
+    marathiName: 'चेन्नई एग्मोर',
+    line: 'national',
+    city: 'Chennai',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    isInterchange: true,
+    aliases: ['chennai egmore', 'ms', 'एग्मोर']
+  },
+  MSB: {
+    id: 'MSB',
+    code: 'MSB',
+    name: 'Chennai Beach',
+    hindiName: 'चेन्नई बीच',
+    marathiName: 'चेन्नई बीच',
+    line: 'national',
+    city: 'Chennai',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8],
+    isInterchange: true,
+    aliases: ['chennai beach', 'msb', 'बीच']
+  },
+  TBM: {
+    id: 'TBM',
+    code: 'TBM',
+    name: 'Tambaram',
+    hindiName: 'तांबरम',
+    marathiName: 'तांबरम',
+    line: 'national',
+    city: 'Chennai',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8],
+    isInterchange: true,
+    aliases: ['tambaram', 'tbm', 'तांबरम']
+  },
+
+  // --- Hyderabad MMTS Hubs ---
+  HYB: {
+    id: 'HYB',
+    code: 'HYB',
+    name: 'Hyderabad Deccan (Nampally)',
+    hindiName: 'हैदराबाद डेक्कन',
+    marathiName: 'हैदराबाद डेक्कन',
+    line: 'national',
+    city: 'Hyderabad',
+    platforms: [1, 2, 3, 4, 5, 6],
+    isInterchange: true,
+    aliases: ['hyderabad', 'nampally', 'hyb', 'हैदराबाद']
+  },
+  LPI: {
+    id: 'LPI',
+    code: 'LPI',
+    name: 'Lingampalli',
+    hindiName: 'लिंगमपल्ली',
+    marathiName: 'लिंगमपल्ली',
+    line: 'national',
+    city: 'Hyderabad',
+    platforms: [1, 2, 3, 4, 5, 6],
+    isInterchange: true,
+    aliases: ['lingampalli', 'lpi', 'लिंगमपल्ली']
+  },
+
+  // --- Kochi Commuter Hubs ---
+  ERS: {
+    id: 'ERS',
+    code: 'ERS',
+    name: 'Ernakulam Junction (South)',
+    hindiName: 'एर्नाकुलम जंक्शन',
+    marathiName: 'एर्नाकुलम जंक्शन',
+    line: 'national',
+    city: 'Kochi',
+    platforms: [1, 2, 3, 4, 5, 6],
+    isInterchange: true,
+    aliases: ['ernakulam south', 'ers', 'ernakulam', 'एर्नाकुलम']
+  },
+  ERN: {
+    id: 'ERN',
+    code: 'ERN',
+    name: 'Ernakulam Town (North)',
+    hindiName: 'एर्नाकुलम टाउन',
+    marathiName: 'एर्नाकुलम टाउन',
+    line: 'national',
+    city: 'Kochi',
+    platforms: [1, 2],
+    isInterchange: false,
+    aliases: ['ernakulam north', 'ern', 'टाउन']
+  },
+  AWY: {
+    id: 'AWY',
+    code: 'AWY',
+    name: 'Aluva',
+    hindiName: 'अलुवा',
+    marathiName: 'अलुवा',
+    line: 'national',
+    city: 'Kochi',
+    platforms: [1, 2, 3],
+    isInterchange: true,
+    aliases: ['aluva', 'awy', 'अलुवा']
   }
 };
 
@@ -1300,6 +1530,248 @@ export const TRAIN_TRIPS: TrainTrip[] = [
       { stationCode: 'PNVL', stationName: 'Panvel', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '4', distanceKm: 0, isHalt: true },
       { stationCode: 'VSH', stationName: 'Vashi', scheduledArrival: '11:00', scheduledDeparture: '11:01', platform: '4', distanceKm: 28.5, isHalt: true },
       { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:22', scheduledDeparture: '11:22', platform: '10', distanceKm: 47.0, isHalt: true }
+    ]
+  },
+
+  // 31. Harbour Line Western Branch: 98812 Andheri - CSMT Harbour Local
+  {
+    trainNumber: '98812',
+    trainName: 'Andheri - CSMT Harbour Local',
+    hindiName: 'अंधेरी - सीएसएमटी हार्बर लोकल',
+    marathiName: 'अंधेरी - सीएसएमटी हार्बर लोकल',
+    originStation: 'ADH',
+    destinationStation: 'CSMT',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'ADH', stationName: 'Andheri', scheduledArrival: '10:40', scheduledDeparture: '10:40', platform: '6', distanceKm: 0, isHalt: true },
+      { stationCode: 'BA', stationName: 'Bandra', scheduledArrival: '10:52', scheduledDeparture: '10:53', platform: '6', distanceKm: 6.7, isHalt: true },
+      { stationCode: 'VDLR', stationName: 'Vadala Road', scheduledArrival: '11:06', scheduledDeparture: '11:07', platform: '4', distanceKm: 13.9, isHalt: true },
+      { stationCode: 'CSMT', stationName: 'CSMT (Harbour)', scheduledArrival: '11:24', scheduledDeparture: '11:24', platform: '2', distanceKm: 20.8, isHalt: true }
+    ]
+  },
+
+  // 32. Harbour Line Western Branch: 98813 CSMT - Andheri Harbour Local
+  {
+    trainNumber: '98813',
+    trainName: 'CSMT - Andheri Harbour Local',
+    hindiName: 'सीएसएमटी - अंधेरी हार्बर लोकल',
+    marathiName: 'सीएसएमटी - अंधेरी हार्बर लोकल',
+    originStation: 'CSMT',
+    destinationStation: 'ADH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'CSMT (Harbour)', scheduledArrival: '10:45', scheduledDeparture: '10:45', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'VDLR', stationName: 'Vadala Road', scheduledArrival: '11:03', scheduledDeparture: '11:04', platform: '3', distanceKm: 6.9, isHalt: true },
+      { stationCode: 'BA', stationName: 'Bandra', scheduledArrival: '11:17', scheduledDeparture: '11:18', platform: '7', distanceKm: 14.1, isHalt: true },
+      { stationCode: 'ADH', stationName: 'Andheri', scheduledArrival: '11:30', scheduledDeparture: '11:30', platform: '6', distanceKm: 20.8, isHalt: true }
+    ]
+  },
+
+  // --- Pune Representative Journeys ---
+  {
+    trainNumber: 'PUN-101',
+    trainName: 'Pune - Lonavala Local EMU',
+    hindiName: 'पुणे - लोणावळा लोकल',
+    marathiName: 'पुणे - लोणावळा लोकल',
+    originStation: 'PUNE',
+    destinationStation: 'LNL',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'PUNE', stationName: 'Pune Junction', scheduledArrival: '10:40', scheduledDeparture: '10:40', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'SVJR', stationName: 'Shivajinagar', scheduledArrival: '10:46', scheduledDeparture: '10:47', platform: '2', distanceKm: 2.5, isHalt: true },
+      { stationCode: 'CCH', stationName: 'Chinchwad', scheduledArrival: '11:03', scheduledDeparture: '11:04', platform: '2', distanceKm: 18.2, isHalt: true },
+      { stationCode: 'LNL', stationName: 'Lonavala', scheduledArrival: '11:55', scheduledDeparture: '11:55', platform: '3', distanceKm: 63.8, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: 'PUN-102',
+    trainName: 'Lonavala - Pune Local EMU',
+    hindiName: 'लोणावळा - पुणे लोकल',
+    marathiName: 'लोणावळा - पुणे लोकल',
+    originStation: 'LNL',
+    destinationStation: 'PUNE',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'LNL', stationName: 'Lonavala', scheduledArrival: '10:35', scheduledDeparture: '10:35', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'CCH', stationName: 'Chinchwad', scheduledArrival: '11:25', scheduledDeparture: '11:26', platform: '1', distanceKm: 45.6, isHalt: true },
+      { stationCode: 'SVJR', stationName: 'Shivajinagar', scheduledArrival: '11:42', scheduledDeparture: '11:43', platform: '1', distanceKm: 61.3, isHalt: true },
+      { stationCode: 'PUNE', stationName: 'Pune Junction', scheduledArrival: '11:50', scheduledDeparture: '11:50', platform: '5', distanceKm: 63.8, isHalt: true }
+    ]
+  },
+
+  // --- Delhi NCR Representative Journeys ---
+  {
+    trainNumber: 'DEL-101',
+    trainName: 'New Delhi - Ghaziabad EMU',
+    hindiName: 'नई दिल्ली - गाजियाबाद ईएमयू',
+    marathiName: 'नवी दिल्ली - गाझियाबाद ईएमयू',
+    originStation: 'NDLS',
+    destinationStation: 'GZB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'NDLS', stationName: 'New Delhi', scheduledArrival: '10:35', scheduledDeparture: '10:35', platform: '8', distanceKm: 0, isHalt: true },
+      { stationCode: 'GZB', stationName: 'Ghaziabad Junction', scheduledArrival: '11:17', scheduledDeparture: '11:17', platform: '3', distanceKm: 25.4, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: 'DEL-102',
+    trainName: 'New Delhi - Faridabad EMU',
+    hindiName: 'नई दिल्ली - फरीदाबाद ईएमयू',
+    marathiName: 'नवी दिल्ली - फरीदाबाद ईएमयू',
+    originStation: 'NDLS',
+    destinationStation: 'FDB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'NDLS', stationName: 'New Delhi', scheduledArrival: '10:45', scheduledDeparture: '10:45', platform: '6', distanceKm: 0, isHalt: true },
+      { stationCode: 'FDB', stationName: 'Faridabad', scheduledArrival: '11:23', scheduledDeparture: '11:23', platform: '2', distanceKm: 28.6, isHalt: true }
+    ]
+  },
+
+  // --- Bengaluru Representative Journeys ---
+  {
+    trainNumber: 'BLR-101',
+    trainName: 'KSR Bengaluru - Whitefield MEMU Commuter',
+    hindiName: 'केएसआर बेंगलुरु - व्हाइटफील्ड मेमू',
+    marathiName: 'केएसआर बंगळुरू - व्हाईटफील्ड मेमू',
+    originStation: 'SBC',
+    destinationStation: 'WFD',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'SBC', stationName: 'KSR Bengaluru', scheduledArrival: '10:35', scheduledDeparture: '10:35', platform: '7', distanceKm: 0, isHalt: true },
+      { stationCode: 'WFD', stationName: 'Whitefield', scheduledArrival: '11:10', scheduledDeparture: '11:10', platform: '2', distanceKm: 23.2, isHalt: true }
+    ]
+  },
+
+  // --- Kolkata Representative Journeys ---
+  {
+    trainNumber: 'CCU-101',
+    trainName: 'Howrah - Sealdah - Bangaon Local EMU',
+    hindiName: 'हावड़ा - सियालदह - बनगांव लोकल ईएमयू',
+    marathiName: 'हावडा - सियालदह - बनगाव लोकल ईएमयू',
+    originStation: 'HWH',
+    destinationStation: 'BNGA',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '10:20', scheduledDeparture: '10:25', platform: '12', distanceKm: 0, isHalt: true },
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '10:38', scheduledDeparture: '10:40', platform: '9', distanceKm: 5.5, isHalt: true },
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '12:20', scheduledDeparture: '12:20', platform: '1', distanceKm: 82.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: 'CCU-102',
+    trainName: 'Bangaon - Sealdah - Howrah Local EMU',
+    hindiName: 'बनगांव - सियालदह - हावड़ा लोकल ईएमयू',
+    marathiName: 'बनगाव - सियालदह - हावडा लोकल ईएमयू',
+    originStation: 'BNGA',
+    destinationStation: 'HWH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '1', distanceKm: 0, isHalt: true },
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '12:10', scheduledDeparture: '12:12', platform: '8', distanceKm: 76.5, isHalt: true },
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '12:30', scheduledDeparture: '12:30', platform: '11', distanceKm: 82.0, isHalt: true }
+    ]
+  },
+
+  // --- Chennai Representative Journeys ---
+  {
+    trainNumber: 'MAA-101',
+    trainName: 'Chennai Central - Beach - Tambaram Local EMU',
+    hindiName: 'चेन्नई सेंट्रल - बीच - तांबरम लोकल',
+    marathiName: 'चेन्नई सेंट्रल - बीच - तांबरम लोकल',
+    originStation: 'MAS',
+    destinationStation: 'TBM',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'MAS', stationName: 'Chennai Central', scheduledArrival: '10:20', scheduledDeparture: '10:25', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '10:30', scheduledDeparture: '10:31', platform: '4', distanceKm: 2.1, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '10:42', scheduledDeparture: '10:43', platform: '4', distanceKm: 6.6, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '11:22', scheduledDeparture: '11:22', platform: '5', distanceKm: 31.2, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: 'MAA-102',
+    trainName: 'Tambaram - Beach - Chennai Central Local EMU',
+    hindiName: 'तांबरम - बीच - चेन्नई सेंट्रल लोकल',
+    marathiName: 'तांबरम - बीच - चेन्नई सेंट्रल लोकल',
+    originStation: 'TBM',
+    destinationStation: 'MAS',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '11:10', scheduledDeparture: '11:11', platform: '3', distanceKm: 24.6, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '11:22', scheduledDeparture: '11:23', platform: '2', distanceKm: 29.1, isHalt: true },
+      { stationCode: 'MAS', stationName: 'Chennai Central', scheduledArrival: '11:32', scheduledDeparture: '11:32', platform: '4', distanceKm: 31.2, isHalt: true }
+    ]
+  },
+
+  // --- Hyderabad Representative Journeys ---
+  {
+    trainNumber: 'HYD-101',
+    trainName: 'Hyderabad - Lingampalli MMTS Local',
+    hindiName: 'हैदराबाद - लिंगमपल्ली एमएमटीएस',
+    marathiName: 'हैदराबाद - लिंगमपल्ली एमएमटीएस',
+    originStation: 'HYB',
+    destinationStation: 'LPI',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'HYB', stationName: 'Hyderabad Deccan', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'SC', stationName: 'Secunderabad Junction', scheduledArrival: '10:50', scheduledDeparture: '10:52', platform: '2', distanceKm: 9.8, isHalt: true },
+      { stationCode: 'LPI', stationName: 'Lingampalli', scheduledArrival: '11:14', scheduledDeparture: '11:14', platform: '3', distanceKm: 23.4, isHalt: true }
+    ]
+  },
+
+  // --- Kochi Representative Journeys ---
+  {
+    trainNumber: 'COK-101',
+    trainName: 'Ernakulam - Aluva MEMU Commuter',
+    hindiName: 'एर्नाकुलम - अलुवा मेमू',
+    marathiName: 'एर्नाकुलम - अलुवा मेमू',
+    originStation: 'ERS',
+    destinationStation: 'AWY',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'ERS', stationName: 'Ernakulam Junction', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'ERN', stationName: 'Ernakulam Town', scheduledArrival: '10:39', scheduledDeparture: '10:40', platform: '1', distanceKm: 3.0, isHalt: true },
+      { stationCode: 'AWY', stationName: 'Aluva', scheduledArrival: '11:02', scheduledDeparture: '11:02', platform: '2', distanceKm: 20.2, isHalt: true }
     ]
   }
 ];

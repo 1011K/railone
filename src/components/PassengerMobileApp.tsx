@@ -13,7 +13,8 @@ import { MobileRailSathiTab } from './mobile/MobileRailSathiTab';
 import { LaunchSequence } from './LaunchSequence';
 import { OnboardingModal } from './OnboardingModal';
 import { SpecimenTicketModal } from './SpecimenTicketModal';
-import { CoachPositionGuide } from './CoachPositionGuide';
+import { CoachPositionGuide, RakeModelType } from './CoachPositionGuide';
+import { TRAIN_TRIPS } from '../fixtures/railwayData';
 import { ThemeSelectorModal } from './ThemeSelectorModal';
 
 import {
@@ -78,6 +79,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const [showCityPicker, setShowCityPicker] = useState<boolean>(false);
   const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
   const [showCoachGuide, setShowCoachGuide] = useState<boolean>(false);
+  const [coachGuideParams, setCoachGuideParams] = useState<{ stationCode: string; platformNumber: string; rakeType?: RakeModelType }>({ stationCode: 'DR', platformNumber: '3' });
   const [show3DTrain, setShow3DTrain] = useState<boolean>(false);
   const [showGodsEye, setShowGodsEye] = useState<boolean>(false);
   const [godsEyeStationCode, setGodsEyeStationCode] = useState<string>('DR');
@@ -175,6 +177,17 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         setActiveTab('live');
         break;
       case 'coach_guide':
+        if (payload) {
+          if (typeof payload === 'string') {
+            setCoachGuideParams({ stationCode: payload, platformNumber: '1' });
+          } else if (typeof payload === 'object') {
+            setCoachGuideParams({
+              stationCode: payload.stationCode || 'DR',
+              platformNumber: payload.platformNumber || '1',
+              rakeType: payload.rakeType
+            });
+          }
+        }
         setShowCoachGuide(true);
         break;
       case 'gods_eye':
@@ -513,26 +526,54 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       />
 
       {/* Platform Coach Guide Modal */}
-      {showCoachGuide && (
-        <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col justify-end p-2 animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-3 max-h-[90%] overflow-y-auto">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-slate-500">Coach Guidance (Wagenstandsanzeiger)</span>
-              <button
-                onClick={() => setShowCoachGuide(false)}
-                className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold"
-              >
-                ✕ Close
-              </button>
+      {showCoachGuide && (() => {
+        let activeStation = coachGuideParams.stationCode;
+        let activePlatform = coachGuideParams.platformNumber;
+        let activeRake: RakeModelType | undefined = coachGuideParams.rakeType;
+
+        if (inspectedTrainNumber) {
+          const inspected = TRAIN_TRIPS.find(t => t.trainNumber === inspectedTrainNumber);
+          if (inspected) {
+            const firstStop = inspected.stops[0];
+            activeStation = firstStop?.stationCode || activeStation;
+            activePlatform = firstStop?.platform || activePlatform;
+            activeRake = inspected.serviceType.includes('ac') ? '12_car_ac_suburban' : inspected.rakeType === '15_car' ? '15_car_suburban' : '12_car_suburban';
+          }
+        } else if (selectedItinerary) {
+          const firstLeg = selectedItinerary.legs[0];
+          activeStation = firstLeg.fromStation.code;
+          activePlatform = firstLeg.departurePlatform;
+          activeRake = firstLeg.train.serviceType.includes('ac') ? '12_car_ac_suburban' : firstLeg.train.rakeType === '15_car' ? '15_car_suburban' : '12_car_suburban';
+        }
+
+        return (
+          <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col justify-end p-2 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-3 max-h-[90%] overflow-y-auto">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Coach Guidance (Wagenstandsanzeiger)</span>
+                  <div className="text-[10px] text-slate-500 font-semibold">
+                    Station: {activeStation} · Platform: {activePlatform}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCoachGuide(false)}
+                  className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold"
+                >
+                  ✕ Close
+                </button>
+              </div>
+              <CoachPositionGuide
+                key={`${activeStation}-${activePlatform}-${activeRake}`}
+                stationCode={activeStation}
+                platformNumber={activePlatform}
+                initialRakeType={activeRake}
+                onClose={() => setShowCoachGuide(false)}
+              />
             </div>
-            <CoachPositionGuide
-              stationCode="DR"
-              platformNumber="3"
-              onClose={() => setShowCoachGuide(false)}
-            />
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 3D Moving Train Modal */}
       {show3DTrain && (

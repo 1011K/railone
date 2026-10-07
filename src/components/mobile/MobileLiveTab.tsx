@@ -192,16 +192,46 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
       )}
 
       {/* SUB-TAB 4: Coach Rake Position Guide (Wagenstandsanzeiger) */}
-      {activeSubTab === 'coach' && (
-        <div className="space-y-3 animate-fadeIn">
-          <div className="rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 p-3">
-            <CoachPositionGuide
-              stationCode="DR"
-              platformNumber="3"
-            />
+      {activeSubTab === 'coach' && (() => {
+        const currentTrain = TRAIN_TRIPS.find(t => t.trainNumber === selectedTrainNumber);
+        const matchingStop = currentTrain?.stops.find(s => s.stationCode === boardStationCode) || currentTrain?.stops[0];
+        const currentStation = matchingStop?.stationCode || boardStationCode || 'DR';
+        const currentPlatform = matchingStop?.platform || '1';
+        const rakeType = currentTrain?.serviceType.includes('ac')
+          ? '12_car_ac_suburban'
+          : currentTrain?.rakeType === '15_car'
+          ? '15_car_suburban'
+          : '12_car_suburban';
+
+        return (
+          <div className="space-y-3 animate-fadeIn">
+            {/* Quick Train Selector for Coach Guide */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[10px]">
+              {TRAIN_TRIPS.slice(0, 8).map(t => (
+                <button
+                  key={t.trainNumber}
+                  onClick={() => setSelectedTrainNumber(t.trainNumber)}
+                  className={`px-2.5 py-1.5 rounded-xl whitespace-nowrap font-bold border transition-all ${
+                    selectedTrainNumber === t.trainNumber
+                      ? 'bg-theme-primary text-white border-theme-primary shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  {t.trainNumber} · {t.trainName.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+            <div className="rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 p-3">
+              <CoachPositionGuide
+                key={`${selectedTrainNumber}-${currentStation}-${currentPlatform}`}
+                initialRakeType={rakeType}
+                stationCode={currentStation}
+                platformNumber={currentPlatform}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
