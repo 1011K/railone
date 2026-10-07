@@ -201,7 +201,7 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
   // If issued, create ticket record
   if (bookingState === 'TICKET_ISSUED_DEMO') {
     const ticketId = 'TCK-' + crypto.randomUUID();
-    const ticketNumber = 'UTS' + Date.now().toString().slice(-8);
+    const ticketNumber = generateTicketNumber();
     const tstmt = db.prepare(`
       INSERT INTO tickets (id, booking_id, ticket_number, issued_at, status, qr_payload, is_simulated)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -269,7 +269,7 @@ export function reconcileBooking(id: string): BookingRecord {
   const existingTicket: any = db.prepare('SELECT id FROM tickets WHERE booking_id = ?').get(id);
   if (!existingTicket) {
     const ticketId = 'TCK-' + crypto.randomUUID();
-    const ticketNumber = 'UTS' + Date.now().toString().slice(-8);
+    const ticketNumber = generateTicketNumber();
     const tstmt = db.prepare(`
       INSERT INTO tickets (id, booking_id, ticket_number, issued_at, status, qr_payload, is_simulated)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -286,6 +286,12 @@ export function reconcileBooking(id: string): BookingRecord {
   });
 
   return getBookingById(id)!;
+}
+
+function generateTicketNumber(): string {
+  const rand = Math.floor(100000 + Math.random() * 900000);
+  const time = Date.now().toString().slice(-6);
+  return `UTS${time}${rand}`;
 }
 
 function generatePnr(): string {

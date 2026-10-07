@@ -987,6 +987,123 @@ console.log('\nTest Suite 22: Service-Oriented Backend Architecture, SQLite Pers
   );
 }
 
+console.log('\nTest Suite 23: Native Mobile Application (Expo / React Native), Offline Storage & Mobile Client Contracts');
+{
+  const { THEME_PALETTES } = await import('../apps/mobile/src/theme/ThemeContext');
+  const { OfflineStorage } = await import('../apps/mobile/src/storage/offlineStorage');
+  const { MobileApiClient } = await import('../apps/mobile/src/api/client');
+  const { NativeVoiceService } = await import('../apps/mobile/src/services/voiceService');
+
+  // 23.1: Mobile app manifest & bundle configuration
+  const appJsonPath = path.resolve(process.cwd(), 'apps/mobile/app.json');
+  assert(fs.existsSync(appJsonPath), '23.1: apps/mobile/app.json configuration exists');
+  const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'));
+  assert(
+    appJson.expo.name === 'RailOne Next' &&
+    appJson.expo.android.package === 'com.railone.next' &&
+    appJson.expo.ios.bundleIdentifier === 'com.railone.next' &&
+    !!appJson.expo.ios.infoPlist?.NSMicrophoneUsageDescription,
+    '23.2: Native bundle identifier com.railone.next and microphone permissions configured'
+  );
+
+  // 23.3: Native mobile screen architecture (12 core screens)
+  const mobileScreens = [
+    'app/_layout.tsx',
+    'app/(tabs)/_layout.tsx',
+    'app/(tabs)/index.tsx',
+    'app/(tabs)/journeys.tsx',
+    'app/(tabs)/status.tsx',
+    'app/(tabs)/tickets.tsx',
+    'app/(tabs)/help.tsx',
+    'app/call.tsx',
+    'app/booking/express.tsx',
+    'app/booking/local.tsx',
+    'app/map.tsx',
+    'app/wayfinding.tsx'
+  ];
+  const allScreensExist = mobileScreens.every(sc => fs.existsSync(path.resolve(process.cwd(), 'apps/mobile', sc)));
+  assert(allScreensExist, '23.3: All 12 native Expo Router mobile screens and layouts exist');
+
+  // 23.4: Authentic Railway Theme Palettes (8 Livery Themes)
+  const themeKeys = Object.keys(THEME_PALETTES);
+  assert(themeKeys.length === 8, '23.4: Exactly 8 authentic railway livery themes configured for mobile');
+  assert(
+    themeKeys.includes('central_navy') &&
+    themeKeys.includes('western_signal') &&
+    themeKeys.includes('vande_bharat_orange') &&
+    themeKeys.includes('night_commuter'),
+    '23.5: Authentic liveries include Central Navy, Western Signal, Vande Bharat Orange, and Night Commuter'
+  );
+
+  // 23.5: Offline Station and Search Storage Contract
+  OfflineStorage.saveStations([
+    { code: 'CSMT', name: 'CSMT Terminus', line: 'Central Main' },
+    { code: 'TNA', name: 'Thane', line: 'Central Main' }
+  ]);
+  const cachedStations = OfflineStorage.getStations();
+  OfflineStorage.addRecentSearch('TNA', 'CSMT');
+  const recentSearches = OfflineStorage.getRecentSearches();
+  assert(
+    cachedStations.length === 2 &&
+    cachedStations[0].code === 'CSMT' &&
+    recentSearches.length > 0 &&
+    recentSearches[0].from === 'TNA' &&
+    recentSearches[0].to === 'CSMT',
+    '23.6: Mobile OfflineStorage persists station catalog and recent search queries'
+  );
+
+  // 23.6: Offline Ticket Storage Contract
+  await OfflineStorage.saveTicket({
+    id: 'MOB-TCK-991',
+    pnr: '234-8971234',
+    trainNumber: '95112',
+    trainName: 'CSMT Fast Local',
+    fromStationName: 'Thane',
+    toStationName: 'CSMT',
+    journeyDate: '2026-10-15',
+    classBooked: 'II',
+    farePaid: 10,
+    qrPayload: 'UTS-MOB-DEMO-[DEMO / NOT VALID FOR TRAVEL]',
+    cachedAt: new Date().toISOString()
+  });
+  const cachedTickets = OfflineStorage.getTickets();
+  assert(
+    cachedTickets.some(t => t.id === 'MOB-TCK-991' && t.qrPayload.includes('NOT VALID FOR TRAVEL')),
+    '23.7: Mobile OfflineStorage persists tickets with statutory watermark payload'
+  );
+
+  // 23.7: Mobile API Client interface contracts
+  assert(
+    typeof MobileApiClient.searchStations === 'function' &&
+    typeof MobileApiClient.searchRoutes === 'function' &&
+    typeof MobileApiClient.getTrainStatus === 'function' &&
+    typeof MobileApiClient.createBooking === 'function' &&
+    typeof MobileApiClient.reconcileBooking === 'function' &&
+    typeof MobileApiClient.cancelTicket === 'function' &&
+    typeof MobileApiClient.getFareQuote === 'function' &&
+    typeof MobileApiClient.getInterchangeHubs === 'function' &&
+    typeof MobileApiClient.getStationLayout === 'function' &&
+    typeof MobileApiClient.getTransferWalk === 'function' &&
+    typeof MobileApiClient.startVoiceSession === 'function' &&
+    typeof MobileApiClient.sendVoiceTurn === 'function',
+    '23.8: MobileApiClient provides typed contracts targeting all /api/v1 endpoints'
+  );
+
+  // 23.8: Native Voice Service audio state machine
+  const voiceService = new NativeVoiceService('en');
+  let observedState = '';
+  voiceService.setCallbacks({
+    onStateChange: (state) => { observedState = state; },
+    onTurn: () => {}
+  });
+  assert(
+    typeof voiceService.startCall === 'function' &&
+    typeof voiceService.sendUtterance === 'function' &&
+    typeof voiceService.endCall === 'function',
+    '23.9: NativeVoiceService implements audio state machine lifecycle methods'
+  );
+}
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');
