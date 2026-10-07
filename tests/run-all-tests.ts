@@ -5,6 +5,8 @@
 
 import fs from 'fs';
 import path from 'path';
+import React from 'react';
+import { renderToString } from 'react-dom/server';
 import { STATIONS, TRAIN_TRIPS, INITIAL_OBSERVATIONS, calculateSuburbanFare } from '../src/fixtures/railwayData';
 import { evaluateJourneyEligibility } from '../src/engine/eligibilityEngine';
 import { computePredictedStops, getMinutesDifference, addMinutesToTimeString, addMinutesWithDayOffset } from '../src/engine/delayModel';
@@ -476,6 +478,50 @@ console.log('\n[G18] Scenario 18: Responsive Tokens, Theme Palettes & Accessibil
 
   const { TASK_PRIORITY_METADATA } = await import('../src/types/tasks');
   assert(TASK_PRIORITY_METADATA.P0_CRITICAL !== undefined, 'G18.3: P0 priority defined with top sort weight');
+
+  const { BottomNavigation } = await import('../src/components/common/BottomNavigation');
+  const bottomNavHtml = renderToString(React.createElement(BottomNavigation, {
+    activeTab: 'journey',
+    onTabChange: () => {},
+    savedTicketCount: 2,
+    hasActiveAlerts: true
+  }));
+  assert(
+    bottomNavHtml.includes('role="navigation"') &&
+    bottomNavHtml.includes('Primary Mobile Navigation') &&
+    bottomNavHtml.includes('aria-current="page"') &&
+    bottomNavHtml.includes('min-h-[48px]') &&
+    bottomNavHtml.includes('Home') &&
+    bottomNavHtml.includes('Journey') &&
+    bottomNavHtml.includes('Live') &&
+    bottomNavHtml.includes('Tickets') &&
+    bottomNavHtml.includes('Help'),
+    'G18.4: BottomNavigation renders accessible thumb-reachable navigation with 5 passenger tabs and ARIA page landmark'
+  );
+
+  const { DataProvenanceBadge, StatusBadge, SegmentedControl } = await import('../src/components/common/DesignSystemPrimitives');
+  const liveBadge = renderToString(React.createElement(DataProvenanceBadge, { provenance: 'LIVE_VERIFIED' }));
+  const demoBadge = renderToString(React.createElement(DataProvenanceBadge, { provenance: 'DEMO' }));
+  const delayedStatus = renderToString(React.createElement(StatusBadge, { status: 'DELAYED', delayMinutes: 15 }));
+  const segmentedHtml = renderToString(React.createElement(SegmentedControl, {
+    options: [
+      { id: 'tab1', label: 'First Tab', badge: 3 },
+      { id: 'tab2', label: 'Second Tab' }
+    ],
+    value: 'tab1',
+    onChange: () => {},
+    ariaLabel: 'Test Tabs'
+  }));
+
+  assert(
+    liveBadge.includes('[VERIFIED LIVE]') &&
+    demoBadge.includes('[SIMULATED SCENARIO]') &&
+    delayedStatus.includes('+15m Late') &&
+    segmentedHtml.includes('role="tablist"') &&
+    segmentedHtml.includes('role="tab"') &&
+    segmentedHtml.includes('aria-selected="true"'),
+    'G18.5: DesignSystemPrimitives render statutory provenance, status indicators, and tablist accessibility'
+  );
 }
 
 // =========================================================================
@@ -1621,35 +1667,91 @@ console.log('\nTest Suite 26: Phone-First Mobile Architecture, Coach Separation,
     '26.6: AI decomposition fallback returns explicit DEMO provenance and feed unavailable notice'
   );
 
-  // 26.7: Accessible Dialog and Mobile Styles in index.css
-  const cssContent = fs.readFileSync(path.resolve(process.cwd(), 'src/index.css'), 'utf8');
+  // 26.7: Real Component Rendering: TrainFormationStrip across all 5 rake formations
+  const { TrainFormationStrip, StationSearchSheet } = await import('../src/components/common/DesignSystemPrimitives');
+  const strip12Html = renderToString(React.createElement(TrainFormationStrip, { rakeType: '12_car_suburban', selectedCoachSeq: 1, onSelectCoach: () => {} }));
+  const strip12AcHtml = renderToString(React.createElement(TrainFormationStrip, { rakeType: '12_car_ac_suburban', selectedCoachSeq: 1, onSelectCoach: () => {} }));
+  const strip15Html = renderToString(React.createElement(TrainFormationStrip, { rakeType: '15_car_suburban', selectedCoachSeq: 1, onSelectCoach: () => {} }));
+  const strip16VbHtml = renderToString(React.createElement(TrainFormationStrip, { rakeType: '16_car_vande_bharat', selectedCoachSeq: 8, onSelectCoach: () => {} }));
+  const strip22ExpHtml = renderToString(React.createElement(TrainFormationStrip, { rakeType: '22_car_express', selectedCoachSeq: 1, onSelectCoach: () => {} }));
+
+  // Helper to count coach buttons matching coach pattern in rendered HTML
+  const countCoaches = (html: string) => (html.match(/Coach \d+:/g) || []).length;
+
   assert(
-    cssContent.includes('pt-safe') &&
-    cssContent.includes('pb-safe') &&
-    cssContent.includes('touch-target') &&
-    cssContent.includes('prefers-reduced-motion'),
-    '26.7: Mobile design primitives in index.css include safe-area insets, touch-targets, and reduced motion'
+    countCoaches(strip12Html) === 12 &&
+    countCoaches(strip12AcHtml) === 12 &&
+    countCoaches(strip15Html) === 15 &&
+    countCoaches(strip16VbHtml) === 16 &&
+    countCoaches(strip22ExpHtml) === 22 &&
+    strip12Html.includes('South (CSMT / CCG)') &&
+    strip12Html.includes('North (KYN / VR)') &&
+    strip16VbHtml.includes('Executive Class') &&
+    strip22ExpHtml.includes('Sleeper Class'),
+    '26.7: TrainFormationStrip renders exact coach counts (12, 12, 15, 16, 22) with geographic South-North orientation and coach categories'
   );
 
-  // 26.8: Phone-First Bottom Navigation contract
-  const { BottomNavigation } = await import('../src/components/common/BottomNavigation');
-  const bottomNavContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/common/BottomNavigation.tsx'), 'utf8');
+  // 26.8: Real Component Rendering: CoachPositionGuide & StationSearchSheet
+  const { CoachPositionGuide } = await import('../src/components/CoachPositionGuide');
+  const coachGuideHtml = renderToString(React.createElement(CoachPositionGuide, {
+    initialRakeType: '12_car_suburban',
+    stationCode: 'DR',
+    platformNumber: '3'
+  }));
+
+  const stationSheetHtml = renderToString(React.createElement(StationSearchSheet, {
+    isOpen: true,
+    onClose: () => {},
+    onSelectStation: () => {},
+    title: 'Select Destination Station'
+  }));
+
+  const failures26_8 = [
+    !coachGuideHtml.includes('Platform 3') && 'Platform 3 missing',
+    !coachGuideHtml.includes('Divyangjan') && 'Divyangjan missing',
+    !coachGuideHtml.includes('Train Composition') && 'Train Composition missing',
+    !stationSheetHtml.includes('role="dialog"') && 'role="dialog" missing',
+    !stationSheetHtml.includes('aria-modal="true"') && 'aria-modal missing',
+    !stationSheetHtml.includes('CSMT') && 'CSMT missing',
+    !stationSheetHtml.includes('min-h-[48px]') && 'min-h-[48px] missing'
+  ].filter(Boolean);
+
   assert(
-    typeof BottomNavigation === 'function' &&
-    bottomNavContent.includes("'home'") &&
-    bottomNavContent.includes("'journey'") &&
-    bottomNavContent.includes("'live'") &&
-    bottomNavContent.includes("'tickets'") &&
-    bottomNavContent.includes("'help'"),
-    '26.8: BottomNavigation implements the 5 commuter-first passenger tabs (Home, Journey, Live, Tickets, Help)'
+    failures26_8.length === 0,
+    '26.8: CoachPositionGuide and StationSearchSheet render accessible landmark alignments, Devanagari labels, and touch targets >= 44px',
+    failures26_8.join(', ')
   );
 
-  // 26.9: Responsive Live Tracker Timeline
-  const liveTrackerContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/TrainLiveTracker.tsx'), 'utf8');
+  // 26.9: Real Component Rendering: TrainLiveTracker responsive layout and zero emoji
+  const { TrainLiveTracker } = await import('../src/components/TrainLiveTracker');
+  const liveTrackerHtml = renderToString(React.createElement(TrainLiveTracker, { initialTrainNumber: '95112' }));
+
   assert(
-    liveTrackerContent.includes('block md:hidden') &&
-    liveTrackerContent.includes('hidden md:block'),
-    '26.9: TrainLiveTracker renders both mobile vertical route timeline and wide desktop horizontal schematic'
+    liveTrackerHtml.includes('md:hidden') &&
+    liveTrackerHtml.includes('hidden md:block') &&
+    liveTrackerHtml.includes('Rake Composition') &&
+    !liveTrackerHtml.includes('🚂 LOCO') &&
+    !liveTrackerHtml.includes('CAB 🛑'),
+    '26.9: TrainLiveTracker renders both mobile vertical route cards and desktop table with zero emoji icons'
+  );
+
+  // 26.10: Real Component Rendering: AccessibleModal contract
+  const { AccessibleModal } = await import('../src/components/common/AccessibleModal');
+  const modalHtml = renderToString(React.createElement(AccessibleModal, {
+    isOpen: true,
+    onClose: () => {},
+    title: 'Statutory Verification Modal',
+    subtitle: 'Accessible Modal Unit Test',
+    variant: 'sheet'
+  }, React.createElement('div', null, 'Modal Test Body')));
+
+  assert(
+    modalHtml.includes('role="dialog"') &&
+    modalHtml.includes('aria-modal="true"') &&
+    modalHtml.includes('aria-labelledby="accessible-modal-title"') &&
+    modalHtml.includes('Close dialog:') &&
+    modalHtml.includes('safe-area-inset-left'),
+    '26.10: AccessibleModal renders WCAG compliant dialog role, aria-modal, labelledby, and safe-area padding'
   );
 }
 

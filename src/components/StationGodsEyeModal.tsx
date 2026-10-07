@@ -95,6 +95,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const touchPinchDistRef = useRef<number | null>(null);
 
   // Synchronize when initialStationCode prop changes or modal opens
   useEffect(() => {
@@ -156,15 +157,33 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
     if (e.touches.length === 1) {
       setIsDragging(true);
       setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchPinchDistRef.current = Math.hypot(dx, dy);
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    setPan({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+    if (e.touches.length === 1 && isDragging) {
+      setPan({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+    } else if (e.touches.length === 2 && touchPinchDistRef.current !== null) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDist = Math.hypot(dx, dy);
+      const ratio = newDist / touchPinchDistRef.current;
+      if (Math.abs(1 - ratio) > 0.01) {
+        setZoom(z => Math.max(0.4, Math.min(1.8, Number((z * ratio).toFixed(2)))));
+        touchPinchDistRef.current = newDist;
+      }
+    }
   };
 
-  const handleTouchEnd = () => setIsDragging(false);
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    touchPinchDistRef.current = null;
+  };
 
   const handleZoomIn = () => setZoom(z => Math.min(1.8, Number((z + 0.15).toFixed(2))));
   const handleZoomOut = () => setZoom(z => Math.max(0.4, Number((z - 0.15).toFixed(2))));
@@ -192,11 +211,11 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn select-none"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div 
-        className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-6xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-slate-100"
+        className="bg-slate-900 border-0 sm:border border-slate-700/80 rounded-none sm:rounded-3xl w-full max-w-6xl h-full sm:h-auto sm:max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-slate-100 pt-safe pb-safe"
         role="dialog"
         aria-modal="true"
         aria-label="3D Station Navigation and God's Eye Viewer"

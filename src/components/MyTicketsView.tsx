@@ -3,6 +3,7 @@ import { MockBookingStore } from '../engine/mockBookingStore';
 import { SpecimenTicket, TravelClass } from '../types/railway';
 import { VisualQRCode } from './VisualQRCode';
 import { useTheme } from './ThemeContext';
+import { SegmentedControl, SegmentedOption } from './common/DesignSystemPrimitives';
 import { 
   Ticket, 
   RotateCcw, 
@@ -156,40 +157,20 @@ export const MyTicketsView: React.FC<MyTicketsViewProps> = ({
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800 text-xs">
-        {[
-          { id: 'active', label: language === 'hi' ? 'सक्रिय टिकटें' : language === 'mr' ? 'सक्रिय तिकिटे' : 'Active Tickets', count: activeTickets.length },
-          { id: 'upcoming', label: language === 'hi' ? 'आगामी यात्राएं' : language === 'mr' ? 'आगामी प्रवास' : 'Upcoming Journeys', count: activeTickets.length },
-          { id: 'history', label: language === 'hi' ? 'टिकट इतिहास' : language === 'mr' ? 'तिकीट इतिहास' : 'Booking History', count: tickets.length },
-          { id: 'refunds', label: language === 'hi' ? 'रद्द व धनवापसी' : language === 'mr' ? 'रद्द आणि परतावा' : 'Cancelled & Refunds', count: cancelledTickets.length },
-          { id: 'season_pass', label: language === 'hi' ? 'मासिक पास (MST)' : language === 'mr' ? 'मासिक पास (MST)' : 'Season Passes (MST)', isSpecial: true },
-          { id: 'rules', label: language === 'hi' ? 'रेलवे बुकिंग नियम' : language === 'mr' ? 'रेल्वे बुकिंग नियम' : 'Railway Ticketing Rules' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
-              activeTab === tab.id
-                ? 'bg-theme-primary text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
-            }`}
-          >
-            <span>{tab.label}</span>
-            {tab.count !== undefined && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-              }`}>
-                {tab.count}
-              </span>
-            )}
-            {tab.isSpecial && (
-              <span className="px-1.5 py-0.2 rounded font-mono text-[9px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase">
-                UTS
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl<'active' | 'upcoming' | 'history' | 'refunds' | 'season_pass' | 'rules'>
+        options={[
+          { id: 'active', label: language === 'hi' ? 'सक्रिय टिकटें' : language === 'mr' ? 'सक्रिय तिकिटे' : 'Active Tickets', badge: activeTickets.length },
+          { id: 'upcoming', label: language === 'hi' ? 'आगामी यात्राएं' : language === 'mr' ? 'आगामी प्रवास' : 'Upcoming Journeys', badge: activeTickets.length },
+          { id: 'history', label: language === 'hi' ? 'टिकट इतिहास' : language === 'mr' ? 'तिकीट इतिहास' : 'Booking History', badge: tickets.length },
+          { id: 'refunds', label: language === 'hi' ? 'रद्द व धनवापसी' : language === 'mr' ? 'रद्द आणि परतावा' : 'Cancelled & Refunds', badge: cancelledTickets.length },
+          { id: 'season_pass', label: language === 'hi' ? 'मासिक पास (MST)' : language === 'mr' ? 'मासिक पास (MST)' : 'Season Passes', badge: 'UTS' },
+          { id: 'rules', label: language === 'hi' ? 'रेलवे बुकिंग नियम' : language === 'mr' ? 'रेल्वे बुकिंग नियम' : 'Ticketing Rules' }
+        ]}
+        value={activeTab}
+        onChange={(tab) => setActiveTab(tab)}
+        ariaLabel="My Tickets navigation tabs"
+        scrollable={true}
+      />
 
       {/* Tab 1: Active Tickets */}
       {activeTab === 'active' && (

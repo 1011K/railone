@@ -30,6 +30,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useTheme } from './ThemeContext';
+import { StationSearchSheet } from './common/DesignSystemPrimitives';
 
 interface JourneyDecisionViewProps {
   onBookSpecimen: (itinerary: JourneyItinerary, travelClass: TravelClass) => void;
@@ -55,8 +56,6 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
     if (initialDestCode) setDestCode(initialDestCode);
   }, [initialOriginCode, initialDestCode]);
 
-  const [originSearch, setOriginSearch] = useState('');
-  const [destSearch, setDestSearch] = useState('');
   const [isOriginOpen, setIsOriginOpen] = useState(false);
   const [isDestOpen, setIsDestOpen] = useState(false);
   const [departureTime, setDepartureTime] = useState('10:40');
@@ -123,34 +122,6 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
     return obsMap;
   }, [activeSignalDisruption, activeOriginDisruption]);
 
-  // Filtered station lists for autocompletes with multilingual Hindi/Marathi support
-  const allStationsList = useMemo(() => Object.values(STATIONS), []);
-
-  const filteredOriginStations = useMemo(() => {
-    const q = originSearch.toLowerCase().trim();
-    if (!q) return allStationsList;
-    return allStationsList.filter(s => 
-      s.name.toLowerCase().includes(q) || 
-      s.code.toLowerCase().includes(q) || 
-      s.city.toLowerCase().includes(q) ||
-      (s.hindiName && s.hindiName.includes(originSearch.trim())) ||
-      (s.marathiName && s.marathiName.includes(originSearch.trim())) ||
-      s.aliases.some(a => a.toLowerCase().includes(q))
-    );
-  }, [originSearch, allStationsList]);
-
-  const filteredDestStations = useMemo(() => {
-    const q = destSearch.toLowerCase().trim();
-    if (!q) return allStationsList;
-    return allStationsList.filter(s => 
-      s.name.toLowerCase().includes(q) || 
-      s.code.toLowerCase().includes(q) || 
-      s.city.toLowerCase().includes(q) ||
-      (s.hindiName && s.hindiName.includes(destSearch.trim())) ||
-      (s.marathiName && s.marathiName.includes(destSearch.trim())) ||
-      s.aliases.some(a => a.toLowerCase().includes(q))
-    );
-  }, [destSearch, allStationsList]);
 
   // Run the deterministic journey engine
   const itineraries = useMemo(() => {
@@ -263,126 +234,44 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
         {/* Origin / Destination Search Comboboxes / Time Selector */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           
-          {/* Origin Station Combobox */}
-          <div className="md:col-span-4 relative">
-            <label className="block text-xs font-medium text-slate-500 mb-1">
-              From Station (Search Name, Code or Alias)
+          {/* Origin Station Selector */}
+          <div className="md:col-span-4">
+            <label className="block text-xs font-bold text-slate-500 mb-1">
+              From Station
             </label>
-            <div 
+            <button
+              type="button"
               onClick={() => {
-                setIsOriginOpen(prev => !prev);
+                setIsOriginOpen(true);
                 setIsDestOpen(false);
               }}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between cursor-pointer min-h-[44px]"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between cursor-pointer min-h-[48px] touch-target hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"
             >
-              <div className="truncate">
+              <span className="truncate">
                 {originStation ? `${originStation.name} (${originStation.code})` : 'Select Station'}
-              </div>
+              </span>
               <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-            </div>
-
-            {isOriginOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 z-20" 
-                  onClick={() => setIsOriginOpen(false)} 
-                />
-                <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-2 max-h-60 overflow-y-auto">
-                  <div className="relative mb-2">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Type station name, code, or alias (e.g. cst, thane)..."
-                      value={originSearch}
-                      onChange={(e) => setOriginSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)]"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="space-y-0.5">
-                    {filteredOriginStations.map((st) => (
-                      <button
-                        key={st.code}
-                        onClick={() => {
-                          setOriginCode(st.code);
-                          setIsOriginOpen(false);
-                          setOriginSearch('');
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                          originCode === st.code 
-                            ? 'bg-theme-light text-theme-text font-bold' 
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
-                        }`}
-                      >
-                        <span className="truncate">{st.name} ({st.code})</span>
-                        <span className="text-[10px] text-slate-400 uppercase font-mono">{st.line}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
+            </button>
           </div>
 
-          {/* Destination Station Combobox */}
-          <div className="md:col-span-4 relative">
-            <label className="block text-xs font-medium text-slate-500 mb-1">
-              To Station (Search Name, Code or Alias)
+          {/* Destination Station Selector */}
+          <div className="md:col-span-4">
+            <label className="block text-xs font-bold text-slate-500 mb-1">
+              To Station
             </label>
-            <div 
+            <button
+              type="button"
               onClick={() => {
-                setIsDestOpen(prev => !prev);
+                setIsDestOpen(true);
                 setIsOriginOpen(false);
               }}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between cursor-pointer min-h-[44px]"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between cursor-pointer min-h-[48px] touch-target hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"
             >
-              <div className="truncate">
+              <span className="truncate">
                 {destStation ? `${destStation.name} (${destStation.code})` : 'Select Destination'}
-              </div>
+              </span>
               <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-            </div>
-
-            {isDestOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 z-20" 
-                  onClick={() => setIsDestOpen(false)} 
-                />
-                <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-2 max-h-60 overflow-y-auto">
-                  <div className="relative mb-2">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Type destination name or code..."
-                      value={destSearch}
-                      onChange={(e) => setDestSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)]"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="space-y-0.5">
-                    {filteredDestStations.map((st) => (
-                      <button
-                        key={st.code}
-                        onClick={() => {
-                          setDestCode(st.code);
-                          setIsDestOpen(false);
-                          setDestSearch('');
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                          destCode === st.code 
-                            ? 'bg-theme-light text-theme-text font-bold' 
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
-                        }`}
-                      >
-                        <span className="truncate">{st.name} ({st.code})</span>
-                        <span className="text-[10px] text-slate-400 uppercase font-mono">{st.line}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
+            </button>
           </div>
 
           {/* Departure / Arrive-By Time Selector */}
@@ -586,6 +475,28 @@ export const JourneyDecisionView: React.FC<JourneyDecisionViewProps> = ({
         </div>
       )}
 
+      {/* Accessible Station Search Sheets for Mobile and Desktop */}
+      <StationSearchSheet
+        isOpen={isOriginOpen}
+        onClose={() => setIsOriginOpen(false)}
+        onSelectStation={(code) => {
+          setOriginCode(code);
+          setIsOriginOpen(false);
+        }}
+        title="Select Origin Station"
+        selectedStationCode={originCode}
+      />
+
+      <StationSearchSheet
+        isOpen={isDestOpen}
+        onClose={() => setIsDestOpen(false)}
+        onSelectStation={(code) => {
+          setDestCode(code);
+          setIsDestOpen(false);
+        }}
+        title="Select Destination Station"
+        selectedStationCode={destCode}
+      />
     </div>
   );
 };

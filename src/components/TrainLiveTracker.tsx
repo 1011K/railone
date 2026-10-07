@@ -13,6 +13,8 @@ import {
   DivisionHealth 
 } from '../services/networkAlertsService';
 import { CoachPositionGuide } from './CoachPositionGuide';
+import { TrainFormationStrip } from './common/DesignSystemPrimitives';
+import { RakeModelType } from '../models/coachGuide';
 import { 
   Radio, 
   Clock, 
@@ -86,6 +88,14 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
   const train = TRAIN_TRIPS.find(t => t.trainNumber === selectedTrainNumber) || TRAIN_TRIPS[0];
   const obs = INITIAL_OBSERVATIONS[train.trainNumber];
   const predictedStops = computePredictedStops(train, obs);
+  const [selectedCoachSeq, setSelectedCoachSeq] = useState(1);
+
+  const rakeType: RakeModelType = useMemo(() => {
+    if (train.serviceType?.includes('ac')) return '12_car_ac_suburban';
+    if (train.trainNumber === '20608') return '16_car_vande_bharat';
+    if (train.serviceType === 'mail_express' || train.serviceType === 'superfast') return '22_car_express';
+    return '12_car_suburban';
+  }, [train]);
 
   const currentIdx = predictedStops.findIndex(s => s.stationCode === obs?.currentStationCode);
 
@@ -973,80 +983,21 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
       {/* ========================================================================= */}
       {/* 4. RAKE COACH POSITION SCHEMATIC                                          */}
       {/* ========================================================================= */}
-      <section aria-label="Rake Coach Formation" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-          Rake Composition & Platform Boarding Position
-        </h3>
-        
-        <div className="overflow-x-auto pb-2">
-          <div className="flex items-center gap-1.5 min-w-[700px]">
-            <div className="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-200 shrink-0">
-              🚂 LOCO
-            </div>
-            {train.serviceType.includes('ac') ? (
-              // AC EMU Coaches
-              Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="flex-1 px-2 py-2 rounded-lg bg-sky-100 dark:bg-sky-950/60 border border-sky-300 dark:border-sky-800 text-center text-[10px] font-semibold text-sky-900 dark:text-sky-200">
-                  AC-{i + 1}
-                  <div className="text-[8px] text-sky-600">Vestibuled</div>
-                </div>
-              ))
-            ) : train.serviceType.startsWith('suburban_') ? (
-              // 12-car Standard Suburban EMU Formation
-              [
-                { label: 'GEN', type: 'II' },
-                { label: 'LADIES', type: 'L' },
-                { label: 'FIRST', type: 'I' },
-                { label: 'GEN', type: 'II' },
-                { label: 'DIVYANG', type: 'D' },
-                { label: 'FIRST', type: 'I' },
-                { label: 'LADIES', type: 'L' },
-                { label: 'GEN', type: 'II' },
-                { label: 'GEN', type: 'II' },
-                { label: 'FIRST', type: 'I' },
-                { label: 'LADIES', type: 'L' },
-                { label: 'GEN', type: 'II' },
-              ].map((coach, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex-1 px-2 py-2 rounded-lg text-center text-[10px] font-semibold border ${
-                    coach.type === 'I' 
-                      ? 'bg-red-50 dark:bg-red-950/50 border-red-300 dark:border-red-800 text-red-900 dark:text-red-200' 
-                      : coach.type === 'L'
-                      ? 'bg-pink-50 dark:bg-pink-950/50 border-pink-300 dark:border-pink-800 text-pink-900 dark:text-pink-200'
-                      : coach.type === 'D'
-                      ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
-                      : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200'
-                  }`}
-                >
-                  {coach.label}
-                  <div className="text-[8px] text-slate-500">C-{idx + 1}</div>
-                </div>
-              ))
-            ) : (
-              // Express Formation
-              [
-                { label: 'EOG', type: 'P' },
-                { label: 'GS (Unres)', type: 'II' },
-                { label: 'GS (Unres)', type: 'II' },
-                { label: 'CC (Chair)', type: 'CC' },
-                { label: 'CC (Chair)', type: 'CC' },
-                { label: 'CC (Chair)', type: 'CC' },
-                { label: 'EC (Exec)', type: 'EC' },
-                { label: 'CC (Chair)', type: 'CC' },
-                { label: 'EOG', type: 'P' },
-              ].map((coach, idx) => (
-                <div key={idx} className="flex-1 px-2 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-center text-[10px] font-semibold text-slate-800 dark:text-slate-200">
-                  {coach.label}
-                  <div className="text-[8px] text-slate-500">C-{idx + 1}</div>
-                </div>
-              ))
-            )}
-            <div className="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-200 shrink-0">
-              CAB 🛑
-            </div>
-          </div>
+      <section aria-label="Rake Coach Formation" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Rake Composition & Formation
+          </h3>
+          <span className="text-[10px] font-mono text-slate-400">
+            Tap coach for category details
+          </span>
         </div>
+
+        <TrainFormationStrip
+          rakeType={rakeType}
+          selectedCoachSeq={selectedCoachSeq}
+          onSelectCoach={(seq) => setSelectedCoachSeq(seq)}
+        />
       </section>
 
       {/* ========================================================================= */}
@@ -1062,7 +1013,93 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Vertical Stops List (< md screens) */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800 p-2 space-y-2">
+          {predictedStops.map((stop, sIdx) => {
+            const isCurrent = sIdx === currentIdx;
+            const isPassed = currentIdx >= 0 && sIdx < currentIdx;
+
+            return (
+              <div
+                key={stop.stationCode}
+                className={`p-3 rounded-2xl transition-colors ${
+                  isCurrent
+                    ? 'bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900'
+                    : isPassed
+                    ? 'bg-slate-50/40 dark:bg-slate-900/40 opacity-70'
+                    : 'bg-white dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      isCurrent 
+                        ? 'bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-950' 
+                        : isPassed 
+                        ? 'bg-slate-300 dark:bg-slate-700' 
+                        : 'border-2 border-slate-400 dark:border-slate-600'
+                    }`} />
+                    <span className="font-bold text-sm text-slate-900 dark:text-white">
+                      {stop.stationName}
+                    </span>
+                    <span className="text-xs font-mono text-slate-400">
+                      ({stop.stationCode})
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
+                    PF {train.stops[sIdx]?.platform || '1'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400 pt-1">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Scheduled</span>
+                    <span className="font-mono tabular-nums">{stop.scheduledArrival} / {stop.scheduledDeparture}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Predicted</span>
+                    <span className="font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                      {stop.predictedArrival} / {stop.predictedDeparture}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                  <div>
+                    {stop.delayArrivalMinutes > 0 ? (
+                      <span className="text-amber-700 dark:text-amber-400 font-bold font-mono">
+                        +{stop.delayArrivalMinutes}m Late
+                      </span>
+                    ) : (
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                        On-time
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    {isCurrent ? (
+                      <span className="text-blue-700 dark:text-blue-400 font-bold text-[11px] flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>Current Location</span>
+                      </span>
+                    ) : isPassed ? (
+                      <span className="text-slate-400 text-[11px]">
+                        Departed
+                      </span>
+                    ) : (
+                      <span className="text-slate-500 text-[11px]">
+                        Expected ({stop.dataStatus})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table (>= md screens) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 border-b border-slate-200 dark:border-slate-700 font-medium">
               <tr>
@@ -1135,8 +1172,9 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
 
                     <td className="py-3 px-4">
                       {isCurrent ? (
-                        <span className="text-blue-700 dark:text-blue-400 font-bold">
-                          📍 Current Location
+                        <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                          <span>Current Location</span>
                         </span>
                       ) : isPassed ? (
                         <span className="text-slate-600 dark:text-slate-400">

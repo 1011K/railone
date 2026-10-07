@@ -552,6 +552,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
             icon={<Train className="w-5 h-5" />}
             variant="sheet"
             maxWidthClass="max-w-2xl"
+            hideHeader={true}
           >
             <CoachPositionGuide
               key={`${activeStation}-${activePlatform}-${activeRake}`}
@@ -560,6 +561,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
               initialRakeType={activeRake}
               onClose={() => setShowCoachGuide(false)}
               compactMode={true}
+              hideCardBorder={true}
             />
           </AccessibleModal>
         );

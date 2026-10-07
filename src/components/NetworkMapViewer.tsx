@@ -80,6 +80,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
   const [rotation, setRotation] = useState(-15);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const touchPinchDistRef = useRef<number | null>(null);
 
   // Load dataset for current scope
   const stations = useMemo(() => getStationsForScope(scope), [scope]);
@@ -208,24 +209,40 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     setIsDragging(false);
   };
 
-  // Touch drag handlers for mobile devices
+  // Touch drag and pinch-to-zoom handlers for mobile devices
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
       setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchPinchDistRef.current = Math.hypot(dx, dy);
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    setPan({
-      x: e.touches[0].clientX - dragStart.x,
-      y: e.touches[0].clientY - dragStart.y
-    });
+    if (e.touches.length === 1 && isDragging) {
+      setPan({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y
+      });
+    } else if (e.touches.length === 2 && touchPinchDistRef.current !== null) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDist = Math.hypot(dx, dy);
+      const ratio = newDist / touchPinchDistRef.current;
+      if (Math.abs(1 - ratio) > 0.01) {
+        setZoom(z => Math.max(0.6, Math.min(3.0, Number((z * ratio).toFixed(2)))));
+        touchPinchDistRef.current = newDist;
+      }
+    }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
+    touchPinchDistRef.current = null;
   };
 
   const handleZoomIn = () => setZoom(z => Math.min(3.0, Number((z + 0.25).toFixed(2))));
@@ -817,6 +834,49 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                   </button>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Floating On-Canvas Train Quick Inspector Card */}
+          {activeTrain && (
+            <div className={`absolute top-14 ${compactMode ? 'left-2 right-2' : 'left-4 max-w-sm'} z-20 bg-slate-900/95 text-white p-3.5 rounded-3xl border border-slate-700/90 shadow-2xl backdrop-blur-md animate-in fade-in duration-200`}>
+              <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-theme-primary text-white">
+                      {activeTrain.trainNumber}
+                    </span>
+                    <h3 className="font-extrabold text-sm text-white">
+                      {activeTrain.trainName}
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {activeTrain.originStation} ➔ {activeTrain.destinationStation}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedTrainNumber(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white"
+                  aria-label="Close train details"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="py-2.5 text-xs text-slate-300 flex items-center justify-between">
+                <span>Service Type:</span>
+                <span className="font-bold text-white uppercase">{activeTrain.serviceType.replace('_', ' ')}</span>
+              </div>
+              {onInspectTrainSchedule && (
+                <div className="pt-2 border-t border-slate-800">
+                  <button
+                    onClick={() => onInspectTrainSchedule(activeTrain.trainNumber)}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-theme-primary hover-bg-theme-primary text-white font-bold text-xs shadow-xs transition-colors"
+                  >
+                    <Train className="w-3.5 h-3.5" />
+                    <span>View Train Schedule</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { JourneyItinerary, TravelClass, SpecimenTicket } from '../types/railway';
 import { MockBookingStore } from '../engine/mockBookingStore';
 import { VisualQRCode } from './VisualQRCode';
+import { AccessibleModal } from './common/AccessibleModal';
 import { 
   Ticket, 
   CreditCard, 
@@ -9,9 +10,9 @@ import {
   CheckCircle2, 
   X, 
   QrCode, 
-  AlertTriangle,
+  AlertTriangle, 
   RotateCcw, 
-  Printer
+  Printer 
 } from 'lucide-react';
 
 interface SpecimenTicketModalProps {
@@ -46,14 +47,8 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
       setCancellationResult(null);
       setIsProcessing(false);
       setOtpCode('');
-
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, itinerary?.id, onClose]);
+  }, [isOpen, itinerary?.id]);
 
   if (!isOpen || !itinerary) return null;
 
@@ -107,41 +102,24 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 select-none"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <AccessibleModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Specimen Booking Simulator"
+      subtitle="Simulated Educational Artifact · Zero Financial Charges"
+      icon={<Ticket className="w-5 h-5 text-theme-primary" />}
+      variant="sheet"
+      maxWidthClass="max-w-lg"
     >
-      <div 
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="specimen-booking-title"
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-      >
-        
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 id="specimen-booking-title" className="font-bold text-base text-slate-900 dark:text-white">
-              Specimen Booking Simulator
-            </h3>
-          </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl" aria-label="Close dialog">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+      <div className="space-y-4">
         {/* Mandatory Educational Disclaimer */}
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 text-[11px] text-amber-900 dark:text-amber-200 flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+        <div className="bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/20 p-3 rounded-2xl text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span>
             <strong>Simulated Educational Artifact: </strong>
             No financial charges, real OTPs, or genuine IRCTC PNRs are issued.
           </span>
         </div>
-
-        {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-4 flex-1">
           
           {step === 'details' && (
             <form onSubmit={handleSendOtp} className="space-y-4">
@@ -386,10 +364,7 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
 
             </div>
           )}
-
         </div>
-
-      </div>
-    </div>
+    </AccessibleModal>
   );
 };

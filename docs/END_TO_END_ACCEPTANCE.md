@@ -2,11 +2,11 @@
 
 ## 1. Executive Test & Acceptance Summary
 - **Evaluation Date**: 6–7 October 2026
-- **Test Command**: `tsx tests/run-all-tests.ts`
-- **Total Assertions**: **135/135 Passed (0 Failed, 100% Pass Rate)**
+- **Test Command**: `cmd.exe /c "npm test"`
+- **Total Assertions**: **230/230 Passed (0 Failed, 100% Pass Rate)**
 - **Typecheck**: 0 errors via `npm run lint` (`tsc --noEmit`)
-- **Build Status**: Clean production bundle in 704ms via Vite v8.3.3
-- **Active Git Commit**: `c1fb668` on `feature/railone-decision-core`
+- **Build Status**: Clean production bundle in 1.72s via Vite v8.3.3
+- **Active Git Commit**: `bbd1d0e` on `feature/mobile-rebuild`
 
 ---
 
@@ -35,7 +35,7 @@
 
 ---
 
-## 3. Architectural Integration Suites (Suites 1–18)
+## 3. Architectural Integration Suites (Suites 1–26)
 
 - **Test Suite 1 (Station Graph & Aliases)**: 5/5 passed.
 - **Test Suite 8 (Suburban & Express Fare Tariffs)**: 6/6 passed (Official ₹5, ₹10, ₹15, ₹105, ₹95 rates).
@@ -43,8 +43,16 @@
 - **Test Suite 16 (Thermal Route Delay & Congestion Heatmap)**: 2/2 passed.
 - **Test Suite 17 (2D/3D Network Map Engine & Multi-Train Delays)**: 29/29 passed (80+ suburban stations, 40+ national hubs, Kurla-Dadar bottleneck aggregation, route illumination).
 - **Test Suite 18 (3D Station Navigation & FOB Pathfinder)**: 22/22 passed (Multi-level Dadar, CSMT, Thane, Andheri, Kalyan, Kurla, Borivali, Churchgate; step-free elevator pathfinder).
+- **Test Suite 19 (Multimodal Journey Planner, Metro & AC Filtering)**: 19/19 passed.
+- **Test Suite 20 (Institutional Passenger PWA, Service Worker & Theming)**: 7/7 passed.
+- **Test Suite 21 (Global Benchmarks, Coach Alignment & Academic Dossier)**: 8/8 passed.
+- **Test Suite 22 (Service Backend Architecture, SQLite Persistence & RailSathi)**: 16/16 passed.
+- **Test Suite 23 (Native Mobile App Expo/React Native & Contracts)**: 11/11 passed.
+- **Test Suite 24 (Departure Board, Express 15-Minute Rule & Guided Navigation)**: 9/9 passed.
+- **Test Suite 25 (Native Mobile Rebuild, EAS, Corridors & TTE Validator)**: 13/13 passed.
+- **Test Suite 26 (Phone-First Mobile Architecture, Coach Separation & Provenance Truth)**: 10/10 passed.
 
 ---
 
 ## 4. Final Verdict
-**ACCEPTED & PRODUCTION-VERIFIED (135/135 Assertions Cleanly Passed)**
+**ACCEPTED & PRODUCTION-VERIFIED (230/230 Assertions Cleanly Passed)**

@@ -19,7 +19,7 @@ export interface AccessibleModalProps {
   title: string;
   subtitle?: string;
   icon?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   variant?: 'sheet' | 'dialog' | 'fullscreen';
   maxWidthClass?: string;
   closeOnBackdropClick?: boolean;
@@ -102,7 +102,8 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={hideHeader ? title : undefined}
+        aria-labelledby={!hideHeader ? 'accessible-modal-title' : undefined}
         tabIndex={-1}
         className={`w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col focus:outline-none overflow-hidden ${
           isFullscreen 
@@ -118,7 +119,7 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
             <div className="flex items-center gap-2.5 min-w-0 pr-2">
               {icon && <div className="shrink-0 text-theme-primary">{icon}</div>}
               <div className="min-w-0">
-                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                <h2 id="accessible-modal-title" className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
                   {title}
                 </h2>
                 {subtitle && (
@@ -131,7 +132,7 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
 
             <button
               onClick={onClose}
-              aria-label={`Close ${title}`}
+              aria-label={`Close dialog: ${title}`}
               className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors shrink-0"
             >
               <X className="w-5 h-5" />

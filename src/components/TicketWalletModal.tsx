@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { MockBookingStore } from '../engine/mockBookingStore';
 import { SpecimenTicket } from '../types/railway';
 import { VisualQRCode } from './VisualQRCode';
+import { AccessibleModal } from './common/AccessibleModal';
 import { 
   Ticket, 
   RotateCcw, 
-  X, 
   QrCode, 
   ShieldAlert, 
   CheckCircle2, 
@@ -27,16 +27,8 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setTickets(MockBookingStore.listBookings());
-
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
+  }, [isOpen]);
 
   const handleCancelTicket = (id: string) => {
     const res = MockBookingStore.cancelBooking(id);
@@ -54,41 +46,24 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 select-none"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <AccessibleModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Specimen Ticket Wallet"
+      subtitle={`${tickets.length} Educational Specimen Tickets Saved`}
+      icon={<Ticket className="w-5 h-5 text-theme-primary" />}
+      variant="sheet"
+      maxWidthClass="max-w-xl"
     >
-      <div 
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="ticket-wallet-title"
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden"
-      >
-        
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 id="ticket-wallet-title" className="font-bold text-base text-slate-900 dark:text-white">
-              Specimen Ticket Wallet
-            </h3>
-            <span className="text-xs text-slate-500 font-normal">
-              ({tickets.length} Saved)
-            </span>
-          </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl" aria-label="Close dialog">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+      <div className="space-y-4">
         {/* Disclaimer */}
-        <div className="bg-amber-500/10 px-6 py-2 border-b border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 flex items-center gap-2">
-          <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+        <div className="bg-amber-500/10 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span>All tickets in this wallet are educational specimens. Not valid for actual rail travel.</span>
         </div>
 
         {/* Ticket List */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="space-y-3">
           {tickets.length > 0 ? (
             tickets.map((t) => (
               <div 
@@ -127,18 +102,18 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                   <button
                     onClick={() => setSelectedTicket(t)}
-                    className="text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-1"
+                    className="text-theme-primary font-semibold hover:underline flex items-center gap-1 min-h-[44px] touch-target"
                   >
-                    <QrCode className="w-3.5 h-3.5" />
+                    <QrCode className="w-4 h-4" />
                     <span>View Specimen QR</span>
                   </button>
 
                   {t.paymentStatus === 'PAID_MOCK' && (
                     <button
                       onClick={() => handleCancelTicket(t.id)}
-                      className="text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-medium"
+                      className="text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-medium min-h-[44px] touch-target"
                     >
-                      <RotateCcw className="w-3 h-3" />
+                      <RotateCcw className="w-4 h-4" />
                       <span>Cancel & Refund</span>
                     </button>
                   )}
@@ -146,8 +121,8 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
               </div>
             ))
           ) : (
-            <div className="text-center py-12 space-y-2">
-              <Ticket className="w-12 h-12 text-slate-300 mx-auto" />
+            <div className="text-center py-10 space-y-2">
+              <Ticket className="w-10 h-10 text-slate-300 mx-auto" />
               <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 No specimen tickets created yet
               </div>
@@ -160,7 +135,7 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
 
         {/* Selected Ticket Modal Detail */}
         {selectedTicket && (
-          <div className="p-4 bg-slate-900 text-white border-t border-slate-800 flex items-center justify-between gap-4 text-xs">
+          <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 flex items-center justify-between gap-4 text-xs">
             <div className="space-y-1 min-w-0">
               <div className="font-bold font-mono text-emerald-400">{selectedTicket.pnrMock}</div>
               <div className="text-[11px] text-slate-300">
@@ -174,15 +149,14 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
               <VisualQRCode payload={selectedTicket.qrPayload} size={72} />
               <button
                 onClick={() => setSelectedTicket(null)}
-                className="px-3 py-1.5 bg-slate-800 rounded-lg text-slate-300 hover:text-white"
+                className="px-3 py-1.5 bg-slate-800 rounded-xl text-slate-300 hover:text-white min-h-[44px] touch-target"
               >
                 Close
               </button>
             </div>
           </div>
         )}
-
       </div>
-    </div>
+    </AccessibleModal>
   );
 };

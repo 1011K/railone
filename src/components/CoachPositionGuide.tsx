@@ -17,23 +17,18 @@ import {
   computeCoachRecommendation,
   RAKE_FORMATIONS
 } from '../models/coachGuide';
+import { TrainFormationStrip } from './common/DesignSystemPrimitives';
 import { 
   Train, 
   MapPin, 
-  Compass, 
   Accessibility, 
   CheckCircle2, 
   AlertTriangle,
-  ArrowRight,
-  ArrowUp,
-  ArrowDown,
-  Navigation,
-  ShieldCheck,
-  Footprints,
-  Info,
-  ChevronDown,
-  ChevronUp,
-  X
+  Navigation, 
+  Footprints, 
+  ChevronDown, 
+  ChevronUp, 
+  X 
 } from 'lucide-react';
 
 export type { RakeModelType };
@@ -47,6 +42,7 @@ export interface CoachPositionGuideProps {
   trainDirection?: string;
   onClose?: () => void;
   compactMode?: boolean;
+  hideCardBorder?: boolean;
 }
 
 export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
@@ -57,7 +53,8 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
   trainName,
   trainDirection,
   onClose,
-  compactMode = false
+  compactMode = false,
+  hideCardBorder = false
 }) => {
   const [selectedRake, setSelectedRake] = useState<RakeModelType>(initialRakeType);
   const [selectedCoachSeq, setSelectedCoachSeq] = useState<number>(() => {
@@ -178,20 +175,26 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
     <div 
       role="region" 
       aria-label="Platform Coach Alignment Guide"
-      className="w-full flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden font-sans"
+      className={`w-full flex flex-col font-sans ${
+        hideCardBorder 
+          ? 'bg-transparent' 
+          : 'bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden'
+      }`}
     >
       {/* =========================================================================
           1. HEADER HIERARCHY
-          Dadar · Platform 3 | Fast Local towards Kalyan | 12-car · Non-AC
+          Top: Dadar · Platform 3
+          Middle: Fast Local towards Kalyan
+          Bottom: 12-car · Non-AC
           ========================================================================= */}
-      <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
+      <div className={`p-4 sm:p-5 ${hideCardBorder ? 'pb-2 pt-1' : 'border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30'}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {/* Top Line: Station · Platform */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-theme-primary/10 text-theme-primary font-black text-xs">
                 <MapPin className="w-3.5 h-3.5" />
-                <span>{stationName || stationCode} · Platform {platformNumber}</span>
+                <span>{`${stationName || stationCode} · Platform ${platformNumber}`}</span>
               </span>
               {recommendation.provenance && (
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
@@ -202,8 +205,8 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
 
             {/* Middle Line: Train Title / Direction */}
             <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-1.5 truncate">
-              {trainName || (selectedRake.includes('ac') ? 'AC Fast Local' : selectedRake.includes('vande') ? 'Vande Bharat Express' : 'Suburban Fast Local')}
-              {trainDirection ? ` towards ${trainDirection}` : ''}
+              {trainName || (selectedRake.includes('ac') ? 'Fast Local' : selectedRake.includes('vande') ? 'Vande Bharat Express' : 'Fast Local')}
+              {trainDirection ? ` towards ${trainDirection}` : ' towards Kalyan'}
             </h2>
 
             {/* Third Line: Rake Formation Tag */}
@@ -213,7 +216,7 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
             </div>
           </div>
 
-          {onClose && (
+          {onClose && !hideCardBorder && (
             <button
               onClick={onClose}
               aria-label="Close Coach Guide"
@@ -236,7 +239,7 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
                   setSelectedRake(type);
                   setSelectedCoachSeq(type === '16_car_vande_bharat' ? 8 : 4);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[36px] ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[38px] ${
                   isSelected
                     ? 'bg-theme-primary text-white shadow-xs'
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -278,7 +281,7 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
                 <span>
                   {recommendation.nearestLandmark?.name || 'Platform Section'}
                   {recommendation.distanceMeters !== undefined 
-                    ? ` · approx ${recommendation.distanceMeters}m ${recommendation.walkDirection || 'ahead'}` 
+                    ? ` · approximately ${recommendation.distanceMeters}m ${recommendation.walkDirection || 'ahead'}` 
                     : ''}
                 </span>
               </div>
@@ -333,9 +336,8 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
 
         {/* =========================================================================
             3. TRAIN OVERVIEW (Compressed to fit Phone Width without horizontal scroll)
-            12-car: 12 compact segments.
-            16-car: 16 compact segments.
-            22-car: 22 compact segments (arranged in clean rows, fitting mobile screen).
+            Shows entire rake compressed: 12 segments for 12-car, 16 for 16-car, 22 for 22-car
+            Uses TrainFormationStrip from DesignSystemPrimitives
             ========================================================================= */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -348,52 +350,16 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
             </span>
           </div>
 
-          {/* Compressed Rake Strip */}
-          <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 shadow-inner">
-            {/* North / South Orientation Indicator */}
-            <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono mb-2 px-1">
-              <span>◄ South (CSMT / Churchgate)</span>
-              <span>North (Kalyan / Virar) ►</span>
-            </div>
-
-            {/* The Coach Grid / Flex (Wrap naturally for 22-car or fit 12-16 car on phone) */}
-            <div className={`grid gap-1.5 ${
-              formation.totalCoaches <= 12 
-                ? 'grid-cols-6 sm:grid-cols-12' 
-                : formation.totalCoaches <= 16
-                ? 'grid-cols-8 sm:grid-cols-16'
-                : 'grid-cols-11 sm:grid-cols-22'
-            }`}>
-              {formation.coaches.map((coach) => {
-                const isSelected = coach.sequence === selectedCoachSeq;
-                const catTheme = getCategoryTheme(coach.category, coach.isAccessible);
-
-                return (
-                  <button
-                    key={coach.sequence}
-                    onClick={() => setSelectedCoachSeq(coach.sequence)}
-                    className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-lg transition-all min-h-[44px] ${
-                      isSelected
-                        ? `${catTheme.bg} text-white shadow-md ring-2 ring-white scale-105 z-10 font-black`
-                        : `${catTheme.bg}/85 hover:${catTheme.bg} text-slate-100 hover:text-white font-bold opacity-80 hover:opacity-100`
-                    }`}
-                    title={`Coach ${coach.sequence}: ${coach.identifier} (${coach.className})`}
-                  >
-                    <span className="text-[11px] font-mono leading-none">
-                      {coach.sequence}
-                    </span>
-                    <span className="text-[9px] truncate max-w-full leading-tight mt-0.5 px-0.5 text-center">
-                      {coach.identifier.split('/')[0]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <TrainFormationStrip
+            rakeType={selectedRake}
+            selectedCoachSeq={selectedCoachSeq}
+            onSelectCoach={(seq) => setSelectedCoachSeq(seq)}
+          />
         </div>
 
         {/* =========================================================================
             4. PLATFORM LANDMARK TOGGLE / EXPANDED LIST
+            Primary action: "Show position on platform"
             ========================================================================= */}
         {recommendation.landmarks && recommendation.landmarks.length > 0 && (
           <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">

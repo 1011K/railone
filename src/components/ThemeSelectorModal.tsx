@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTheme, ColorTheme, THEME_CONFIG } from './ThemeContext';
+import { AccessibleModal } from './common/AccessibleModal';
 import { 
   Palette, 
   Check, 
   Sun, 
   Moon, 
-  X, 
-  Sparkles, 
   Eye, 
   ShieldCheck, 
   Train 
@@ -23,15 +22,6 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
 }) => {
   const { theme, setTheme, isDark, toggleDarkMode, language } = useTheme();
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   const themes: ColorTheme[] = [
@@ -46,167 +36,106 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
   ];
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 select-none"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <AccessibleModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Railway Livery & Palette System"
+      subtitle="8 Accessible WCAG 2.1 AAA High-Contrast Indian Railways Liveries"
+      icon={<Palette className="w-5 h-5 text-theme-primary" />}
+      variant="sheet"
+      maxWidthClass="max-w-2xl"
     >
-      <div 
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="theme-modal-title"
-      >
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-theme-primary flex items-center justify-center text-white shadow-xs">
-              <Palette className="w-5 h-5" />
+      <div className="space-y-4">
+        {/* Dark/Light Mode Switcher Row */}
+        <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60">
+          <div>
+            <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-2">
+              {isDark ? <Moon className="w-4 h-4 text-theme-primary" /> : <Sun className="w-4 h-4 text-amber-500" />}
+              <span>{isDark ? 'Dark Mode Active' : 'Light Mode Active'}</span>
             </div>
-            <div>
-              <h2 id="theme-modal-title" className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <span>{language === 'hi' ? 'दिखावट व थीम' : language === 'mr' ? 'स्वरूप आणि थीम' : 'Appearance & Rail Themes'}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-theme-light text-theme-text border border-theme-border">
-                  8 Accessible Palettes
-                </span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {language === 'hi' ? 'भारतीय रेल व मुंबई लोकल की प्रामाणिक रंग योजनाएं' : 'Authentic Indian Railways & Suburban express transit color palettes'}
-              </p>
-            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Optimized for high-contrast visibility under direct sunlight or late-night commuter travel.
+            </p>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label="Close Appearance dialog"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Mode Toggle Bar */}
-        <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-          <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <Eye className="w-4 h-4 text-theme-primary" />
-            Surface Lighting Mode:
-          </span>
           <button
             onClick={toggleDarkMode}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold border border-slate-200 dark:border-slate-600 shadow-xs hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+            className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs font-bold shadow-xs border border-slate-200 dark:border-slate-600 hover:bg-slate-50 min-h-[44px] touch-target transition-all"
           >
-            {isDark ? (
-              <>
-                <Moon className="w-3.5 h-3.5 text-amber-400" />
-                <span>Dark Mode (Active)</span>
-              </>
-            ) : (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-500" />
-                <span>Light Mode (Active)</span>
-              </>
-            )}
+            {isDark ? 'Switch to Light' : 'Switch to Dark'}
           </button>
         </div>
 
         {/* Theme Grid */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {themes.map((t) => {
-              const cfg = THEME_CONFIG[t];
-              const isSelected = theme === t;
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {themes.map((th) => {
+            const conf = THEME_CONFIG[th];
+            const isSelected = theme === th;
 
-              return (
-                <div
-                  key={t}
-                  onClick={() => setTheme(t)}
-                  className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all text-left flex flex-col justify-between ${
-                    isSelected
-                      ? 'border-theme-primary bg-slate-50/80 dark:bg-slate-800/80 shadow-md ring-2 ring-theme-primary/20'
-                      : 'border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800/40'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    {/* Header swatch & title */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div 
-                          className="w-7 h-7 rounded-xl shadow-xs border border-white/20 flex items-center justify-center text-white"
-                          style={{ backgroundColor: cfg.primaryHex }}
-                        >
-                          <Train className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <div className="font-extrabold text-xs text-slate-900 dark:text-white">
-                            {language === 'hi' ? cfg.hindiName : language === 'mr' ? cfg.marathiName : cfg.name}
-                          </div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                            {cfg.primaryHex}
-                          </div>
-                        </div>
-                      </div>
+            return (
+              <div
+                key={th}
+                onClick={() => setTheme(th)}
+                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between min-h-[64px] touch-target ${
+                  isSelected 
+                    ? 'border-theme-primary bg-theme-primary/5 dark:bg-theme-primary/10 shadow-sm' 
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Color Swatch Dot */}
+                  <div 
+                    className="w-8 h-8 rounded-xl shadow-xs flex items-center justify-center shrink-0 mt-0.5 border border-black/10"
+                    style={{ backgroundColor: conf.primaryHex }}
+                  >
+                    {isSelected && <Check className="w-4 h-4 text-white drop-shadow" />}
+                  </div>
 
-                      {isSelected && (
-                        <span className="w-5 h-5 rounded-full bg-theme-primary text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Check className="w-3 h-3" />
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-extrabold text-xs text-slate-900 dark:text-white">
+                        {conf.name}
+                      </span>
+                      {th === 'contrast' && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-800 font-bold">
+                          AAA
                         </span>
                       )}
                     </div>
-
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
-                      {cfg.description}
-                    </p>
-                  </div>
-
-                  {/* Visual Mock Element Swatches */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[10px]">
-                    <div className="flex items-center gap-1.5">
-                      <span 
-                        className="px-2 py-0.5 rounded-md font-bold text-white"
-                        style={{ backgroundColor: cfg.primaryHex }}
-                      >
-                        Button
-                      </span>
-                      <span 
-                        className="px-2 py-0.5 rounded-md font-medium border"
-                        style={{ 
-                          backgroundColor: `${cfg.primaryHex}15`,
-                          color: cfg.primaryHex,
-                          borderColor: `${cfg.primaryHex}40`
-                        }}
-                      >
-                        Active Tab
-                      </span>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                      {conf.description}
                     </div>
-
-                    <span className="text-slate-400 font-medium">
-                      {t === 'contrast' ? 'WCAG AAA' : 'WCAG AA'}
-                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-400 flex items-start gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <strong>Institutional Integrity Notice:</strong> Emergency signals, track congestion alerts, and punctual badges strictly maintain standard transit safety colors (Red = Delay &gt;30m / Prohibited, Amber = Caution, Green = On-time) regardless of the aesthetic accent palette selected.
-            </div>
+                <span className="font-mono text-[10px] text-slate-400 shrink-0 mt-0.5 ml-2">
+                  {conf.primaryHex}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Accessibility & Safety Notice */}
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+          <div>
+            <strong>Institutional Integrity Notice:</strong> Emergency signals, track congestion alerts, and punctual badges strictly maintain standard transit safety colors (Red = Delay &gt;30m / Prohibited, Amber = Caution, Green = On-time) regardless of the aesthetic accent palette selected.
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex items-center justify-between">
+        {/* Footer Actions */}
+        <div className="pt-2 flex items-center justify-between">
           <div className="text-xs text-slate-500">
-            Selected Theme: <strong className="text-slate-900 dark:text-white">{THEME_CONFIG[theme].name}</strong>
+            Selected: <strong className="text-slate-900 dark:text-white">{THEME_CONFIG[theme].name}</strong>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-theme-primary text-white font-bold text-xs shadow-xs hover-bg-theme-primary transition-colors min-h-[38px]"
+            className="px-4 py-2 rounded-xl bg-theme-primary text-white font-bold text-xs shadow-xs hover-bg-theme-primary transition-colors min-h-[44px] touch-target"
           >
             Apply & Close
           </button>
         </div>
       </div>
-    </div>
+    </AccessibleModal>
   );
 };
