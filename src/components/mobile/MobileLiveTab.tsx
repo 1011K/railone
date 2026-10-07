@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { TRAIN_TRIPS, INITIAL_OBSERVATIONS, STATIONS } from '../../fixtures/railwayData';
+import { PAN_INDIA_TRAINS, PAN_INDIA_OBSERVATIONS } from '../../fixtures/panIndiaTrainsData';
 import { computePredictedStops, PredictedStop } from '../../engine/delayModel';
 import { NetworkMapViewer } from '../NetworkMapViewer';
 import { CoachPositionGuide, RakeModelType } from '../CoachPositionGuide';
@@ -54,9 +55,21 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [expandedStopCode, setExpandedStopCode] = useState<string | null>(null);
 
+  // Sync initialTrainNumber prop updates
+  useEffect(() => {
+    if (initialTrainNumber) {
+      setSelectedTrainNumber(initialTrainNumber);
+      setActiveSubTab('tracker');
+    }
+  }, [initialTrainNumber]);
+
   // Station Board State
   const [boardStationCode, setBoardStationCode] = useState('DR');
   const [boardFilter, setBoardFilter] = useState<'all' | 'fast' | 'slow' | 'ac'>('all');
+
+  // Combined National & Suburban Train Fleet
+  const ALL_TRAINS = useMemo(() => [...TRAIN_TRIPS, ...PAN_INDIA_TRAINS], []);
+  const ALL_OBSERVATIONS = useMemo(() => ({ ...INITIAL_OBSERVATIONS, ...PAN_INDIA_OBSERVATIONS }), []);
 
   // Coach Guide State
   const [coachStationCode, setCoachStationCode] = useState('DR');
@@ -81,18 +94,19 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
     { number: '98042', label: '98042 Harbour', line: 'Harbour Line' },
     { number: '90234', label: '90234 WR Fast', line: 'Western Fast' },
     { number: '12951', label: '12951 Rajdhani', line: 'Superfast' },
-    { number: '22222', label: '22222 Vande Bharat', line: 'Vande Bharat' },
+    { number: '20901', label: '20901 Vande Bharat', line: 'Vande Bharat' },
+    { number: '22222', label: '22222 CSMT Rajdhani', line: 'Superfast' },
     { number: '12137', label: '12137 Punjab Mail', line: 'Express' }
   ];
 
   // Resolve active train & observation telemetry
   const currentTrain = useMemo(() => {
-    return TRAIN_TRIPS.find(t => t.trainNumber === selectedTrainNumber) || TRAIN_TRIPS[0];
-  }, [selectedTrainNumber]);
+    return ALL_TRAINS.find(t => t.trainNumber === selectedTrainNumber) || ALL_TRAINS[0];
+  }, [ALL_TRAINS, selectedTrainNumber]);
 
   const obs = useMemo(() => {
-    return INITIAL_OBSERVATIONS[currentTrain.trainNumber];
-  }, [currentTrain]);
+    return ALL_OBSERVATIONS[currentTrain.trainNumber];
+  }, [ALL_OBSERVATIONS, currentTrain]);
 
   const predictedStops = useMemo(() => {
     return computePredictedStops(currentTrain, obs);
@@ -116,17 +130,17 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
   const hasDeparted = obs ? obs.hasDepartedOrigin : true;
   const isCanceled = obs?.isCanceled || false;
 
-  // Filtered train list for search input
+  // Filtered train list for search input across complete national & suburban catalog
   const filteredSearchTrains = useMemo(() => {
     if (!trainSearchQuery.trim()) return [];
     const query = trainSearchQuery.toLowerCase();
-    return TRAIN_TRIPS.filter(t => 
+    return ALL_TRAINS.filter(t => 
       t.trainNumber.toLowerCase().includes(query) ||
       t.trainName.toLowerCase().includes(query) ||
       t.originStation.toLowerCase().includes(query) ||
       t.destinationStation.toLowerCase().includes(query)
     ).slice(0, 6);
-  }, [trainSearchQuery]);
+  }, [ALL_TRAINS, trainSearchQuery]);
 
   // Station Live Board departures computed from TRAIN_TRIPS
   const boardDepartures = useMemo(() => {
@@ -253,18 +267,45 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
         <div className="space-y-3.5 animate-fadeIn">
           
           {/* Quick Train Search Bar */}
-          <div className="relative">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (filteredSearchTrains.length > 0) {
+                handleSelectTrain(filteredSearchTrains[0].trainNumber);
+              } else if (trainSearchQuery.trim()) {
+                const exact = ALL_TRAINS.find(t => 
+                  t.trainNumber.toLowerCase() === trainSearchQuery.trim().toLowerCase()
+                );
+                if (exact) handleSelectTrain(exact.trainNumber);
+              }
+            }}
+            className="relative"
+          >
             <div className="relative flex items-center">
               <Search className="w-4 h-4 absolute left-3.5 text-slate-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search train number or name (e.g. 95112, 12951)..."
+                placeholder="Search train number or name (e.g. 95112, 12951, 20901)..."
                 value={trainSearchQuery}
                 onChange={(e) => setTrainSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (filteredSearchTrains.length > 0) {
+                      handleSelectTrain(filteredSearchTrains[0].trainNumber);
+                    } else if (trainSearchQuery.trim()) {
+                      const exact = ALL_TRAINS.find(t => 
+                        t.trainNumber.toLowerCase() === trainSearchQuery.trim().toLowerCase()
+                      );
+                      if (exact) handleSelectTrain(exact.trainNumber);
+                    }
+                  }
+                }}
                 className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-theme-primary shadow-xs"
               />
               {trainSearchQuery && (
                 <button
+                  type="button"
                   onClick={() => setTrainSearchQuery('')}
                   className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
@@ -279,6 +320,7 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
                 {filteredSearchTrains.map(t => (
                   <button
                     key={t.trainNumber}
+                    type="button"
                     onClick={() => handleSelectTrain(t.trainNumber)}
                     className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs transition-colors"
                   >
@@ -291,7 +333,7 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
                 ))}
               </div>
             )}
-          </div>
+          </form>
 
           {/* Quick Popular Trains Horizontal Pill Carousel */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[11px]">
@@ -896,6 +938,7 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
               onPlanRouteFromStation={onPlanRouteFromStation}
               onPlanRouteToStation={onPlanRouteToStation}
               onOpenGodsEye={onOpenGodsEye}
+              compactMode={true}
             />
           </div>
         </div>
@@ -979,7 +1022,7 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
               initialRakeType={coachRakeType}
               stationCode={coachStationCode}
               platformNumber={coachPlatform}
-              compactMode={false}
+              compactMode={true}
             />
           </div>
         </div>

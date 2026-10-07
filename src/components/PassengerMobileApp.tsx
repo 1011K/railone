@@ -14,7 +14,8 @@ import { LaunchSequence } from './LaunchSequence';
 import { OnboardingModal } from './OnboardingModal';
 import { SpecimenTicketModal } from './SpecimenTicketModal';
 import { CoachPositionGuide, RakeModelType } from './CoachPositionGuide';
-import { TRAIN_TRIPS } from '../fixtures/railwayData';
+import { TRAIN_TRIPS, STATIONS } from '../fixtures/railwayData';
+import { PAN_INDIA_TRAINS } from '../fixtures/panIndiaTrainsData';
 import { ThemeSelectorModal } from './ThemeSelectorModal';
 
 import {
@@ -168,6 +169,78 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       case 'season_pass':
         setActiveTab('journeys');
         break;
+      case 'platform_ticket': {
+        const fromStationObj = STATIONS[journeyOrigin] || STATIONS['DR'];
+        const platformItinerary: JourneyItinerary = {
+          id: `platform-${Date.now()}`,
+          legs: [{
+            legIndex: 0,
+            train: {
+              trainNumber: 'PLT-01',
+              trainName: `Platform Permit - ${fromStationObj.name}`,
+              originStation: fromStationObj.name,
+              destinationStation: fromStationObj.name,
+              serviceType: 'suburban_slow',
+              runningDays: [0, 1, 2, 3, 4, 5, 6],
+              stops: [{
+                stationCode: fromStationObj.code,
+                stationName: fromStationObj.name,
+                scheduledArrival: '00:00',
+                scheduledDeparture: '02:00',
+                platform: '1',
+                distanceKm: 0,
+                isHalt: true
+              }],
+              availableClasses: ['II'],
+              rakeType: '12_car'
+            },
+            fromStation: fromStationObj,
+            toStation: fromStationObj,
+            scheduledDep: 'Immediate',
+            scheduledArr: '+2 hrs',
+            predictedDep: 'Immediate',
+            predictedArr: '+2 hrs',
+            delayDepMinutes: 0,
+            delayArrMinutes: 0,
+            departurePlatform: 'All PFs',
+            arrivalPlatform: 'All PFs',
+            dataStatus: 'SCHEDULED',
+            crowding: {
+              level: 'LOW',
+              confidence: 'HIGH',
+              explanation: 'Platform entry access only',
+              peakWindow: false,
+              crowdReason: 'Statutory platform permit'
+            },
+            skippedStopsCount: 0,
+            stoppingPatternLabel: 'Valid 2 Hours Platform Entry'
+          }],
+          transfers: [],
+          totalDurationMinutes: 120,
+          scheduledDeparture: 'Immediate',
+          predictedDeparture: 'Immediate',
+          scheduledArrival: '+2 hrs',
+          predictedArrival: '+2 hrs',
+          totalFareByClass: { II: 10 },
+          recommendedClass: 'II',
+          eligibility: {
+            status: 'ELIGIBLE',
+            summary: 'Valid Platform Permit',
+            rulesApplied: ['Statutory UTS Platform Access Rule'],
+            validClasses: ['II'],
+            passPermitted: false,
+            ticketRequiredNote: 'Valid for 2 hours only'
+          },
+          score: 100,
+          rankReason: 'Statutory Platform Permit',
+          isRecommended: true,
+          leaveHomeTime: 'Immediate',
+          leaveHomeMarginMinutes: 0,
+          isAcService: false
+        };
+        handleOpenBooking(platformItinerary, 'II');
+        break;
+      }
       case 'wallet':
         setActiveTab('tickets');
         break;
@@ -530,18 +603,31 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         let activeRake: RakeModelType | undefined = coachGuideParams.rakeType;
 
         if (inspectedTrainNumber) {
-          const inspected = TRAIN_TRIPS.find(t => t.trainNumber === inspectedTrainNumber);
+          const allTrains = [...TRAIN_TRIPS, ...PAN_INDIA_TRAINS];
+          const inspected = allTrains.find(t => t.trainNumber === inspectedTrainNumber);
           if (inspected) {
             const firstStop = inspected.stops[0];
             activeStation = firstStop?.stationCode || activeStation;
             activePlatform = firstStop?.platform || activePlatform;
-            activeRake = inspected.serviceType.includes('ac') ? '12_car_ac_suburban' : inspected.rakeType === '15_car' ? '15_car_suburban' : '12_car_suburban';
+            activeRake = inspected.serviceType.includes('vande')
+              ? '16_car_vande_bharat'
+              : inspected.serviceType.includes('ac')
+              ? '12_car_ac_suburban'
+              : inspected.rakeType === '15_car'
+              ? '15_car_suburban'
+              : '12_car_suburban';
           }
         } else if (selectedItinerary) {
           const firstLeg = selectedItinerary.legs[0];
           activeStation = firstLeg.fromStation.code;
           activePlatform = firstLeg.departurePlatform;
-          activeRake = firstLeg.train.serviceType.includes('ac') ? '12_car_ac_suburban' : firstLeg.train.rakeType === '15_car' ? '15_car_suburban' : '12_car_suburban';
+          activeRake = firstLeg.train.serviceType.includes('vande')
+            ? '16_car_vande_bharat'
+            : firstLeg.train.serviceType.includes('ac')
+            ? '12_car_ac_suburban'
+            : firstLeg.train.rakeType === '15_car'
+            ? '15_car_suburban'
+            : '12_car_suburban';
         }
 
         return (
@@ -567,6 +653,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
                 platformNumber={activePlatform}
                 initialRakeType={activeRake}
                 onClose={() => setShowCoachGuide(false)}
+                compactMode={true}
               />
             </div>
           </div>

@@ -47,13 +47,15 @@ interface NetworkMapViewerProps {
   onPlanRouteToStation?: (stationCode: string) => void;
   onInspectTrainSchedule?: (trainNumber: string) => void;
   onOpenGodsEye?: (stationCode: string) => void;
+  compactMode?: boolean;
 }
 
 export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
   onPlanRouteFromStation,
   onPlanRouteToStation,
   onInspectTrainSchedule,
-  onOpenGodsEye
+  onOpenGodsEye,
+  compactMode = false
 }) => {
   const { language } = useTheme();
   const [scope, setScope] = useState<MapScope>('mumbai_suburban');
@@ -307,9 +309,68 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className={compactMode ? "space-y-2.5" : "space-y-6"}>
       
       {/* Header & Controls Toolbar */}
+      {compactMode ? (
+        <div className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs shadow-xs space-y-2">
+          <div className="flex items-center justify-between gap-1 overflow-x-auto pb-0.5 no-scrollbar text-[10px]">
+            {/* Quick scope / line chips */}
+            <div className="flex items-center gap-1">
+              {[
+                { id: 'all', label: 'All Lines', targetScope: 'mumbai_suburban' as MapScope },
+                { id: 'western', label: 'Western', targetScope: 'mumbai_suburban' as MapScope },
+                { id: 'central', label: 'Central', targetScope: 'mumbai_suburban' as MapScope },
+                { id: 'harbour', label: 'Harbour', targetScope: 'mumbai_suburban' as MapScope },
+                { id: 'metro', label: 'Metro', targetScope: 'mumbai_metro' as MapScope },
+                { id: 'pan_india', label: 'Trunk', targetScope: 'pan_india' as MapScope },
+              ].map(chip => {
+                const isActive = chip.targetScope === 'pan_india' 
+                  ? scope === 'pan_india' 
+                  : chip.targetScope === 'mumbai_metro'
+                  ? scope === 'mumbai_metro'
+                  : scope === 'mumbai_suburban' && suburbanLineFilter === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    onClick={() => {
+                      if (chip.targetScope !== scope) handleScopeChange(chip.targetScope);
+                      if (chip.targetScope === 'mumbai_suburban') setSuburbanLineFilter(chip.id);
+                    }}
+                    className={`px-2.5 py-1 rounded-xl whitespace-nowrap font-bold transition-all active:scale-95 ${
+                      isActive
+                        ? 'bg-theme-primary text-white shadow-xs'
+                        : 'bg-slate-800 text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Quick 2D / 3D and Disruption toggles */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setRenderMode(renderMode === '2d' ? '3d' : '2d')}
+                className="px-2 py-1 rounded-xl bg-slate-800 text-cyan-300 font-mono font-bold border border-slate-700 active:scale-95"
+              >
+                {renderMode === '2d' ? '3D' : '2D'}
+              </button>
+              <button
+                onClick={() => setDelayFilter(delayFilter === 'all' ? 'disrupted' : 'all')}
+                className={`px-2 py-1 rounded-xl font-bold border active:scale-95 ${
+                  delayFilter === 'disrupted'
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                }`}
+              >
+                {delayFilter === 'disrupted' ? 'Delayed Only' : 'Delays'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
@@ -590,12 +651,13 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Main Map Viewport & Sidebar Inspector Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className={compactMode ? "w-full" : "grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"}>
         
-        {/* Interactive SVG Canvas (8 cols on lg) */}
-        <div className="lg:col-span-8 bg-[#090d16] rounded-3xl border border-slate-800 shadow-2xl overflow-hidden relative select-none">
+        {/* Interactive SVG Canvas */}
+        <div className={`${compactMode ? 'w-full' : 'lg:col-span-8'} bg-[#090d16] rounded-3xl border border-slate-800 shadow-2xl overflow-hidden relative select-none`}>
           
           {/* Canvas Floating Overlay Controls */}
           <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
@@ -688,7 +750,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
 
           {/* Floating On-Canvas Station Quick Inspector Card */}
           {activeStation && (
-            <div className="absolute top-16 left-4 z-20 max-w-sm bg-slate-900/95 text-white p-4 rounded-3xl border border-slate-700/90 shadow-2xl backdrop-blur-md animate-in fade-in duration-200">
+            <div className={`absolute top-14 ${compactMode ? 'left-2 right-2' : 'left-4 max-w-sm'} z-20 bg-slate-900/95 text-white p-3.5 rounded-3xl border border-slate-700/90 shadow-2xl backdrop-blur-md animate-in fade-in duration-200`}>
               <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
                 <div>
                   <div className="flex items-center gap-2">
@@ -769,7 +831,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            className={`w-full h-[580px] sm:h-[680px] overflow-hidden cursor-${isDragging ? 'grabbing' : 'grab'}`}
+            className={`w-full ${compactMode ? 'h-[440px]' : 'h-[580px] sm:h-[680px]'} overflow-hidden cursor-${isDragging ? 'grabbing' : 'grab'}`}
           >
             <svg 
               className="w-full h-full transition-transform duration-75 ease-out"
@@ -1031,208 +1093,210 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
         </div>
 
         {/* Sidebar Inspector Panel (4 cols on lg) */}
-        <div className="lg:col-span-4 space-y-4">
-          
-          {/* Station Details Card */}
-          {activeStation && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4" />
-                  Station Waypoint Details
-                </span>
-                <button
-                  onClick={() => setSelectedStationCode(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+        {!compactMode && (
+          <div className="lg:col-span-4 space-y-4">
+            
+            {/* Station Details Card */}
+            {activeStation && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4" />
+                    Station Waypoint Details
+                  </span>
+                  <button
+                    onClick={() => setSelectedStationCode(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
 
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
-                  {activeStation.name}
-                </h3>
-                {activeStation.hindiName && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    {activeStation.hindiName} {activeStation.marathiName ? `• ${activeStation.marathiName}` : ''}
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                    {activeStation.name}
+                  </h3>
+                  {activeStation.hindiName && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      {activeStation.hindiName} {activeStation.marathiName ? `• ${activeStation.marathiName}` : ''}
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Code: <code className="font-mono font-bold text-slate-800 dark:text-slate-200">{activeStation.code}</code> • Platforms: {activeStation.platforms.join(', ')} • {activeStation.city} {activeStation.zone ? `(${activeStation.zone})` : ''}
                   </p>
-                )}
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Code: <code className="font-mono font-bold text-slate-800 dark:text-slate-200">{activeStation.code}</code> • Platforms: {activeStation.platforms.join(', ')} • {activeStation.city} {activeStation.zone ? `(${activeStation.zone})` : ''}
-                </p>
-                <div className="flex flex-wrap items-center gap-2 mt-3.5">
-                  {onPlanRouteFromStation && (
-                    <button
-                      onClick={() => onPlanRouteFromStation(activeStation.code)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-theme-primary text-white font-bold text-xs shadow-xs hover-bg-theme-primary transition-colors"
-                    >
-                      <ArrowRight className="w-3.5 h-3.5" />
-                      <span>Plan Journey From {activeStation.name}</span>
-                    </button>
-                  )}
-                  {onPlanRouteToStation && (
-                    <button
-                      onClick={() => onPlanRouteToStation(activeStation.code)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-colors"
-                    >
-                      <MapPin className="w-3.5 h-3.5 text-theme-primary" />
-                      <span>Plan Journey To {activeStation.name}</span>
-                    </button>
-                  )}
-                  {onOpenGodsEye && (
-                    <button
-                      onClick={() => onOpenGodsEye(activeStation.code)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-colors"
-                    >
-                      <Eye className="w-3.5 h-3.5 text-theme-primary" />
-                      <span>3D Station Layout</span>
-                    </button>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2 mt-3.5">
+                    {onPlanRouteFromStation && (
+                      <button
+                        onClick={() => onPlanRouteFromStation(activeStation.code)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-theme-primary text-white font-bold text-xs shadow-xs hover-bg-theme-primary transition-colors"
+                      >
+                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span>Plan Journey From {activeStation.name}</span>
+                      </button>
+                    )}
+                    {onPlanRouteToStation && (
+                      <button
+                        onClick={() => onPlanRouteToStation(activeStation.code)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-colors"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-theme-primary" />
+                        <span>Plan Journey To {activeStation.name}</span>
+                      </button>
+                    )}
+                    {onOpenGodsEye && (
+                      <button
+                        onClick={() => onOpenGodsEye(activeStation.code)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-theme-primary" />
+                        <span>3D Station Layout</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Trains Calling At This Station */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                    Scheduled Services Calling ({activeStationCallingTrains.length || activeStation.passingTrainCount || 0}):
+                  </h4>
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {activeStationCallingTrains.length > 0 ? (
+                      activeStationCallingTrains.map(t => {
+                        const stop = t.stops.find(s => s.stationCode === activeStation.code);
+                        return (
+                          <div 
+                            key={t.trainNumber}
+                            onClick={() => handleFocusTrain(t.trainNumber)}
+                            className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-theme-light cursor-pointer border border-slate-100 dark:border-slate-800 text-xs transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                {t.trainNumber} • {t.trainName}
+                              </span>
+                              <span className="font-mono text-theme-primary font-bold">
+                                {stop?.scheduledArrival || stop?.scheduledDeparture}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              {t.originStation} ➔ {t.destinationStation} (Platform {stop?.platform || '1'})
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl text-xs text-slate-500">
+                        Regular trunk and express passenger services operate daily on scheduled railway timetables.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Trains Calling At This Station */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Scheduled Services Calling ({activeStationCallingTrains.length || activeStation.passingTrainCount || 0}):
-                </h4>
-                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                  {activeStationCallingTrains.length > 0 ? (
-                    activeStationCallingTrains.map(t => {
-                      const stop = t.stops.find(s => s.stationCode === activeStation.code);
-                      return (
-                        <div 
-                          key={t.trainNumber}
-                          onClick={() => handleFocusTrain(t.trainNumber)}
-                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-theme-light cursor-pointer border border-slate-100 dark:border-slate-800 text-xs transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-800 dark:text-slate-200">
-                              {t.trainNumber} • {t.trainName}
-                            </span>
-                            <span className="font-mono text-theme-primary font-bold">
-                              {stop?.scheduledArrival || stop?.scheduledDeparture}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            {t.originStation} ➔ {t.destinationStation} (Platform {stop?.platform || '1'})
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl text-xs text-slate-500">
-                      Regular trunk and express passenger services operate daily on scheduled railway timetables.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Track Segment Inspection Card */}
-          {activeSegment && !activeStation && !activeTrain && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
-                  <Activity className="w-4 h-4" />
-                  Track Corridor Details
-                </span>
-                <span className={`text-xs px-2 py-0.5 rounded-md font-bold uppercase ${
-                  activeSegment.congestionLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
-                  activeSegment.congestionLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300' :
-                  activeSegment.congestionLevel === 'MODERATE' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
-                  'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                }`}>
-                  {activeSegment.congestionLevel} Congestion
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>{activeSegment.fromName}</span>
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
-                  <span>{activeSegment.toName}</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Section Code: <code className="font-mono text-slate-700 dark:text-slate-300 font-bold">{activeSegment.id}</code> • {activeSegment.distanceKm} km
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                    Average Section Delay:
+            {/* Track Segment Inspection Card */}
+            {activeSegment && !activeStation && !activeTrain && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
+                    <Activity className="w-4 h-4" />
+                    Track Corridor Details
                   </span>
-                  <span className={`text-2xl font-black ${
-                    activeSegment.averageDelayMinutes >= 15 ? 'text-red-500' :
-                    activeSegment.averageDelayMinutes >= 6 ? 'text-amber-500' :
-                    'text-emerald-500'
+                  <span className={`text-xs px-2 py-0.5 rounded-md font-bold uppercase ${
+                    activeSegment.congestionLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
+                    activeSegment.congestionLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300' :
+                    activeSegment.congestionLevel === 'MODERATE' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
                   }`}>
-                    +{activeSegment.averageDelayMinutes} mins
+                    {activeSegment.congestionLevel} Congestion
                   </span>
                 </div>
-              </div>
 
-              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs">
-                <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 mb-1">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  Disruption Status:
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>{activeSegment.fromName}</span>
+                    <ArrowRight className="w-4 h-4 text-slate-400" />
+                    <span>{activeSegment.toName}</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Section Code: <code className="font-mono text-slate-700 dark:text-slate-300 font-bold">{activeSegment.id}</code> • {activeSegment.distanceKm} km
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      Average Section Delay:
+                    </span>
+                    <span className={`text-2xl font-black ${
+                      activeSegment.averageDelayMinutes >= 15 ? 'text-red-500' :
+                      activeSegment.averageDelayMinutes >= 6 ? 'text-amber-500' :
+                      'text-emerald-500'
+                    }`}>
+                      +{activeSegment.averageDelayMinutes} mins
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs">
+                  <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 mb-1">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    Disruption Status:
+                  </span>
+                  <p className="text-amber-900 dark:text-amber-200 font-medium leading-relaxed">
+                    {activeSegment.disruptionReason || 'Punctual transit flow: Automated track circuits operating with standard headway.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Train Details Card */}
+            {activeTrain && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
+                    <Train className="w-4 h-4" />
+                    Train Service Overview
+                  </span>
+                  <button
+                    onClick={() => setSelectedTrainNumber(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                    {activeTrain.trainNumber} — {activeTrain.trainName}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Type: <span className="font-bold uppercase">{activeTrain.serviceType.replace('_', ' ')}</span> • {activeTrain.originStation} ➔ {activeTrain.destinationStation}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Fallback default helper card when nothing is selected */}
+            {!activeStation && !activeSegment && !activeTrain && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Info className="w-4 h-4 text-theme-primary" />
+                  Interactive Map Guide
                 </span>
-                <p className="text-amber-900 dark:text-amber-200 font-medium leading-relaxed">
-                  {activeSegment.disruptionReason || 'Punctual transit flow: Automated track circuits operating with standard headway.'}
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Click any station node or track corridor to inspect scheduled platforms, calling trains, transfer FOB walkways, and live delay telemetry.
                 </p>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 space-y-1">
+                  <div>• <strong>Pan & Zoom:</strong> Drag to pan, use + / - buttons to zoom.</div>
+                  <div>• <strong>Quick Search:</strong> Type any station code (e.g. NGP, R, DR, KYN) or train number above.</div>
+                  <div>• <strong>Transit Modes:</strong> Switch between Suburban, Metro, and Pan-India views.</div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Train Details Card */}
-          {activeTrain && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-theme-primary flex items-center gap-1.5">
-                  <Train className="w-4 h-4" />
-                  Train Service Overview
-                </span>
-                <button
-                  onClick={() => setSelectedTrainNumber(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
-                  {activeTrain.trainNumber} — {activeTrain.trainName}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Type: <span className="font-bold uppercase">{activeTrain.serviceType.replace('_', ' ')}</span> • {activeTrain.originStation} ➔ {activeTrain.destinationStation}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Fallback default helper card when nothing is selected */}
-          {!activeStation && !activeSegment && !activeTrain && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Info className="w-4 h-4 text-theme-primary" />
-                Interactive Map Guide
-              </span>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Click any station node or track corridor to inspect scheduled platforms, calling trains, transfer FOB walkways, and live delay telemetry.
-              </p>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 space-y-1">
-                <div>• <strong>Pan & Zoom:</strong> Drag to pan, use + / - buttons to zoom.</div>
-                <div>• <strong>Quick Search:</strong> Type any station code (e.g. NGP, R, DR, KYN) or train number above.</div>
-                <div>• <strong>Transit Modes:</strong> Switch between Suburban, Metro, and Pan-India views.</div>
-              </div>
-            </div>
-          )}
-
-        </div>
+          </div>
+        )}
       </div>
 
     </div>

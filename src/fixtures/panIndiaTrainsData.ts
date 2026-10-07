@@ -244,6 +244,26 @@ export const PAN_INDIA_TRAINS: TrainTrip[] = [
       { stationCode: 'AGC', stationName: 'Agra Cantt', scheduledArrival: '17:40', scheduledDeparture: '17:45', platform: '1', distanceKm: 1344, isHalt: true, dayOffset: 1 },
       { stationCode: 'NDLS', stationName: 'New Delhi', scheduledArrival: '21:30', scheduledDeparture: '21:30', platform: '3', distanceKm: 1543, isHalt: true, dayOffset: 1 }
     ]
+  },
+
+  // 13. CSMT Rajdhani / Vande Bharat (CSMT -> NZM)
+  {
+    trainNumber: '22222',
+    trainName: 'CSMT Rajdhani Express',
+    hindiName: 'सीएसएमटी राजधानी एक्सप्रेस',
+    originStation: 'CSMT',
+    destinationStation: 'NZM',
+    serviceType: 'superfast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: 'lhb_express',
+    availableClasses: ['1A', '2A', '3A'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'Mumbai CSMT', scheduledArrival: '16:00', scheduledDeparture: '16:00', platform: '18', distanceKm: 0, isHalt: true },
+      { stationCode: 'KYN', stationName: 'Kalyan Jn', scheduledArrival: '16:43', scheduledDeparture: '16:45', platform: '4', distanceKm: 54, isHalt: true },
+      { stationCode: 'BPL', stationName: 'Bhopal Jn', scheduledArrival: '02:00', scheduledDeparture: '02:05', platform: '2', distanceKm: 837, isHalt: true, dayOffset: 1 },
+      { stationCode: 'AGC', stationName: 'Agra Cantt', scheduledArrival: '07:50', scheduledDeparture: '07:52', platform: '1', distanceKm: 1344, isHalt: true, dayOffset: 1 },
+      { stationCode: 'NZM', stationName: 'Hazrat Nizamuddin', scheduledArrival: '09:55', scheduledDeparture: '09:55', platform: '2', distanceKm: 1535, isHalt: true, dayOffset: 1 }
+    ]
   }
 ];
 
@@ -460,5 +480,23 @@ export const PAN_INDIA_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     dataSource: 'CR Operations Control',
     dataRetrievedAt: '20:32',
     uncertaintyMarginMinutes: 1
+  },
+
+  // CSMT Rajdhani / Vande Bharat 22222: Punctual +0 min
+  '22222': {
+    trainNumber: '22222',
+    serviceDate: '2026-10-06',
+    currentStationCode: 'KYN',
+    lastReportedStationCode: 'CSMT',
+    lastReportedTimestamp: '16:44',
+    hasDepartedOrigin: true,
+    actualOriginDeparture: '16:00',
+    delayMinutesAtCurrent: 0,
+    isCanceled: false,
+    disruptionReason: 'Punctual transit flow: Automated track circuits operating with standard headway',
+    dataStatus: 'DEMO',
+    dataSource: 'CR Operations Control',
+    dataRetrievedAt: '16:45',
+    uncertaintyMarginMinutes: 0
   }
 };
