@@ -99,8 +99,8 @@ Return ONLY valid JSON array of objects with keys:
 
   if (q.includes('delay') || q.includes('signal') || q.includes('late') || q.includes('crowd')) {
     fallbackTasks.push({
-      title: 'Execute Delay Inversion Reroute',
-      description: 'Fast line delayed due to Vidyavihar signal bunching. Switch to Slow Local at current station to arrive 14 min earlier.',
+      title: 'Delay Inversion Assessment [TIMETABLE MODEL]',
+      description: 'Check sectional headway between Fast and Slow corridors. When fast lines bunch, slow local services can offer faster transfer.',
       category: 'DISRUPTION_RECOVERY',
       priority: 'P0_CRITICAL',
       dueTime: 'Immediate',
@@ -111,7 +111,7 @@ Return ONLY valid JSON array of objects with keys:
 
   fallbackTasks.push({
     title: 'Dynamic Leave-Home Window Advisory',
-    description: 'Allow 15 min walking buffer. Train delayed at origin shed; do not depart before recommended threshold.',
+    description: 'Allow standard walking buffer before scheduled departure. Verify platform headway before departing origin.',
     category: 'JOURNEY_PLANNING',
     priority: 'P1_HIGH',
     dueTime: '10:48',
@@ -176,15 +176,15 @@ Always be direct, empathetic, and specify actionable platform numbers and timing
 
   // Deterministic Domain Fallback response
   const q = query.toLowerCase();
-  let fallbackReply = `Namaste! Based on current Mumbai suburban line operations:\n`;
+  let fallbackReply = `Namaste! Based on timetable schedule information [TIMETABLE MODEL]:\n`;
   if (q.includes('dadar') && q.includes('churchgate')) {
     fallbackReply += `If traveling from Thane to Churchgate via Dadar, alight at Dadar CR Platform 6/7, take the northern Foot Overbridge (FOB) across to Western Railway Platform 1/2. Allow at least 7 minutes walking buffer. An AC Fast Local is scheduled every 20-30 minutes.`;
   } else if (q.includes('ac') || q.includes('fare')) {
     fallbackReply += `Suburban AC Local fare for Thane to Dadar is ₹95 (Single Journey), compared to ₹10 for Second Class and ₹105 for First Class. Ordinary First Class season passes are NOT valid in AC Locals without AC surcharge coupon.`;
   } else if (q.includes('delay') || q.includes('late')) {
-    fallbackReply += `Active Signal Alert: Central Line Fast tracks have a +22 min delay at Vidyavihar. Catch Slow Local 97045 departing Platform 1 for a faster arrival than held-up Fast Local 95112.`;
+    fallbackReply += `Delay & Headway Advisory [TIMETABLE MODEL]: Check real-time headway on the Live Status screen. During peak-hour congestion, Slow Local services on local lines often avoid fast line bunching between Thane and Kurla.`;
   } else {
-    fallbackReply += `For your route, the optimal choice depends on current sectional headway. Check the Journey Decision Engine to view real-time delay inversions and legal eligibility for express short-hops.`;
+    fallbackReply += `For your route, check the Journey Decision Engine to view scheduled headways, interchanges, and legal ticket validity.`;
   }
 
   return res.json({ reply: fallbackReply, source: 'deterministic_fallback' });
@@ -195,14 +195,9 @@ app.post('/api/ai/grievance', async (req, res) => {
   const { complaintType, trainNumber, coachNumber, description } = req.body;
 
   const systemInstruction = `
-You are the RailMadad official grievance drafting assistant for Indian Railways.
+You are the RailMadad grievance drafting assistant for Indian Railways passengers.
 Draft a formal, concise, and structured complaint following official railway grievance standards.
-Include:
-1. Incident Summary
-2. Train & Coach Identification (${trainNumber || 'N/A'}, Coach: ${coachNumber || 'N/A'})
-3. Categorized Issue (${complaintType})
-4. Designated Railway Routing Department (e.g. Mechanical/Electrical Carriage & Wagon, Commercial, RPF)
-5. Demanded Action & Safety Assessment
+Clearly label as a passenger draft template.
 `;
 
   if (aiClient) {
@@ -224,20 +219,22 @@ Include:
     }
   }
 
-  const fallbackDraft = `OFFICIAL GRIEVANCE DRAFT — INDIAN RAILWAYS RAILMADAD
+  const fallbackDraft = `PASSENGER GRIEVANCE DRAFT TEMPLATE [DEMO / NOT SUBMITTED TO RAILMADAD]
 Reference Category: ${complaintType || 'COACH_ELECTRICAL_FAILURE'}
 Train Number: ${trainNumber || '95114 AC Local'}
 Coach Number: ${coachNumber || 'AC-03'}
 Incident Date/Time: ${new Date().toLocaleString('en-IN')}
 
 INCIDENT DETAILS:
-Air conditioning system cooling failure reported inside Coach ${coachNumber || 'AC-03'}. High ambient temperature and heavy passenger load causing severe discomfort and poor ventilation.
+${description || 'Air conditioning system cooling malfunction reported inside passenger coach. High ambient temperature and heavy passenger load causing poor ventilation.'}
 
-ROUTING DEPARTMENT:
+ROUTING DEPARTMENT (RECOMMENDED):
 Senior Divisional Electrical Engineer (Rolling Stock / C&W), Central Railway Division.
 
 REQUESTED CORRECTIVE ACTION:
-Immediate mechanical/electrical staff attendance at next major halt (Dadar / CSMT) to reset thermostat and inspect auxiliary compressor unit.`;
+Inspection and attendant service at next major halt (Dadar / CSMT).
+
+DISCLAIMER: This is an educational draft template generated by RailOne Next. To submit an official grievance, please visit https://railmadad.indianrailways.gov.in or call 139.`;
 
   return res.json({ draft: fallbackDraft, source: 'deterministic_fallback' });
 });
@@ -245,15 +242,7 @@ Immediate mechanical/electrical staff attendance at next major halt (Dadar / CSM
 // 4. System Health Check
 app.get('/api/health', (req, res) => {
   const health = checkSystemHealth(!!aiClient);
-  res.json({
-    status: health.status,
-    geminiConfigured: !!aiClient,
-    model: 'gemini-3.8-flash',
-    uptimeSeconds: health.uptimeSeconds,
-    database: health.database,
-    modulesCount: health.modulesCount,
-    timestamp: health.timestamp
-  });
+  res.json(health);
 });
 
 // ---------------------------------------------------------------------------

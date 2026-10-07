@@ -1777,8 +1777,8 @@ export const TRAIN_TRIPS: TrainTrip[] = [
 ];
 
 /**
- * Baseline Real-Time Scenario Observations
- * Deterministic scenario fixtures modeling realistic delays, downstream accumulations, and disruptions.
+ * Baseline Scenario Observations [SCENARIO / SIMULATED MODEL]
+ * Deterministic scenario fixtures modeling delays and disruptions. Not a live telemetry feed.
  */
 export const INITIAL_OBSERVATIONS: Record<string, TrainRunningObservation> = {
   // Scenario: Kalyan - CSMT Fast Local 95112 has compounding delay (+22 min at Kurla)

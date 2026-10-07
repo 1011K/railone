@@ -148,19 +148,29 @@ v1Router.post('/fares/quote', (req: Request, res: Response) => {
   const { serviceType, distanceKm, from, to, fromStationCode, toStationCode, travelClass = 'II', isSuperfast = false } = req.body;
   const orig = from || fromStationCode;
   const dest = to || toStationCode;
-  let dist = distanceKm ? Number(distanceKm) : 0;
-  if (!dist && orig && dest) {
+  let dist = distanceKm ? Number(distanceKm) : null;
+  if (dist === null && orig && dest) {
     dist = calculateStationDistance(orig, dest);
   }
-  if (!dist) dist = 25;
+
+  if (dist === null || isNaN(dist) || dist <= 0) {
+    return res.status(400).json({
+      error: 'DISTANCE_UNAVAILABLE',
+      message: `Track distance between ${orig || 'unknown origin'} and ${dest || 'unknown destination'} is unmapped. Official fare cannot be fabricated without verified distance.`
+    });
+  }
 
   let quote;
-  if (serviceType === 'metro') {
-    quote = calculateMetroFare(dist);
-  } else if (serviceType === 'express') {
-    quote = calculateExpressFare(dist, travelClass as TravelClass, !!isSuperfast);
-  } else {
-    quote = calculateSuburbanFare(dist, travelClass as TravelClass);
+  try {
+    if (serviceType === 'metro') {
+      quote = calculateMetroFare(dist);
+    } else if (serviceType === 'express') {
+      quote = calculateExpressFare(dist, travelClass as TravelClass, !!isSuperfast);
+    } else {
+      quote = calculateSuburbanFare(dist, travelClass as TravelClass);
+    }
+  } catch (err: any) {
+    return res.status(400).json({ error: 'FARE_CALCULATION_ERROR', message: err.message });
   }
 
   res.json({ quote, distanceKm: dist });
@@ -191,7 +201,7 @@ v1Router.post('/eligibility/validate', (req: Request, res: Response) => {
 // 7. Disruption Recovery & Replanning
 // ---------------------------------------------------------------------------
 v1Router.post('/disruptions/replan', (req: Request, res: Response) => {
-  const { currentStationCode, destinationStationCode, delayedTrainNumber, reportedDelayMinutes } = req.body;
+  const { currentStationCode, destinationStationCode, delayedTrainNumber, reportedDelayMinutes, departureTime } = req.body;
   if (!currentStationCode || !destinationStationCode) {
     return res.status(400).json({ error: 'INVALID_PARAMS', message: 'currentStationCode and destinationStationCode are required.' });
   }
@@ -200,7 +210,8 @@ v1Router.post('/disruptions/replan', (req: Request, res: Response) => {
     currentStationCode,
     destinationStationCode,
     delayedTrainNumber,
-    reportedDelayMinutes
+    reportedDelayMinutes,
+    departureTime
   });
 
   res.json(result);

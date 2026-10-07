@@ -56,7 +56,7 @@ Rather than dismissing these issues as intermittent glitches, **RailOne Next 3.0
 - **RailOne Next 3.0 Engineering Solution**:
   - **Legal Eligibility Gating Engine** (`src/engine/eligibilityEngine.ts`): Enforces Section 138 commercial rules at the route filtering layer.
   - Categorizes all trains on suburban corridors:
-    - `PROHIBITED`: Long-distance Mail/Express trains without MST concession (e.g., 11019 Konark Express). Ordinary suburban single/return and season tickets are strictly prohibited. The UI prominently displays Section 138 penalty warnings ($₹250 \text{ minimum penalty} + \text{fare difference}$).
+    - `PROHIBITED`: Long-distance Mail/Express trains without MST concession (e.g., 11019 Konark Express). Ordinary suburban single/return and season tickets are strictly prohibited. The UI prominently displays Section 138 penalty warnings ($₹500 \text{ minimum penalty, amended} + \text{fare difference}$).
     - `CONDITIONAL`: Authorized trains on the Central Railway MST schedule (e.g., 12124 Deccan Queen). Permitted **only** in unreserved General Second Class (GS) coaches; prohibited in reserved Chair Car (CC) or Executive Class (EC).
     - `ELIGIBLE`: Regular Mumbai Suburban EMU services (Slow, Fast, AC Local).
   - Hard eligibility gates are never bypassed for journey speed.

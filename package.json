@@ -10,7 +10,15 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx tests/run-all-tests.ts"
+    "test": "tsx tests/run-all-tests.ts",
+    "mobile:dev": "npm --prefix apps/mobile run start",
+    "mobile:web": "npm --prefix apps/mobile run web",
+    "mobile:android": "npm --prefix apps/mobile run android",
+    "mobile:ios": "npm --prefix apps/mobile run ios",
+    "mobile:lint": "npm --prefix apps/mobile run lint",
+    "mobile:doctor": "npm --prefix apps/mobile run doctor",
+    "mobile:build-web": "npm --prefix apps/mobile run build:web",
+    "mobile:prebuild": "npm --prefix apps/mobile run prebuild"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

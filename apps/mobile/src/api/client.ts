@@ -1,12 +1,45 @@
-/**
- * Typed Backend Client for RailOne Next Mobile Application
- * Directly targets the versioned /api/v1 service-oriented backend contracts.
- */
+import { currentPlatform, expoHostUri, isPhysicalDevice } from './platformHelper';
 
-const BASE_URL = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:3000/api/v1';
+export function resolveApiBaseUrl(): string {
+  // 1. Explicit environment variable override
+  if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Web browser: standard origin or localhost:3000
+  if (currentPlatform === 'web') {
+    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+      return `${window.location.protocol}//${window.location.hostname}:3000/api/v1`;
+    }
+    return 'http://localhost:3000/api/v1';
+  }
+
+  // 3. Expo development server host URI (auto-detects local LAN IP for physical device & emulator)
+  if (expoHostUri) {
+    const host = expoHostUri.split(':')[0];
+    return `http://${host}:3000/api/v1`;
+  }
+
+  // 4. Physical device guard: throw explicit error when physical device lacks API configuration
+  if (isPhysicalDevice) {
+    throw new Error(
+      'RailOne backend unreachable: Physical device detected without configured API URL. ' +
+      'Please configure EXPO_PUBLIC_API_URL or run via Expo Dev Server on the same Wi-Fi network.'
+    );
+  }
+
+  // 5. Android Emulator loopback
+  if (currentPlatform === 'android') {
+    return 'http://10.0.2.2:3000/api/v1';
+  }
+
+  // 6. iOS Simulator / Node / Default
+  return 'http://localhost:3000/api/v1';
+}
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${BASE_URL}${endpoint}`;
+  const baseUrl = resolveApiBaseUrl();
+  const url = `${baseUrl}${endpoint}`;
   try {
     const res = await fetch(url, {
       ...options,
@@ -30,6 +63,8 @@ async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T>
 }
 
 export const MobileApiClient = {
+  resolveApiBaseUrl,
+
   // 1. Stations
   async searchStations(q: string, line?: string): Promise<any[]> {
     const params = new URLSearchParams({ q });
@@ -81,6 +116,7 @@ export const MobileApiClient = {
     fromStationCode: string;
     toStationCode: string;
     classBooked: string;
+    ticketType?: 'STANDARD_JOURNEY' | 'RETURN_JOURNEY' | 'SEASON_MST' | 'PLATFORM_TICKET' | 'METRO_TOKEN' | 'UNRESERVED_SUBURBAN';
     quota?: string;
     passengers: Array<{ name: string; age: number; gender: string }>;
     paymentMethod?: string;

@@ -1059,6 +1059,7 @@ console.log('\nTest Suite 22: Service-Oriented Backend Architecture, SQLite Pers
   const bviToCcgDist = calculateStationDistance('BVI', 'CCG');
   const sameDist = calculateStationDistance('CSMT', 'CSMT');
   assert(
+    tnaToCcgDist !== null && bviToCcgDist !== null &&
     Math.round(tnaToCcgDist) === 35 && Math.round(bviToCcgDist) === 34 && sameDist === 0,
     '22.16: Station distance engine accurately calculates track kilometers across lines'
   );
@@ -1091,6 +1092,7 @@ console.log('\nTest Suite 23: Native Mobile Application (Expo / React Native), O
     'app/(tabs)/journeys.tsx',
     'app/(tabs)/status.tsx',
     'app/(tabs)/tickets.tsx',
+    'app/(tabs)/railsathi.tsx',
     'app/(tabs)/help.tsx',
     'app/call.tsx',
     'app/booking/express.tsx',
@@ -1099,7 +1101,7 @@ console.log('\nTest Suite 23: Native Mobile Application (Expo / React Native), O
     'app/wayfinding.tsx'
   ];
   const allScreensExist = mobileScreens.every(sc => fs.existsSync(path.resolve(process.cwd(), 'apps/mobile', sc)));
-  assert(allScreensExist, '23.3: All 12 native Expo Router mobile screens and layouts exist');
+  assert(allScreensExist, '23.3: All 13 native Expo Router mobile screens and layouts exist');
 
   // 23.4: Authentic Railway Theme Palettes (8 Livery Themes)
   const themeKeys = Object.keys(THEME_PALETTES);

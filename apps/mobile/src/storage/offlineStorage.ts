@@ -74,5 +74,47 @@ export const OfflineStorage = {
 
   getSavedJourneys(): Array<{ id: string; fromStationCode: string; fromStationName: string; toStationCode: string; toStationName: string; preferredClass?: string }> {
     return memoryCache.get('saved_journeys') || [];
+  },
+
+  // 5. User Preferences & Onboarding
+  getUserCity(): string {
+    return memoryCache.get('user_city') || 'mumbai';
+  },
+
+  setUserCity(city: string): void {
+    memoryCache.set('user_city', city);
+  },
+
+  getUserProfile(): { name?: string; phone?: string; isGuest: boolean } | null {
+    return memoryCache.get('user_profile') || null;
+  },
+
+  setUserProfile(profile: { name?: string; phone?: string; isGuest: boolean }): void {
+    memoryCache.set('user_profile', profile);
+  },
+
+  getLocationConsent(): boolean | null {
+    const val = memoryCache.get('location_consent');
+    return val !== undefined ? val : null;
+  },
+
+  setLocationConsent(consent: boolean): void {
+    memoryCache.set('location_consent', consent);
+  },
+
+  getHasSeenLaunch(): boolean {
+    return Boolean(memoryCache.get('has_seen_launch'));
+  },
+
+  setHasSeenLaunch(seen: boolean): void {
+    memoryCache.set('has_seen_launch', seen);
+  },
+
+  getHasCompletedOnboarding(): boolean {
+    return Boolean(memoryCache.get('has_completed_onboarding'));
+  },
+
+  setHasCompletedOnboarding(completed: boolean): void {
+    memoryCache.set('has_completed_onboarding', completed);
   }
 };

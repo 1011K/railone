@@ -364,6 +364,12 @@ export const RailBackendTools = {
     }
 
     const distanceKm = calculateStationDistance(fromNorm.matchedStation.code, toNorm.matchedStation.code);
+    if (distanceKm === null || distanceKm <= 0) {
+      return {
+        status: 'error',
+        message: `Track distance between ${fromNorm.matchedStation.name} and ${toNorm.matchedStation.name} is unmapped. Fare calculation unavailable.`
+      };
+    }
     const fare = calculateSuburbanFare(distanceKm, travelClass);
 
     return {
@@ -398,6 +404,12 @@ export const RailBackendTools = {
     }
 
     const distanceKm = calculateStationDistance(fromNorm.matchedStation.code, toNorm.matchedStation.code);
+    if (distanceKm === null || distanceKm <= 0) {
+      return {
+        status: 'error',
+        error: `Track distance between ${fromNorm.matchedStation.name} and ${toNorm.matchedStation.name} is unmapped. Cannot issue ticket.`
+      };
+    }
     const fare = calculateSuburbanFare(distanceKm, params.classCode);
     const totalFare = fare * params.passengers.length;
 

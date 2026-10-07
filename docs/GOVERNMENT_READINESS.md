@@ -25,11 +25,11 @@ This document details RailOne Next 3.0's compliance architecture across six sove
 ## 2. Statutory Railway Law Alignment (Railways Act 1989)
 
 ### 2.1 Section 138 Compliance (Levy of Excess Charge and Fare for Irregular Travel)
-- **Legal Context**: Section 138 of the Railways Act 1989 empowers railway staff to levy excess fares and statutory penalties (minimum ₹250) on passengers traveling without a proper pass/ticket or traveling in a class or by a train unauthorized by their ticket.
+- **Legal Context**: Section 138 of the Railways Act 1989 empowers railway staff to levy excess fares and statutory penalties (minimum ₹500, amended) on passengers traveling without a proper pass/ticket or traveling in a class or by a train unauthorized by their ticket.
 - **System Enforcement**:
   - The `eligibilityEngine` (`src/engine/eligibilityEngine.ts`) strictly gates all journey recommendations between suburban stations.
   - Commuters searching short hops (e.g., Dadar to Kalyan) are explicitly warned when a non-MST Mail/Express train (e.g., 11019 Konark Express) is prohibited.
-  - The engine cites the specific legal penalty: `"PROHIBITED: Mail/Express train not authorized on Central Railway suburban season ticket list. Boarding attracts Railways Act 1989 Section 138 excess charge (₹250 penalty + single journey fare)."`.
+  - The engine cites the specific legal penalty: `"PROHIBITED: Mail/Express train not authorized on Central Railway suburban season ticket list. Boarding attracts Railways Act 1989 Section 138 excess charge (₹500 amended penalty + single journey fare)."`.
   - Authorized MST trains (e.g., 12124 Deccan Queen) are gated to General Second Class (GS) only, prohibiting entry into reserved Chair Cars (CC/EC).
 
 ### 2.2 Section 153 & 154 Safety Directives (Endangering Railway Commuters)

@@ -73,7 +73,7 @@ export const RulesReferenceView: React.FC = () => {
             <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800">
               <span className="font-bold text-rose-950 dark:text-rose-100">Section 138 & 155 of Railways Act 1989</span>
               <p className="text-rose-800 dark:text-rose-300 text-[11px] mt-0.5">
-                Traveling without authorized ticket or boarding reserved coaches with unreserved pass incurs fare plus penalty of ₹250 or imprisonment.
+                Traveling without authorized ticket or boarding reserved coaches with unreserved pass incurs fare plus amended statutory penalty of ₹500 or imprisonment.
               </p>
             </div>
           </div>

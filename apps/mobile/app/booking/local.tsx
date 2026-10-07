@@ -14,8 +14,9 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useMobileTheme } from '../../src/theme/ThemeContext';
 import { MobileApiClient } from '../../src/api/client';
 import { OfflineStorage } from '../../src/storage/offlineStorage';
+import { STATUTORY_REGULATIONS } from '../../src/constants/regulations';
 
-type TicketKind = 'SINGLE' | 'RETURN' | 'SEASON_MST' | 'METRO_TOKEN';
+type TicketKind = 'SINGLE' | 'RETURN' | 'SEASON_MST' | 'PLATFORM' | 'METRO_TOKEN';
 type SuburbanClass = 'II' | 'I' | 'AC_LOCAL';
 
 const POPULAR_SUBURBAN_STATIONS = [
@@ -38,6 +39,8 @@ export default function LocalBookingScreen() {
     to?: string;
     classType?: string;
     mode?: string;
+    trainNumber?: string;
+    trainName?: string;
   }>();
 
   // Booking parameters
@@ -76,6 +79,12 @@ export default function LocalBookingScreen() {
 
     async function updateFare() {
       setCalculatingFare(true);
+      if (ticketKind === 'PLATFORM') {
+        setDistanceKm(0);
+        setUnitFare(10);
+        setCalculatingFare(false);
+        return;
+      }
       const isMetro = ticketKind === 'METRO_TOKEN';
       const serviceType = isMetro ? 'metro' : 'suburban';
 
@@ -185,7 +194,7 @@ export default function LocalBookingScreen() {
   };
 
   const handleIssueTicket = async () => {
-    if (fromStation.code === toStation.code) {
+    if (ticketKind !== 'PLATFORM' && fromStation.code === toStation.code) {
       Alert.alert('Invalid Journey', 'Origin and destination stations cannot be identical.');
       return;
     }
@@ -193,14 +202,45 @@ export default function LocalBookingScreen() {
     setIsSubmitting(true);
     try {
       const idempotencyKey = `LOC-MOB-${Date.now()}`;
-      const fakeTrainNumber = suburbanClass === 'AC_LOCAL' ? '95114' : '95112';
+      const resolvedTrainNumber = params.trainNumber
+        ? params.trainNumber
+        : ticketKind === 'PLATFORM'
+        ? 'PLATFORM'
+        : ticketKind === 'METRO_TOKEN'
+        ? 'METRO'
+        : ticketKind === 'SEASON_MST'
+        ? 'MST-PASS'
+        : ticketKind === 'RETURN'
+        ? 'UTS-RETURN'
+        : 'UNRESERVED';
+
+      const resolvedTrainName = params.trainName
+        ? params.trainName
+        : ticketKind === 'PLATFORM'
+        ? `Platform Permit (${fromStation.name})`
+        : ticketKind === 'METRO_TOKEN'
+        ? 'Mumbai Metro Demo Token'
+        : ticketKind === 'SEASON_MST'
+        ? `Suburban Monthly Season Ticket (${suburbanClass === 'AC_LOCAL' ? 'AC' : suburbanClass === 'I' ? 'First' : 'Second'} Class)`
+        : ticketKind === 'RETURN'
+        ? `Suburban Return (${suburbanClass === 'AC_LOCAL' ? 'AC' : suburbanClass === 'I' ? 'First' : 'Second'} Class)`
+        : `Suburban Unreserved (${suburbanClass === 'AC_LOCAL' ? 'AC' : suburbanClass === 'I' ? 'First' : 'Second'} Class)`;
 
       const booking = await MobileApiClient.createBooking({
-        trainNumber: fakeTrainNumber,
+        trainNumber: resolvedTrainNumber,
+        ticketType: ticketKind === 'PLATFORM'
+          ? 'PLATFORM_TICKET'
+          : ticketKind === 'METRO_TOKEN'
+          ? 'METRO_TOKEN'
+          : ticketKind === 'SEASON_MST'
+          ? 'SEASON_MST'
+          : ticketKind === 'RETURN'
+          ? 'RETURN_JOURNEY'
+          : 'UNRESERVED_SUBURBAN',
         journeyDate: new Date().toISOString().split('T')[0],
         fromStationCode: fromStation.code,
-        toStationCode: toStation.code,
-        classBooked: suburbanClass,
+        toStationCode: ticketKind === 'PLATFORM' ? fromStation.code : toStation.code,
+        classBooked: ticketKind === 'PLATFORM' ? 'II' : suburbanClass,
         passengers: Array.from({ length: passengerCount }, (_, i) => ({
           name: `Commuter ${i + 1}`,
           age: 28,
@@ -214,28 +254,32 @@ export default function LocalBookingScreen() {
         id: booking.id,
         pnr: booking.pnr,
         ticketKind,
-        suburbanClass,
+        suburbanClass: ticketKind === 'PLATFORM' ? 'II' : suburbanClass,
         fromStation: fromStation.name,
         fromCode: fromStation.code,
-        toStation: toStation.name,
-        toCode: toStation.code,
+        toStation: ticketKind === 'PLATFORM' ? `${fromStation.name} Concourse` : toStation.name,
+        toCode: ticketKind === 'PLATFORM' ? fromStation.code : toStation.code,
         distanceKm,
         totalFare,
         passengerCount,
         issuedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        validUntil: ticketKind === 'SEASON_MST' ? '30 Days From Issue' : '23:59 Today',
+        validUntil: ticketKind === 'PLATFORM'
+          ? '2 Hours from Issue'
+          : ticketKind === 'SEASON_MST'
+          ? '30 Days From Issue'
+          : '23:59 Today',
         qrPayload: booking.qrPayload || `UTS-DEMO-${booking.pnr}`
       };
 
       await OfflineStorage.saveTicket({
         id: issued.id,
         pnr: issued.pnr,
-        trainNumber: fakeTrainNumber,
-        trainName: suburbanClass === 'AC_LOCAL' ? 'AC Fast Suburban Local' : 'Suburban Fast Local',
+        trainNumber: resolvedTrainNumber,
+        trainName: resolvedTrainName,
         fromStationName: fromStation.name,
-        toStationName: toStation.name,
+        toStationName: ticketKind === 'PLATFORM' ? `${fromStation.name} Concourse` : toStation.name,
         journeyDate: new Date().toISOString().split('T')[0],
-        classBooked: suburbanClass,
+        classBooked: ticketKind === 'PLATFORM' ? 'II' : suburbanClass,
         farePaid: totalFare,
         qrPayload: issued.qrPayload,
         cachedAt: new Date().toISOString()
@@ -260,7 +304,11 @@ export default function LocalBookingScreen() {
                 ? 'MUMBAI METRO QR TOKEN'
                 : ticketKind === 'SEASON_MST'
                 ? 'SUBURBAN MONTHLY SEASON TICKET (MST)'
-                : 'SUBURBAN LOCAL PASSENGER TICKET'}
+                : ticketKind === 'PLATFORM'
+                ? 'STATION PLATFORM ACCESS PERMIT'
+                : ticketKind === 'RETURN'
+                ? 'SUBURBAN RETURN JOURNEY TICKET'
+                : 'SUBURBAN UNRESERVED JOURNEY TICKET'}
             </Text>
             <View style={styles.specimenBadge}>
               <Text style={styles.specimenBadgeText}>[DEMO / NOT VALID FOR TRAVEL]</Text>
@@ -324,7 +372,11 @@ export default function LocalBookingScreen() {
               <View style={styles.gridRow}>
                 <Text style={[styles.gridLabel, { color: colors.textMuted }]}>Class / Service:</Text>
                 <Text style={[styles.gridValue, { color: colors.textPrimary }]}>
-                  {issuedTicket.suburbanClass === 'AC_LOCAL'
+                  {ticketKind === 'PLATFORM'
+                    ? 'Platform Concourse Access'
+                    : ticketKind === 'METRO_TOKEN'
+                    ? 'Mumbai Metro Standard'
+                    : issuedTicket.suburbanClass === 'AC_LOCAL'
                     ? 'AC EMU Local'
                     : issuedTicket.suburbanClass === 'I'
                     ? 'First Class (FC)'
@@ -354,13 +406,13 @@ export default function LocalBookingScreen() {
               </View>
             </View>
 
-            {/* Statutory Railways Act 1989 Section 138 Disclaimer */}
+            {/* Statutory Railways Act 1989 Section 137/138 Disclaimer */}
             <View style={[styles.legalBox, { backgroundColor: colors.warning + '18', borderColor: colors.warning }]}>
               <Text style={[styles.legalTitle, { color: colors.warning }]}>
-                STATUTORY RAILWAY REGULATIONS
+                STATUTORY RAILWAY REGULATIONS (AMENDED 20 JUNE 2026)
               </Text>
               <Text style={[styles.legalText, { color: colors.textSecondary }]}>
-                Under Section 138 of the Indian Railways Act 1989, traveling without a valid ticket or pass attracts a mandatory fine of ₹250 in addition to excess fare. This simulated token is for application demonstration only.
+                {STATUTORY_REGULATIONS.passengerWarning}
               </Text>
             </View>
 
@@ -448,6 +500,23 @@ export default function LocalBookingScreen() {
           <TouchableOpacity
             style={[
               styles.segmentItem,
+              ticketKind === 'PLATFORM' && { backgroundColor: colors.primary, borderColor: colors.primary }
+            ]}
+            onPress={() => setTicketKind('PLATFORM')}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                { color: ticketKind === 'PLATFORM' ? '#FFFFFF' : colors.textSecondary }
+              ]}
+            >
+              Platform
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.segmentItem,
               ticketKind === 'METRO_TOKEN' && { backgroundColor: colors.primary, borderColor: colors.primary }
             ]}
             onPress={() => setTicketKind('METRO_TOKEN')}
@@ -473,7 +542,9 @@ export default function LocalBookingScreen() {
             style={[styles.stationPickerBox, { borderColor: colors.cardBorder, backgroundColor: colors.background }]}
             onPress={() => handleOpenPicker('from')}
           >
-            <Text style={[styles.pickerLabel, { color: colors.textMuted }]}>FROM STATION</Text>
+            <Text style={[styles.pickerLabel, { color: colors.textMuted }]}>
+              {ticketKind === 'PLATFORM' ? 'STATION' : 'FROM STATION'}
+            </Text>
             <Text style={[styles.pickerValueCode, { color: colors.primary }]}>{fromStation.code}</Text>
             <Text style={[styles.pickerValueName, { color: colors.textPrimary }]} numberOfLines={1}>
               {fromStation.name}
@@ -481,34 +552,43 @@ export default function LocalBookingScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.swapBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-            onPress={swapStations}
+            style={[styles.swapBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: ticketKind === 'PLATFORM' ? 0.3 : 1 }]}
+            onPress={ticketKind === 'PLATFORM' ? undefined : swapStations}
+            disabled={ticketKind === 'PLATFORM'}
           >
             <Text style={[styles.swapBtnText, { color: colors.primary }]}>⇄</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.stationPickerBox, { borderColor: colors.cardBorder, backgroundColor: colors.background }]}
-            onPress={() => handleOpenPicker('to')}
+            style={[styles.stationPickerBox, { borderColor: colors.cardBorder, backgroundColor: colors.background, opacity: ticketKind === 'PLATFORM' ? 0.5 : 1 }]}
+            onPress={ticketKind === 'PLATFORM' ? undefined : () => handleOpenPicker('to')}
+            disabled={ticketKind === 'PLATFORM'}
           >
-            <Text style={[styles.pickerLabel, { color: colors.textMuted }]}>TO STATION</Text>
-            <Text style={[styles.pickerValueCode, { color: colors.primary }]}>{toStation.code}</Text>
+            <Text style={[styles.pickerLabel, { color: colors.textMuted }]}>
+              {ticketKind === 'PLATFORM' ? 'PERMIT AREA' : 'TO STATION'}
+            </Text>
+            <Text style={[styles.pickerValueCode, { color: colors.primary }]}>
+              {ticketKind === 'PLATFORM' ? 'PF' : toStation.code}
+            </Text>
             <Text style={[styles.pickerValueName, { color: colors.textPrimary }]} numberOfLines={1}>
-              {toStation.name}
+              {ticketKind === 'PLATFORM' ? 'Platforms & Concourse' : toStation.name}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.distanceBadgeRow}>
           <Text style={[styles.distanceLabel, { color: colors.textMuted }]}>
-            Rail Distance: <Text style={{ color: colors.textPrimary, fontWeight: 'bold' }}>{distanceKm} km</Text>
+            {ticketKind === 'PLATFORM' ? 'Platform Validity: ' : 'Rail Distance: '}
+            <Text style={{ color: colors.textPrimary, fontWeight: 'bold' }}>
+              {ticketKind === 'PLATFORM' ? '2 Hours' : `${distanceKm} km`}
+            </Text>
           </Text>
-          <Text style={[styles.verifiedTag, { color: colors.accent }]}>[TIMETABLE SCHEDULE]</Text>
+          <Text style={[styles.verifiedTag, { color: colors.accent }]}>[OFFICIAL_TIMETABLE]</Text>
         </View>
       </View>
 
       {/* 3. Class Preference Selector */}
-      {ticketKind !== 'METRO_TOKEN' && (
+      {ticketKind !== 'METRO_TOKEN' && ticketKind !== 'PLATFORM' && (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[styles.cardHeading, { color: colors.textPrimary }]}>Suburban Travel Class</Text>
 

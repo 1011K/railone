@@ -27,6 +27,7 @@ export interface CoachInfo {
   description: string;
   platformPole: string;
   nearestFobDadar: string;
+  nearestExit?: string;
   ticketNotice: string;
   isAccessible?: boolean;
 }
@@ -594,10 +595,20 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
             <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
               <div className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Nearest Interchange Exit (Dadar DR)</span>
+                <span>Nearest Platform Exit ({stationCode})</span>
               </div>
               <p className="text-slate-700 dark:text-slate-300 font-medium">
-                {activeCoach.nearestFobDadar}
+                {stationCode === 'DR'
+                  ? activeCoach.nearestFobDadar
+                  : stationCode === 'CSMT'
+                  ? (activeCoach.coachNumber <= 4 ? 'Subway to BMC / Concourse' : activeCoach.coachNumber <= 8 ? 'Middle Central Concourse' : 'North Heritage Gate')
+                  : stationCode === 'TNA'
+                  ? (activeCoach.coachNumber <= 4 ? 'South FOB (SATIS Bus Deck)' : activeCoach.coachNumber <= 8 ? 'Middle FOB (PF 1-10 Inter-bridge)' : 'North FOB (Chendani Exit)')
+                  : stationCode === 'KYN'
+                  ? (activeCoach.coachNumber <= 4 ? 'South FOB (Kalyan Bus Stand)' : activeCoach.coachNumber <= 8 ? 'Middle Central Interchange FOB' : 'North FOB (Colony Footbridge)')
+                  : stationCode === 'ADH'
+                  ? (activeCoach.coachNumber <= 4 ? 'South FOB (SV Road)' : activeCoach.coachNumber <= 8 ? 'Middle Skywalk (Metro Line 1 Link)' : 'North FOB (East Deck)')
+                  : `Approximate halt zone — verified platform exit mapping unavailable for ${stationCode}`}
               </p>
             </div>
 
@@ -616,7 +627,7 @@ export const CoachPositionGuide: React.FC<CoachPositionGuideProps> = ({
           <div className="p-2.5 rounded-xl bg-theme-primary/10 border border-theme-primary/30 flex items-center gap-2 text-xs text-slate-800 dark:text-slate-200">
             <Sparkles className="w-4 h-4 text-theme-primary shrink-0" />
             <span>
-              <strong>Commuter Exit Optimization:</strong> Board Coach #{activeCoach.coachNumber} to halt right next to {activeCoach.nearestFobDadar}, saving 3–5 minutes during peak interchange rush.
+              <strong>Commuter Exit Optimization:</strong> Board Coach #{activeCoach.coachNumber} to halt right next to {stationCode === 'DR' ? activeCoach.nearestFobDadar : 'the designated platform interchange bridge'}, saving 3–5 minutes during peak interchange rush.
             </span>
           </div>
         </div>

@@ -226,7 +226,7 @@ export const InstitutionalDossierModal: React.FC<InstitutionalDossierModalProps>
                     <span>The Railways Act, 1989 — Section 138 (Levy of Excess Charge)</span>
                   </h4>
                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Under Section 138, a passenger travelling in a higher class than authorized by their ticket (or using a Suburban Monthly Season Ticket on an Express train not specifically gazetted by Central/Western Railway) is deemed to be travelling without a proper ticket. The statute mandates an <strong>excess charge of ₹250 plus the difference in fare</strong>, or imprisonment up to 1 month upon default.
+                    Under Section 138, a passenger travelling in a higher class than authorized by their ticket (or using a Suburban Monthly Season Ticket on an Express train not specifically gazetted by Central/Western Railway) is deemed to be travelling without a proper ticket. The statute mandates an <strong>excess charge of ₹500 (amended minimum statutory penalty under Section 138, enhanced from ₹250) plus the difference in fare</strong>, or imprisonment up to 1 month upon default.
                   </p>
                   <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-[11px] font-mono">
                     <strong>Engine Implementation:</strong> <code>src/engine/eligibilityEngine.ts</code> blocks invalid combinations (e.g. Dadar–Kalyan short hops on Train 12123 Deccan Queen with Suburban MST) before results reach the passenger.

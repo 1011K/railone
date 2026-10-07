@@ -7,13 +7,15 @@ import {
   ScrollView,
   TextInput,
   SafeAreaView,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { router } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
+import { Audio } from 'expo-av';
 import { NativeVoiceService, VoiceCallTurn, VoiceCallState } from '../src/services/voiceService';
-
-import Svg, { Path, Rect, Polyline, Line } from 'react-native-svg';
+import { speechEngine } from '../src/services/speechEngine';
+import Svg, { Path, Rect, Polyline, Line, Circle } from 'react-native-svg';
 
 function MicIcon({ color = '#ffffff', size = 26 }: { color?: string; size?: number }) {
   return (
@@ -82,6 +84,14 @@ export default function VoiceCallScreen() {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(true);
   const [confirmedBooking, setConfirmedBooking] = useState<any | null>(null);
+  const [micPermissionGranted, setMicPermissionGranted] = useState(true);
+
+  // Audio Recording (Speech Capture) state
+  const [isRecording, setIsRecording] = useState(false);
+  const [sttOfflineNotice, setSttOfflineNotice] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const capturedTranscriptRef = useRef<string>('');
 
   // Text fallback input
   const [textInput, setTextInput] = useState('');
@@ -90,6 +100,26 @@ export default function VoiceCallScreen() {
   const voiceServiceRef = useRef<NativeVoiceService | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
 
+  // 1. Request microphone permission on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Audio.requestPermissionsAsync();
+        const granted = status === 'granted';
+        setMicPermissionGranted(granted);
+        if (!granted) {
+          Alert.alert(
+            'Microphone Permission Denied',
+            'RailOne needs microphone access for speech input. You can use the text keypad or quick phrases below.'
+          );
+        }
+      } catch {
+        // Fallback in web or simulator
+      }
+    })();
+  }, []);
+
+  // 2. Initialize voice session
   useEffect(() => {
     const service = new NativeVoiceService(language);
     voiceServiceRef.current = service;
@@ -113,11 +143,138 @@ export default function VoiceCallScreen() {
 
     return () => {
       clearInterval(interval);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+      }
       service.endCall();
     };
   }, [language]);
 
+  // Handle speaker toggle
+  useEffect(() => {
+    if (!isSpeaker) {
+      speechEngine.stop();
+    }
+  }, [isSpeaker]);
+
+  // 3. Audio Recording Methods with Real Speech Recognition
+  const startRecording = async () => {
+    if (!micPermissionGranted) {
+      Alert.alert(
+        'Microphone Permission Required',
+        'Please grant microphone permission to record voice, or use the keypad below.'
+      );
+      setShowTextInput(true);
+      return;
+    }
+
+    if (isMuted) {
+      Alert.alert('Microphone Muted', 'Please unmute the microphone to speak.');
+      return;
+    }
+
+    capturedTranscriptRef.current = '';
+    setSttOfflineNotice(false);
+
+    // If Web Speech Recognition API is available, initialize listener
+    if (typeof window !== 'undefined') {
+      const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRec) {
+        try {
+          const rec = new SpeechRec();
+          rec.lang = language === 'hi' ? 'hi-IN' : language === 'mr' ? 'mr-IN' : 'en-IN';
+          rec.continuous = false;
+          rec.interimResults = false;
+          rec.onresult = (e: any) => {
+            const resultText = e.results?.[0]?.[0]?.transcript;
+            if (resultText) {
+              capturedTranscriptRef.current = resultText;
+            }
+          };
+          rec.onerror = (err: any) => {
+            console.warn('SpeechRecognition error:', err);
+          };
+          rec.start();
+          recognitionRef.current = rec;
+        } catch (err) {
+          console.warn('SpeechRecognition initialization error:', err);
+        }
+      }
+    }
+
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (err: any) {
+      console.warn('Speech capture initiation error:', err);
+      setIsRecording(true);
+    }
+  };
+
+  const stopRecordingAndTranscribe = async () => {
+    setIsRecording(false);
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+    }
+
+    if (recordingRef.current) {
+      try {
+        await recordingRef.current.stopAndUnloadAsync();
+      } catch {}
+      recordingRef.current = null;
+    }
+
+    const transcript = capturedTranscriptRef.current;
+    capturedTranscriptRef.current = '';
+
+    if (transcript && transcript.trim()) {
+      voiceServiceRef.current?.sendUserUtterance(transcript.trim());
+    } else {
+      // Platform STT is unavailable, microphone was silent, or running offline
+      setSttOfflineNotice(true);
+      setShowTextInput(true);
+    }
+  };
+
+  const handleMicButtonPress = () => {
+    if (callState === 'SPEAKING') {
+      // Tap to interrupt
+      voiceServiceRef.current?.interrupt();
+      return;
+    }
+
+    if (isRecording) {
+      stopRecordingAndTranscribe();
+    } else {
+      startRecording();
+    }
+  };
+
   const onEndCall = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {}
+    }
+    if (recordingRef.current) {
+      recordingRef.current.stopAndUnloadAsync().catch(() => {});
+    }
     voiceServiceRef.current?.endCall();
     router.back();
   };
@@ -126,10 +283,12 @@ export default function VoiceCallScreen() {
     if (!textInput.trim()) return;
     const msg = textInput;
     setTextInput('');
+    setSttOfflineNotice(false);
     voiceServiceRef.current?.sendUserUtterance(msg);
   };
 
   const onQuickUtterance = (phrase: string) => {
+    setSttOfflineNotice(false);
     voiceServiceRef.current?.sendUserUtterance(phrase);
   };
 
@@ -145,7 +304,9 @@ export default function VoiceCallScreen() {
               styles.stateDot,
               {
                 backgroundColor:
-                  callState === 'LISTENING'
+                  isRecording
+                    ? '#ef4444'
+                    : callState === 'LISTENING'
                     ? '#22c55e'
                     : callState === 'PROCESSING'
                     ? '#f59e0b'
@@ -156,10 +317,12 @@ export default function VoiceCallScreen() {
             ]}
           />
           <Text style={styles.stateLabel}>
-            {callState === 'CONNECTING'
+            {isRecording
+              ? 'Recording Commuter Audio (Speak now)...'
+              : callState === 'CONNECTING'
               ? 'Connecting to Railway Tools...'
               : callState === 'LISTENING'
-              ? 'Listening (Speak now)'
+              ? 'Listening · Tap Mic to Speak'
               : callState === 'PROCESSING'
               ? 'Checking timetable & fares...'
               : callState === 'SPEAKING'
@@ -169,26 +332,64 @@ export default function VoiceCallScreen() {
               : 'Call Active'}
           </Text>
         </View>
+
+        {!micPermissionGranted && (
+          <View style={styles.permBanner}>
+            <Text style={styles.permBannerText}>[MIC PERMISSION DENIED: USING KEYPAD MODE]</Text>
+          </View>
+        )}
+
+        {sttOfflineNotice && (
+          <View style={[styles.permBanner, { backgroundColor: '#78350f', borderColor: '#b45309' }]}>
+            <Text style={[styles.permBannerText, { color: '#fef3c7' }]}>
+              [STT OFFLINE / UNHEARD: TAP QUICK QUERY BELOW OR USE KEYPAD]
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* 2. Audio Visualizer Pulse Waves with Tap-to-Interrupt */}
+      {/* 2. Audio Visualizer Pulse Waves with Actual Speech Capture */}
       <View style={styles.visualizerContainer}>
         <TouchableOpacity
-          style={[styles.pulseCircle, callState === 'SPEAKING' && styles.pulseActive]}
-          onPress={() => {
-            if (callState === 'SPEAKING') {
-              voiceServiceRef.current?.interrupt();
-            }
-          }}
+          style={[
+            styles.pulseCircle,
+            callState === 'SPEAKING' && styles.pulseActive,
+            isRecording && styles.pulseRecording
+          ]}
+          onPress={handleMicButtonPress}
           activeOpacity={0.8}
           accessibilityRole="button"
-          accessibilityLabel={callState === 'SPEAKING' ? 'Interrupt RailSathi and speak' : 'Microphone status'}
+          accessibilityLabel={
+            callState === 'SPEAKING'
+              ? 'Interrupt RailSathi'
+              : isRecording
+              ? 'Stop recording and send utterance'
+              : 'Start voice recording'
+          }
         >
-          <View style={[styles.innerCircle, { backgroundColor: colors.primary }]}>
-            <MicIcon color="#ffffff" size={30} />
+          <View
+            style={[
+              styles.innerCircle,
+              {
+                backgroundColor: isMuted
+                  ? '#ef4444'
+                  : isRecording
+                  ? '#dc2626'
+                  : colors.primary
+              }
+            ]}
+          >
+            {isMuted ? (
+              <MicOffIcon color="#ffffff" size={30} />
+            ) : isRecording ? (
+              <View style={styles.recordingSquare} />
+            ) : (
+              <MicIcon color="#ffffff" size={30} />
+            )}
           </View>
         </TouchableOpacity>
-        {callState === 'SPEAKING' && (
+
+        {callState === 'SPEAKING' ? (
           <TouchableOpacity
             style={styles.interruptBtn}
             onPress={() => voiceServiceRef.current?.interrupt()}
@@ -197,6 +398,14 @@ export default function VoiceCallScreen() {
           >
             <Text style={styles.interruptBtnText}>Tap to Interrupt & Speak</Text>
           </TouchableOpacity>
+        ) : isRecording ? (
+          <Text style={[styles.micHintText, { color: '#ef4444', fontWeight: 'bold' }]}>
+            ● Audio Stream Capturing · Tap to Finish & Send
+          </Text>
+        ) : (
+          <Text style={[styles.micHintText, { color: '#94a3b8' }]}>
+            Tap mic to capture audio or tap quick phrases below
+          </Text>
         )}
       </View>
 
@@ -229,54 +438,55 @@ export default function VoiceCallScreen() {
           <View style={styles.bookingConfirmedCard}>
             <View style={styles.bookingConfirmedHeaderRow}>
               <CheckIcon color="#22c55e" size={18} />
-              <Text style={styles.bookingConfirmedTitle}>TICKET ISSUED IN MY TICKETS</Text>
+              <Text style={styles.bookingConfirmedTitle}>SPECIMEN TICKET ISSUED</Text>
             </View>
-            <Text style={styles.bookingConfirmedDetails}>
-              PNR: {confirmedBooking.pnr}{'\n'}
-              Train: {confirmedBooking.trainName}{'\n'}
-              Class: {confirmedBooking.classBooked} · Fare: ₹{confirmedBooking.farePaid}
+            <Text style={styles.bookingConfirmedSubtitle}>[DEMO / NOT VALID FOR TRAVEL]</Text>
+            <Text style={styles.bookingConfirmedText}>
+              PNR: {confirmedBooking.pnr} · Train {confirmedBooking.trainNumber} ({confirmedBooking.classBooked})
+            </Text>
+            <Text style={styles.bookingConfirmedText}>
+              {confirmedBooking.fromStationName} ➔ {confirmedBooking.toStationName} · ₹{confirmedBooking.farePaid}
             </Text>
           </View>
         )}
       </ScrollView>
 
-      {/* 4. Quick Speech Suggestions */}
-      <View style={styles.quickPhrasesRow}>
-        <TouchableOpacity
-          style={styles.quickChip}
-          onPress={() => onQuickUtterance('Book me a first-class local from Thane to Churchgate around 12:30')}
-        >
-          <Text style={styles.quickChipText}>"Thane to Churchgate around 12:30"</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickChip}
-          onPress={() => onQuickUtterance('Use AC if available, otherwise show first class')}
-        >
-          <Text style={styles.quickChipText}>"Use AC if available"</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickChip}
-          onPress={() => onQuickUtterance('Book this one')}
-        >
-          <Text style={styles.quickChipText}>"Book this one"</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickChip}
-          onPress={() => onQuickUtterance('Yes confirm')}
-        >
-          <Text style={styles.quickChipText}>"Yes confirm"</Text>
-        </TouchableOpacity>
+      {/* 4. Quick Response Chips */}
+      <View style={styles.quickPhrasesContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickPhrasesContent}>
+          <TouchableOpacity
+            style={styles.quickChip}
+            onPress={() => onQuickUtterance('Thane to CSMT fast local at 10:45')}
+          >
+            <Text style={styles.quickChipText}>Thane ➔ CSMT</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickChip}
+            onPress={() => onQuickUtterance('Confirm booking for 1 passenger')}
+          >
+            <Text style={styles.quickChipText}>Confirm Booking</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickChip}
+            onPress={() => onQuickUtterance('What is the First Class fare from Dadar to Churchgate?')}
+          >
+            <Text style={styles.quickChipText}>First Class Fare DR ➔ CCG</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickChip}
+            onPress={() => onQuickUtterance('Are there delays on Central Line?')}
+          >
+            <Text style={styles.quickChipText}>Central Line Delays</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
-      {/* 5. Text Fallback Input Bar */}
+      {/* 5. Text Keypad Fallback Input */}
       {showTextInput && (
-        <View style={styles.textInputBar}>
+        <View style={styles.textInputRow}>
           <TextInput
-            style={styles.textInput}
-            placeholder="Type your travel request..."
+            style={styles.textInputField}
+            placeholder="Type query to RailSathi..."
             placeholderTextColor="#64748b"
             value={textInput}
             onChangeText={setTextInput}
@@ -314,7 +524,7 @@ export default function VoiceCallScreen() {
           accessibilityLabel="Toggle speaker"
         >
           <SpeakerIcon color={isSpeaker ? '#38bdf8' : '#94a3b8'} size={22} />
-          <Text style={styles.controlLabel}>Speaker</Text>
+          <Text style={styles.controlLabel}>{isSpeaker ? 'Speaker' : 'Muted'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -336,7 +546,7 @@ const styles = StyleSheet.create({
   },
   callHeader: {
     alignItems: 'center',
-    paddingVertical: 16
+    paddingVertical: 14
   },
   assistantTitle: {
     color: '#ffffff',
@@ -352,7 +562,7 @@ const styles = StyleSheet.create({
   stateIndicatorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8
+    marginTop: 6
   },
   stateDot: {
     width: 8,
@@ -364,6 +574,18 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 12,
     fontWeight: '600'
+  },
+  permBanner: {
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: '#ef444420',
+    borderRadius: 4
+  },
+  permBannerText: {
+    color: '#ef4444',
+    fontSize: 10,
+    fontWeight: '800'
   },
   visualizerContainer: {
     alignItems: 'center',
@@ -381,6 +603,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(56, 189, 248, 0.35)',
     transform: [{ scale: 1.08 }]
   },
+  pulseRecording: {
+    backgroundColor: 'rgba(239, 68, 68, 0.35)',
+    borderWidth: 2,
+    borderColor: '#ef4444'
+  },
   innerCircle: {
     width: 64,
     height: 64,
@@ -388,8 +615,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  micIconText: {
-    fontSize: 26
+  recordingSquare: {
+    width: 22,
+    height: 22,
+    backgroundColor: '#ffffff',
+    borderRadius: 4
+  },
+  micHintText: {
+    marginTop: 8,
+    fontSize: 11,
+    fontWeight: '500'
+  },
+  interruptBtn: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#ef444425',
+    borderWidth: 1,
+    borderColor: '#ef444480'
+  },
+  interruptBtnText: {
+    color: '#f87171',
+    fontSize: 11,
+    fontWeight: '700'
   },
   transcriptScroll: {
     flex: 1,
@@ -425,106 +674,101 @@ const styles = StyleSheet.create({
   },
   bookingConfirmedCard: {
     backgroundColor: '#064e3b',
-    borderWidth: 1,
-    borderColor: '#059669',
+    borderColor: '#10b981',
+    borderWidth: 1.5,
     borderRadius: 12,
     padding: 12,
-    marginTop: 6
+    marginVertical: 4
   },
   bookingConfirmedHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 4
+    gap: 6
   },
   bookingConfirmedTitle: {
-    color: '#34d399',
+    color: '#10b981',
     fontSize: 12,
-    fontWeight: '900'
+    fontWeight: '800'
   },
-  interruptBtn: {
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ef4444'
+  bookingConfirmedSubtitle: {
+    color: '#f87171',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 2
   },
-  interruptBtnText: {
-    color: '#fca5a5',
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  bookingConfirmedDetails: {
-    color: '#ffffff',
+  bookingConfirmedText: {
+    color: '#f8fafc',
     fontSize: 12,
-    lineHeight: 18
+    marginTop: 2
   },
-  quickPhrasesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+  quickPhrasesContainer: {
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#334155'
+  },
+  quickPhrasesContent: {
     paddingHorizontal: 16,
-    paddingVertical: 8
+    gap: 8
   },
   quickChip: {
     backgroundColor: '#1e293b',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 5
+    borderColor: '#334155',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16
   },
   quickChipText: {
     color: '#94a3b8',
-    fontSize: 11
+    fontSize: 12,
+    fontWeight: '600'
   },
-  textInputBar: {
+  textInputRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#111827'
+    backgroundColor: '#111827',
+    borderTopWidth: 1,
+    borderTopColor: '#1f2937'
   },
-  textInput: {
+  textInputField: {
     flex: 1,
+    height: 40,
     backgroundColor: '#1f2937',
-    borderRadius: 8,
+    borderRadius: 20,
+    paddingHorizontal: 14,
     color: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     fontSize: 13
   },
   sendButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    justifyContent: 'center',
+    marginLeft: 8,
     paddingHorizontal: 14,
-    marginLeft: 8
+    paddingVertical: 10,
+    backgroundColor: '#2563eb',
+    borderRadius: 20
   },
   sendButtonText: {
     color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 12
+    fontSize: 12,
+    fontWeight: '700'
   },
   controlsFooter: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#070b12',
     borderTopWidth: 1,
-    borderTopColor: '#1e293b',
-    backgroundColor: '#0b1120'
+    borderTopColor: '#1e293b'
   },
   controlBtn: {
     alignItems: 'center',
-    padding: 8
+    gap: 4
   },
   controlBtnActive: {
-    backgroundColor: '#1f2937',
-    borderRadius: 10
-  },
-  controlIcon: {
-    fontSize: 22,
-    marginBottom: 4
+    opacity: 1
   },
   controlLabel: {
     color: '#94a3b8',
@@ -532,20 +776,17 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   endCallBtn: {
-    alignItems: 'center',
     backgroundColor: '#dc2626',
-    borderRadius: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 8
-  },
-  endCallIcon: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '900'
+    paddingVertical: 10,
+    borderRadius: 24
   },
   endCallLabel: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800'
   }
 });

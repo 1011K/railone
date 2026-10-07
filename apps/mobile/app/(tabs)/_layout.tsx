@@ -2,6 +2,57 @@ import React from 'react';
 import { Tabs, router } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useMobileTheme } from '../../src/theme/ThemeContext';
+import Svg, { Path, Circle, Rect, Line, Polyline } from 'react-native-svg';
+
+function HomeTabIcon({ color, size = 20 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <Polyline points="9 22 9 12 15 12 15 22" />
+    </Svg>
+  );
+}
+
+function JourneysTabIcon({ color, size = 20 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Circle cx="12" cy="12" r="10" />
+      <Polyline points="12 6 12 12 16 14" />
+    </Svg>
+  );
+}
+
+function LiveTabIcon({ color, size = 20 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4.93 4.93a10 10 0 0 1 14.14 0" />
+      <Path d="M7.76 7.76a6 6 0 0 1 8.48 0" />
+      <Circle cx="12" cy="12" r="2" />
+      <Path d="M12 14v8" />
+    </Svg>
+  );
+}
+
+function TicketsTabIcon({ color, size = 20 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Rect x="3" y="4" width="18" height="16" rx="2" />
+      <Line x1="7" y1="8" x2="17" y2="8" />
+      <Line x1="7" y1="12" x2="17" y2="12" />
+      <Line x1="7" y1="16" x2="13" y2="16" />
+    </Svg>
+  );
+}
+
+function RailSathiTabIcon({ color, size = 20 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 2a8 8 0 0 0-8 8c0 3.1 1.8 5.7 4.4 7l-.4 3 3-1.5c.3.3.7.4 1 .5A8 8 0 1 0 12 2z" />
+      <Circle cx="9" cy="10" r="1" fill={color} />
+      <Circle cx="15" cy="10" r="1" fill={color} />
+    </Svg>
+  );
+}
 
 export default function TabLayout() {
   const { colors, language } = useMobileTheme();
@@ -9,8 +60,9 @@ export default function TabLayout() {
   const labels = {
     home: language === 'hi' ? 'होम' : language === 'mr' ? 'मुख्य' : 'Home',
     journeys: language === 'hi' ? 'यात्राएं' : language === 'mr' ? 'प्रवास' : 'Journeys',
-    status: language === 'hi' ? 'ट्रेन स्थिति' : language === 'mr' ? 'गाडी स्थिती' : 'Train Status',
-    tickets: language === 'hi' ? 'माय टिकट्स' : language === 'mr' ? 'माझे तिकीट' : 'My Tickets',
+    status: language === 'hi' ? 'लाइव' : language === 'mr' ? 'थेट' : 'Live',
+    tickets: language === 'hi' ? 'टिकट्स' : language === 'mr' ? 'तिकीट' : 'Tickets',
+    railsathi: language === 'hi' ? 'रेलसाथी' : language === 'mr' ? 'रेलसाथी' : 'RailSathi',
     help: language === 'hi' ? 'सहायता' : language === 'mr' ? 'मदत' : 'Help'
   };
 
@@ -63,33 +115,46 @@ export default function TabLayout() {
         name="index"
         options={{
           title: labels.home,
-          headerTitle: 'RailOne Next'
+          headerTitle: 'RailOne Next',
+          tabBarIcon: ({ color }) => <HomeTabIcon color={color} />
         }}
       />
       <Tabs.Screen
         name="journeys"
         options={{
           title: labels.journeys,
-          headerTitle: 'Find Journeys'
+          headerTitle: 'Find Journeys',
+          tabBarIcon: ({ color }) => <JourneysTabIcon color={color} />
         }}
       />
       <Tabs.Screen
         name="status"
         options={{
           title: labels.status,
-          headerTitle: 'Live Train Tracker'
+          headerTitle: 'Live Train Tracker',
+          tabBarIcon: ({ color }) => <LiveTabIcon color={color} />
         }}
       />
       <Tabs.Screen
         name="tickets"
         options={{
           title: labels.tickets,
-          headerTitle: 'My Ticket Wallet'
+          headerTitle: 'My Ticket Wallet',
+          tabBarIcon: ({ color }) => <TicketsTabIcon color={color} />
+        }}
+      />
+      <Tabs.Screen
+        name="railsathi"
+        options={{
+          title: labels.railsathi,
+          headerTitle: 'RailSathi Assistant',
+          tabBarIcon: ({ color }) => <RailSathiTabIcon color={color} />
         }}
       />
       <Tabs.Screen
         name="help"
         options={{
+          href: null,
           title: labels.help,
           headerTitle: 'Support & Disclaimers'
         }}

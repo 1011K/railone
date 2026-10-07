@@ -39,7 +39,7 @@ export const VoiceDialerModal: React.FC<VoiceDialerModalProps> = ({
   ]);
   const [executedToolCalls, setExecutedToolCalls] = useState<Array<{ tool: string; args: any; resultSummary: string }>>([]);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<any>(null);
 
   useEffect(() => {
     if (isCalling) {

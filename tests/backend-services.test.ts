@@ -238,8 +238,14 @@ export async function runBackendServicesTests() {
   const tnaToCcgDist = calculateStationDistance('TNA', 'CCG');
   const bviToCcgDist = calculateStationDistance('BVI', 'CCG');
   const sameDist = calculateStationDistance('CSMT', 'CSMT');
-  assert.strictEqual(Math.round(tnaToCcgDist), 35, 'TNA to CCG via Dadar FOB is 35 km');
-  assert.strictEqual(Math.round(bviToCcgDist), 34, 'BVI to CCG is 34 km');
+  assert.strictEqual(Math.round(tnaToCcgDist!), 35, 'TNA to CCG via Dadar FOB is 35 km');
+  assert.strictEqual(Math.round(bviToCcgDist!), 34, 'BVI to CCG is 34 km');
   assert.strictEqual(sameDist, 0, 'Same station distance is 0 km');
   console.log('  [PASS] 22.15: Station distance engine accurately calculates track kilometers across lines');
 }
+
+runBackendServicesTests().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+

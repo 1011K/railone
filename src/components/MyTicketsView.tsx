@@ -540,7 +540,7 @@ export const MyTicketsView: React.FC<MyTicketsViewProps> = ({
                 <span>The Railways Act Section 138 (Penalties)</span>
               </div>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                Traveling without an appropriate ticket, or traveling in a higher class coach (e.g. First Class or AC Local with a Second Class ticket), or boarding a prohibited National Express train with a suburban ticket incurs an excess fare plus a minimum penalty of ₹250 under Section 138.
+                Traveling without an appropriate ticket, or traveling in a higher class coach (e.g. First Class or AC Local with a Second Class ticket), or boarding a prohibited National Express train with a suburban ticket incurs an excess fare plus a minimum penalty of ₹500 under amended Section 138 (enhanced from ₹250).
               </p>
             </div>
 

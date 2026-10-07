@@ -481,7 +481,7 @@ All voice tools are deterministic JSON functions exposed to in-app dialers, web 
   summary: "Suburban single ticket is PROHIBITED on Non-MST Express 12134.",
   rules: [
     "Suburban ordinary card ticket is not valid for boarding National Mail/Express services.",
-    "Boarding without a valid Express reservation or unreserved Express ticket constitutes travelling without a proper ticket under Railways Act 1989 Section 138, punishable by excess fare and statutory penalty (minimum ₹250)."
+    "Boarding without a valid Express reservation or unreserved Express ticket constitutes travelling without a proper ticket under Railways Act 1989 Section 138, punishable by excess fare and statutory penalty (minimum ₹500, amended)."
   ],
   passPermitted: false,
   ticketRequiredNote: "Passengers travelling from Dadar to Kalyan must board a Suburban Local or purchase a dedicated Point-to-Point Express Ticket before departure."

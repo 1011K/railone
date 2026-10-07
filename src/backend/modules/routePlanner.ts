@@ -45,9 +45,22 @@ export function searchRoutes(params: RouteSearchParams): JourneyItinerary[] {
   };
 
   let routes = planJourneys(planParams);
-  if (routes.length === 0 && params.departureTime && params.departureTime !== '10:35') {
-    routes = planJourneys({ ...planParams, departureTime: '10:35' });
+
+  // If no routes found at requested departure time and user explicitly requested wider window:
+  if (routes.length === 0 && (params as any).searchWiderWindow) {
+    const [h, m] = (params.departureTime || '10:35').split(':').map(Number);
+    if (!isNaN(h) && !isNaN(m)) {
+      const nextHour = (h + 2) % 24;
+      const widerTime = `${String(nextHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      const widerRoutes = planJourneys({ ...planParams, departureTime: widerTime });
+      routes = widerRoutes.map(r => ({
+        ...r,
+        transfersNote: `[WIDER WINDOW: Next service after ${params.departureTime} departs at ${r.predictedDeparture}] ${r.transfersNote || ''}`.trim()
+      }));
+    }
   }
+
+  // Never secretly retry at 10:35 or change requested departure time behind user's back
   return routes;
 }
 

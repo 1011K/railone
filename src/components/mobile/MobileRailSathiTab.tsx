@@ -65,7 +65,7 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
 
   // Call timer
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: any;
     if (callState === 'CONNECTED' || callState === 'LISTENING' || callState === 'SPEAKING' || callState === 'THINKING') {
       timer = setInterval(() => setCallDuration(d => d + 1), 1000);
     }

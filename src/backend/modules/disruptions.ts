@@ -8,6 +8,7 @@ export interface DisruptionReplanRequest {
   destinationStationCode: string;
   delayedTrainNumber?: string;
   reportedDelayMinutes?: number;
+  departureTime?: string;
 }
 
 export interface DisruptionReplanResult {
@@ -33,11 +34,16 @@ export function evaluateDisruptionReplan(req: DisruptionReplanRequest): Disrupti
     }
   }
 
+  // Use supplied journey departure time or current clock time
+  const now = new Date();
+  const currentClockTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const effectiveTime = req.departureTime || currentClockTime;
+
   // Find routes departing from current station
   const alternatives = searchRoutes({
     from: currentStation,
     to: destStation,
-    departureTime: '10:35',
+    departureTime: effectiveTime,
     priority: 'fastest',
     transitModeFilter: 'all'
   });

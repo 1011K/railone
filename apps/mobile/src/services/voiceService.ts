@@ -1,4 +1,5 @@
 import { MobileApiClient } from '../api/client';
+import { speechEngine } from './speechEngine';
 
 export type VoiceCallState =
   | 'IDLE'
@@ -134,9 +135,7 @@ export class NativeVoiceService {
       clearTimeout(this.speechTimeout);
       this.speechTimeout = null;
     }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    speechEngine.stop();
     this.setState('LISTENING');
   }
 
@@ -146,36 +145,17 @@ export class NativeVoiceService {
       this.speechTimeout = null;
     }
     this.stopDurationTimer();
+    speechEngine.stop();
     this.setState('ENDED');
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
   }
 
   private speakText(text: string, onEnd: () => void): void {
     this.setState('SPEAKING');
-
-    // Use Web Speech Synthesis API if available (in browser, WebView, or native speech engine)
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = this.language === 'hi' ? 'hi-IN' : this.language === 'mr' ? 'mr-IN' : 'en-IN';
-      utterance.rate = 1.0;
-      utterance.onend = () => {
-        onEnd();
-      };
-      utterance.onerror = () => {
-        onEnd();
-      };
-      window.speechSynthesis.speak(utterance);
-    } else {
-      // In headless or mock environment, simulate speech delay with cancellable timeout
-      if (this.speechTimeout) clearTimeout(this.speechTimeout);
-      this.speechTimeout = setTimeout(() => {
-        this.speechTimeout = null;
-        onEnd();
-      }, 1200);
-    }
+    speechEngine.speak(text, {
+      language: this.language,
+      onDone: () => onEnd(),
+      onError: () => onEnd()
+    });
   }
 
   private startDurationTimer(): void {

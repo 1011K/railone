@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,34 +8,52 @@ import {
   TextInput,
   Modal,
   FlatList,
-  Alert
+  Alert,
+  Switch
 } from 'react-native';
 import { router } from 'expo-router';
-import { useMobileTheme } from '../../src/theme/ThemeContext';
+import { useMobileTheme, THEME_PALETTES, ColorTheme, AppLanguage } from '../../src/theme/ThemeContext';
 import { MobileApiClient } from '../../src/api/client';
 import { OfflineStorage } from '../../src/storage/offlineStorage';
-
-const POPULAR_STATIONS = [
-  { code: 'CSMT', name: 'CSMT (Mumbai)' },
-  { code: 'TNA', name: 'Thane' },
-  { code: 'DR', name: 'Dadar' },
-  { code: 'KYN', name: 'Kalyan' },
-  { code: 'CCG', name: 'Churchgate' },
-  { code: 'ADH', name: 'Andheri' },
-  { code: 'BVI', name: 'Borivali' },
-  { code: 'NDLS', name: 'New Delhi' }
-];
+import { CITIES_REGISTRY, CityCoverageConfig } from '../../src/fixtures/citiesData';
+import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
 
 export default function HomeScreen() {
-  const { colors, language, isDarkMode, toggleDarkMode, colorTheme, setColorTheme } = useMobileTheme();
+  const { colors, language, setLanguage, isDarkMode, toggleDarkMode, colorTheme, setColorTheme } = useMobileTheme();
 
-  const [fromStation, setFromStation] = useState({ code: 'TNA', name: 'Thane' });
-  const [toStation, setToStation] = useState({ code: 'CSMT', name: 'CSMT (Mumbai)' });
+  // Selected city & config
+  const [selectedCityId, setSelectedCityId] = useState<string>(() => OfflineStorage.getUserCity());
+  const currentCity: CityCoverageConfig = CITIES_REGISTRY[selectedCityId] || CITIES_REGISTRY['mumbai'];
+
+  // Origin & destination stations
+  const initialFrom = currentCity.primaryHubs[0] || { code: 'TNA', name: 'Thane' };
+  const initialTo = currentCity.primaryHubs[1] || { code: 'CSMT', name: 'CSMT (Mumbai)' };
+  const [fromStation, setFromStation] = useState({ code: initialFrom.code, name: initialFrom.name });
+  const [toStation, setToStation] = useState({ code: initialTo.code, name: initialTo.name });
+
   const [journeyDate, setJourneyDate] = useState('Today');
   const [acOnly, setAcOnly] = useState(false);
   const [recentSearches, setRecentSearches] = useState<Array<{ from: string; to: string }>>([]);
 
-  React.useEffect(() => {
+  // Modals state
+  const [showLaunchModal, setShowLaunchModal] = useState<boolean>(() => !OfflineStorage.getHasSeenLaunch());
+  const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(() => !OfflineStorage.getHasCompletedOnboarding());
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // Onboarding form state
+  const [userName, setUserName] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [locationConsent, setLocationConsent] = useState(true);
+
+  // Station picker modal
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<'from' | 'to'>('from');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stationList, setStationList] = useState(currentCity.primaryHubs.map(h => ({ code: h.code, name: h.name })));
+
+  useEffect(() => {
     try {
       const recents = OfflineStorage.getRecentSearches();
       if (recents && recents.length > 0) {
@@ -46,11 +64,17 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // Station picker modal
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [pickerTarget, setPickerTarget] = useState<'from' | 'to'>('from');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [stationList, setStationList] = useState(POPULAR_STATIONS);
+  // When city changes, update hubs
+  const handleSelectCity = (cityId: string) => {
+    setSelectedCityId(cityId);
+    OfflineStorage.setUserCity(cityId);
+    const newCity = CITIES_REGISTRY[cityId] || CITIES_REGISTRY['mumbai'];
+    if (newCity.primaryHubs.length >= 2) {
+      setFromStation({ code: newCity.primaryHubs[0].code, name: newCity.primaryHubs[0].name });
+      setToStation({ code: newCity.primaryHubs[1].code, name: newCity.primaryHubs[1].name });
+    }
+    setShowCityModal(false);
+  };
 
   const swapStations = () => {
     const temp = fromStation;
@@ -61,14 +85,14 @@ export default function HomeScreen() {
   const openPicker = (target: 'from' | 'to') => {
     setPickerTarget(target);
     setSearchQuery('');
-    setStationList(POPULAR_STATIONS);
+    setStationList(currentCity.primaryHubs.map(h => ({ code: h.code, name: h.name })));
     setPickerVisible(true);
   };
 
   const handleStationSearch = async (text: string) => {
     setSearchQuery(text);
     if (!text.trim()) {
-      setStationList(POPULAR_STATIONS);
+      setStationList(currentCity.primaryHubs.map(h => ({ code: h.code, name: h.name })));
       return;
     }
     try {
@@ -77,10 +101,9 @@ export default function HomeScreen() {
         setStationList(results.map(s => ({ code: s.code, name: s.name })));
       }
     } catch {
-      // Offline fallback
-      const filtered = POPULAR_STATIONS.filter(
-        s => s.name.toLowerCase().includes(text.toLowerCase()) || s.code.toLowerCase().includes(text.toLowerCase())
-      );
+      const filtered = currentCity.primaryHubs
+        .filter(s => s.name.toLowerCase().includes(text.toLowerCase()) || s.code.toLowerCase().includes(text.toLowerCase()))
+        .map(h => ({ code: h.code, name: h.name }));
       setStationList(filtered);
     }
   };
@@ -106,34 +129,124 @@ export default function HomeScreen() {
     });
   };
 
+  const handleCompleteOnboarding = (isGuest = false) => {
+    OfflineStorage.setUserProfile({
+      name: isGuest ? 'Commuter Guest' : userName.trim() || 'Passenger',
+      phone: isGuest ? '' : userPhone.trim(),
+      isGuest
+    });
+    OfflineStorage.setLocationConsent(locationConsent);
+    OfflineStorage.setHasCompletedOnboarding(true);
+    setShowOnboardingModal(false);
+  };
+
+  const handleDismissLaunch = () => {
+    OfflineStorage.setHasSeenLaunch(true);
+    setShowLaunchModal(false);
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* 1. Rail Alert Banner (Verified Live Feed) */}
+      {/* 1. Top Identity Bar: City Picker, Language Toggle & Theme */}
+      <View style={[styles.topBar, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        {/* City Selector Button */}
+        <TouchableOpacity
+          style={[styles.cityChip, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '40' }]}
+          onPress={() => setShowCityModal(true)}
+          activeOpacity={0.8}
+        >
+          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5}>
+            <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <Circle cx="12" cy="10" r="3" />
+          </Svg>
+          <Text style={[styles.cityChipText, { color: colors.primary }]}>
+            {currentCity.name}
+          </Text>
+          <Text style={[styles.cityChipArrow, { color: colors.primary }]}>▾</Text>
+        </TouchableOpacity>
+
+        {/* Action Controls: Language, Theme, Profile */}
+        <View style={styles.topControlsRow}>
+          {/* Language Switch */}
+          <View style={styles.langSwitch}>
+            {(['en', 'hi', 'mr'] as AppLanguage[]).map(lng => (
+              <TouchableOpacity
+                key={lng}
+                onPress={() => setLanguage(lng)}
+                style={[
+                  styles.langOption,
+                  language === lng && { backgroundColor: colors.primary }
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.langOptionText,
+                    { color: language === lng ? '#ffffff' : colors.textMuted }
+                  ]}
+                >
+                  {lng.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Theme / Appearance Modal Button */}
+          <TouchableOpacity
+            style={[styles.iconBtn, { borderColor: colors.cardBorder }]}
+            onPress={() => setShowThemeModal(true)}
+            accessibilityLabel="Switch Livery Theme"
+          >
+            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.textPrimary} strokeWidth={2}>
+              <Circle cx="13.5" cy="6.5" r=".5" fill={colors.textPrimary} />
+              <Circle cx="17.5" cy="10.5" r=".5" fill={colors.textPrimary} />
+              <Circle cx="8.5" cy="7.5" r=".5" fill={colors.textPrimary} />
+              <Circle cx="6.5" cy="12.5" r=".5" fill={colors.textPrimary} />
+              <Path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z" />
+            </Svg>
+          </TouchableOpacity>
+
+          {/* Profile / Onboarding Button */}
+          <TouchableOpacity
+            style={[styles.iconBtn, { borderColor: colors.cardBorder }]}
+            onPress={() => setShowProfileModal(true)}
+            accessibilityLabel="Passenger Profile"
+          >
+            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.textPrimary} strokeWidth={2}>
+              <Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <Circle cx="12" cy="7" r="4" />
+            </Svg>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 2. Rail Alert Banner (Timetable Scenario Advisory) */}
       <View style={[styles.alertBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <View style={styles.alertBadge}>
-          <Text style={styles.alertBadgeText}>[VERIFIED LIVE]</Text>
+          <Text style={styles.alertBadgeText}>{currentCity.provenanceTag}</Text>
         </View>
         <Text style={[styles.alertText, { color: colors.textSecondary }]}>
-          Central Line Fast corridor running with +12m headway buffer at Vidyavihar. Slow line services normal.
+          {selectedCityId === 'mumbai'
+            ? 'Central Line Fast corridor running with +12m headway buffer at Vidyavihar. Slow line services normal.'
+            : currentCity.provenanceExplanation}
         </Text>
       </View>
 
-      {/* 2. Active Commute Card */}
+      {/* 3. Active Commute Card */}
       <View style={[styles.activeCommuteCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <View style={styles.activeCommuteHeader}>
           <View style={styles.livePulseDot} />
           <Text style={[styles.activeCommuteTag, { color: colors.primary }]}>ACTIVE COMMUTE</Text>
-          <Text style={[styles.activeCommuteStatus, { color: colors.success }]}>On Time</Text>
+          <Text style={[styles.activeCommuteStatus, { color: colors.success }]}>Scheduled</Text>
         </View>
         <Text style={[styles.activeCommuteTrain, { color: colors.textPrimary }]}>
-          Kalyan - CSMT Fast Local (95112)
+          {currentCity.representativeJourneys[0]?.trainName || 'Suburban Fast Local (95112)'}
         </Text>
         <Text style={[styles.activeCommuteSub, { color: colors.textMuted }]}>
-          Thane (PF 5) ➔ CSMT · Arriving 10:40
+          {fromStation.name} ➔ {toStation.name} · {currentCity.representativeJourneys[0]?.frequency || 'Standard Frequency'}
         </Text>
       </View>
 
-      {/* 3. Prominent Call RailSathi Card */}
+      {/* 4. Prominent Call RailSathi Card */}
       <TouchableOpacity
         style={[styles.callBanner, { backgroundColor: colors.primary }]}
         activeOpacity={0.88}
@@ -148,7 +261,7 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.callBannerTitle}>Call RailSathi</Text>
           <Text style={styles.callBannerSubtitle}>
-            "Book me a First-Class local from Thane to Churchgate around 12:30"
+            "Book me a First-Class local from {fromStation.name} to {toStation.name}"
           </Text>
         </View>
         <View style={styles.callButtonCircle}>
@@ -156,9 +269,9 @@ export default function HomeScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* 4. Journey Search Container */}
+      {/* 5. Journey Search Container */}
       <View style={[styles.searchCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Plan Journey</Text>
+        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Plan Journey ({currentCity.name})</Text>
 
         {/* Origin Station */}
         <TouchableOpacity
@@ -274,7 +387,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Saved Journeys */}
+      {/* 6. Saved Journeys */}
       {recentSearches.length > 0 && (
         <View style={[styles.savedSection, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[styles.savedSectionTitle, { color: colors.textPrimary }]}>Saved Journeys</Text>
@@ -284,8 +397,8 @@ export default function HomeScreen() {
                 key={idx}
                 style={[styles.savedSearchPill, { borderColor: colors.cardBorder }]}
                 onPress={() => {
-                  setFromStation({ code: sj.from, name: POPULAR_STATIONS.find(x => x.code === sj.from)?.name || sj.from });
-                  setToStation({ code: sj.to, name: POPULAR_STATIONS.find(x => x.code === sj.to)?.name || sj.to });
+                  setFromStation({ code: sj.from, name: currentCity.primaryHubs.find(x => x.code === sj.from)?.name || sj.from });
+                  setToStation({ code: sj.to, name: currentCity.primaryHubs.find(x => x.code === sj.to)?.name || sj.to });
                 }}
               >
                 <Text style={[styles.savedSearchText, { color: colors.textPrimary }]}>
@@ -297,7 +410,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* 4. Quick Nav: Network Map & FOB Wayfinding */}
+      {/* 7. Quick Nav: Network Map & FOB Wayfinding */}
       <View style={styles.toolsRow}>
         <TouchableOpacity
           style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
@@ -305,7 +418,7 @@ export default function HomeScreen() {
           activeOpacity={0.8}
         >
           <Text style={[styles.toolCardTitle, { color: colors.textPrimary }]}>Railway Map</Text>
-          <Text style={[styles.toolCardSubtitle, { color: colors.textMuted }]}>2D Network & Metro lines</Text>
+          <Text style={[styles.toolCardSubtitle, { color: colors.textMuted }]}>2D Topology & Metro lines</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -317,6 +430,228 @@ export default function HomeScreen() {
           <Text style={[styles.toolCardSubtitle, { color: colors.textMuted }]}>Platform FOB & lifts</Text>
         </TouchableOpacity>
       </View>
+
+      {/* ============================================================== */}
+      {/* MODAL 1: Eight-City Selection Modal                            */}
+      {/* ============================================================== */}
+      <Modal visible={showCityModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.cityModalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.cityModalHeader}>
+              <View>
+                <Text style={[styles.cityModalTitle, { color: colors.textPrimary }]}>Select Transit Region</Text>
+                <Text style={[styles.cityModalSubtitle, { color: colors.textMuted }]}>
+                  Honest coverage tiers across 8 Indian transit metropolitan areas
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowCityModal(false)} style={styles.closeBtn}>
+                <Text style={[styles.closeBtnText, { color: colors.textMuted }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.cityListScroll}>
+              {Object.values(CITIES_REGISTRY).map(city => {
+                const isSelected = selectedCityId === city.id;
+                return (
+                  <TouchableOpacity
+                    key={city.id}
+                    style={[
+                      styles.cityListItem,
+                      { borderColor: isSelected ? colors.primary : colors.cardBorder },
+                      isSelected && { backgroundColor: colors.primary + '12' }
+                    ]}
+                    onPress={() => handleSelectCity(city.id)}
+                  >
+                    <View style={styles.cityItemHeader}>
+                      <Text style={[styles.cityName, { color: colors.textPrimary }]}>
+                        {city.name} ({city.nativeName})
+                      </Text>
+                      <View style={[styles.tierBadge, { backgroundColor: city.tier === 'FLAGSHIP_TIER1' ? '#16a34a20' : '#0284c720' }]}>
+                        <Text style={[styles.tierBadgeText, { color: city.tier === 'FLAGSHIP_TIER1' ? '#16a34a' : '#0284c7' }]}>
+                          {city.tier === 'FLAGSHIP_TIER1' ? 'FLAGSHIP' : 'REPRESENTATIVE'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.cityState, { color: colors.textMuted }]}>
+                      {city.state} · {city.modes.map(m => m.name).join(' · ')}
+                    </Text>
+                    <Text style={[styles.cityProvenance, { color: colors.textSecondary }]}>
+                      {city.provenanceTag} {city.provenanceExplanation}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ============================================================== */}
+      {/* MODAL 2: Theme Selector Modal                                   */}
+      {/* ============================================================== */}
+      <Modal visible={showThemeModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.cityModalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.cityModalHeader}>
+              <View>
+                <Text style={[styles.cityModalTitle, { color: colors.textPrimary }]}>Appearance & Livery</Text>
+                <Text style={[styles.cityModalSubtitle, { color: colors.textMuted }]}>
+                  Authentic Indian Railways color schemes & night commute mode
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowThemeModal(false)} style={styles.closeBtn}>
+                <Text style={[styles.closeBtnText, { color: colors.textMuted }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.themeRow, { borderBottomColor: colors.cardBorder }]}>
+              <Text style={[styles.themeRowLabel, { color: colors.textPrimary }]}>Dark Mode</Text>
+              <Switch value={isDarkMode} onValueChange={toggleDarkMode} trackColor={{ false: colors.cardBorder, true: colors.primary }} />
+            </View>
+
+            <Text style={[styles.themeSectionLabel, { color: colors.textMuted }]}>8 Livery Themes:</Text>
+            <ScrollView style={styles.themeListScroll}>
+              {(Object.keys(THEME_PALETTES) as ColorTheme[]).map(t => {
+                const pal = THEME_PALETTES[t];
+                const isSelected = colorTheme === t;
+                return (
+                  <TouchableOpacity
+                    key={t}
+                    style={[
+                      styles.themeItem,
+                      { borderColor: isSelected ? colors.primary : colors.cardBorder },
+                      isSelected && { backgroundColor: colors.primary + '14' }
+                    ]}
+                    onPress={() => setColorTheme(t)}
+                  >
+                    <View style={[styles.themeColorDot, { backgroundColor: pal.dark.primary }]} />
+                    <Text style={[styles.themeItemText, { color: colors.textPrimary }]}>{pal.name}</Text>
+                    {isSelected && <Text style={[styles.themeSelectedCheck, { color: colors.primary }]}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ============================================================== */}
+      {/* MODAL 3: Launch Sequence Animation Modal                       */}
+      {/* ============================================================== */}
+      <Modal visible={showLaunchModal} animationType="fade" transparent={false}>
+        <View style={[styles.launchScreen, { backgroundColor: '#090d16' }]}>
+          <View style={styles.launchCenter}>
+            <View style={styles.launchLogoCircle}>
+              <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2}>
+                <Rect x="4" y="3" width="16" height="16" rx="2" />
+                <Path d="M4 11h16" />
+                <Path d="M12 3v8" />
+                <Circle cx="8" cy="15" r="1" fill="#ffffff" />
+                <Circle cx="16" cy="15" r="1" fill="#ffffff" />
+                <Path d="M8 19l-2 3" />
+                <Path d="M16 19l2 3" />
+              </Svg>
+            </View>
+            <Text style={styles.launchTitle}>RailOne Next</Text>
+            <Text style={styles.launchSubtitle}>Truthful Transit Intelligence · Indian Railways</Text>
+
+            <View style={styles.launchFeedList}>
+              <View style={styles.launchFeedItem}>
+                <View style={styles.launchFeedDot} />
+                <Text style={styles.launchFeedText}>Western Railway & Central Railway Timetables Loaded</Text>
+              </View>
+              <View style={styles.launchFeedItem}>
+                <View style={styles.launchFeedDot} />
+                <Text style={styles.launchFeedText}>Mumbai Metro Lines 1, 2A, 7, 3 Topology Initialized</Text>
+              </View>
+              <View style={styles.launchFeedItem}>
+                <View style={styles.launchFeedDot} />
+                <Text style={styles.launchFeedText}>SQLite Persistence & Tariff Contracts Verified</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.launchEnterBtn} onPress={handleDismissLaunch}>
+              <Text style={styles.launchEnterBtnText}>Enter RailOne</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ============================================================== */}
+      {/* MODAL 4: Onboarding & Profile Modal                            */}
+      {/* ============================================================== */}
+      <Modal visible={showOnboardingModal || showProfileModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.cityModalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.cityModalHeader}>
+              <View>
+                <Text style={[styles.cityModalTitle, { color: colors.textPrimary }]}>
+                  {showOnboardingModal ? 'Welcome to RailOne' : 'Passenger Profile'}
+                </Text>
+                <Text style={[styles.cityModalSubtitle, { color: colors.textMuted }]}>
+                  Quick commuter setup & offline preferences
+                </Text>
+              </View>
+              {!showOnboardingModal && (
+                <TouchableOpacity onPress={() => setShowProfileModal(false)} style={styles.closeBtn}>
+                  <Text style={[styles.closeBtnText, { color: colors.textMuted }]}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={styles.onboardingScroll}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Commuter Name (Optional)</Text>
+              <TextInput
+                style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.cardBorder }]}
+                placeholder="e.g. Rahul Sharma"
+                placeholderTextColor={colors.textMuted}
+                value={userName}
+                onChangeText={setUserName}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Mobile Number (Simulated UTS)</Text>
+              <TextInput
+                style={[styles.modalInput, { color: colors.textPrimary, borderColor: colors.cardBorder }]}
+                placeholder="+91 98765 43210"
+                placeholderTextColor={colors.textMuted}
+                value={userPhone}
+                onChangeText={setUserPhone}
+                keyboardType="phone-pad"
+              />
+
+              <View style={[styles.consentRow, { borderColor: colors.cardBorder }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.consentTitle, { color: colors.textPrimary }]}>Location Station Proximity</Text>
+                  <Text style={[styles.consentSub, { color: colors.textMuted }]}>
+                    Auto-select nearest departure platform when walking inside station
+                  </Text>
+                </View>
+                <Switch value={locationConsent} onValueChange={setLocationConsent} trackColor={{ false: colors.cardBorder, true: colors.primary }} />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.primaryModalBtn, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  handleCompleteOnboarding(false);
+                  setShowProfileModal(false);
+                }}
+              >
+                <Text style={styles.primaryModalBtnText}>Save Preferences</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.guestBtn, { borderColor: colors.cardBorder }]}
+                onPress={() => {
+                  handleCompleteOnboarding(true);
+                  setShowProfileModal(false);
+                }}
+              >
+                <Text style={[styles.guestBtnText, { color: colors.textSecondary }]}>Continue as Commuter Guest</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Station Picker Modal */}
       <Modal visible={pickerVisible} animationType="slide" transparent={false}>
@@ -367,11 +702,64 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16
   },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12
+  },
+  cityChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1
+  },
+  cityChipText: {
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  cityChipArrow: {
+    fontSize: 10,
+    fontWeight: '800'
+  },
+  topControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  langSwitch: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#00000010'
+  },
+  langOption: {
+    paddingHorizontal: 7,
+    paddingVertical: 5
+  },
+  langOptionText: {
+    fontSize: 10,
+    fontWeight: '800'
+  },
+  iconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   alertBanner: {
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 16
+    marginBottom: 14
   },
   alertBadge: {
     alignSelf: 'flex-start',
@@ -396,7 +784,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16
+    marginBottom: 14
   },
   callBannerContent: {
     flex: 1,
@@ -453,7 +841,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     padding: 16,
-    marginBottom: 16
+    marginBottom: 14
   },
   cardTitle: {
     fontSize: 16,
@@ -628,7 +1016,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 16
+    marginBottom: 14
   },
   activeCommuteHeader: {
     flexDirection: 'row',
@@ -683,7 +1071,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    marginBottom: 16
+    marginBottom: 14
   },
   savedSectionTitle: {
     fontSize: 13,
@@ -703,6 +1091,239 @@ const styles = StyleSheet.create({
   },
   savedSearchText: {
     fontSize: 12,
+    fontWeight: '700'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end'
+  },
+  cityModalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    maxHeight: '85%',
+    padding: 20
+  },
+  cityModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#64748b40'
+  },
+  cityModalTitle: {
+    fontSize: 17,
+    fontWeight: '800'
+  },
+  cityModalSubtitle: {
+    fontSize: 12,
+    marginTop: 2
+  },
+  closeBtn: {
+    padding: 6
+  },
+  closeBtnText: {
+    fontSize: 18,
+    fontWeight: 'bold'
+  },
+  cityListScroll: {
+    marginTop: 12
+  },
+  cityListItem: {
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    marginBottom: 10
+  },
+  cityItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  cityName: {
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  tierBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6
+  },
+  tierBadgeText: {
+    fontSize: 9,
+    fontWeight: '800'
+  },
+  cityState: {
+    fontSize: 11,
+    marginBottom: 4
+  },
+  cityProvenance: {
+    fontSize: 11,
+    lineHeight: 15
+  },
+  themeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1
+  },
+  themeRowLabel: {
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  themeSectionLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 14,
+    marginBottom: 8
+  },
+  themeListScroll: {
+    maxHeight: 280
+  },
+  themeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8
+  },
+  themeColorDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 12
+  },
+  themeItemText: {
+    fontSize: 13,
+    fontWeight: '700',
+    flex: 1
+  },
+  themeSelectedCheck: {
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  launchScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24
+  },
+  launchCenter: {
+    alignItems: 'center',
+    maxWidth: 320
+  },
+  launchLogoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#1d4ed8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16
+  },
+  launchTitle: {
+    color: '#ffffff',
+    fontSize: 26,
+    fontWeight: '900',
+    letterSpacing: 0.5
+  },
+  launchSubtitle: {
+    color: '#94a3b8',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 24
+  },
+  launchFeedList: {
+    gap: 10,
+    marginBottom: 32,
+    width: '100%'
+  },
+  launchFeedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  launchFeedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22c55e'
+  },
+  launchFeedText: {
+    color: '#cbd5e1',
+    fontSize: 11
+  },
+  launchEnterBtn: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 24
+  },
+  launchEnterBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  onboardingScroll: {
+    marginTop: 12
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 10,
+    marginBottom: 4
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14
+  },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    marginTop: 14,
+    marginBottom: 16
+  },
+  consentTitle: {
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  consentSub: {
+    fontSize: 11,
+    marginTop: 2
+  },
+  primaryModalBtn: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  primaryModalBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  guestBtn: {
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1
+  },
+  guestBtnText: {
+    fontSize: 13,
     fontWeight: '700'
   }
 });

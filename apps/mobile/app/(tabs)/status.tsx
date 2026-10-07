@@ -85,7 +85,7 @@ export default function TrainStatusScreen() {
                 </Text>
               </View>
               <View style={styles.provenanceBadge}>
-                <Text style={styles.provenanceBadgeText}>[{status.dataStatus || 'LIVE_VERIFIED'}]</Text>
+                <Text style={styles.provenanceBadgeText}>[{status.dataStatus || 'TIMETABLE_SCHEDULE'}]</Text>
               </View>
             </View>
 

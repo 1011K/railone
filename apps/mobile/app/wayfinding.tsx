@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,13 @@ import {
 import { useLocalSearchParams } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
 import { MobileApiClient } from '../src/api/client';
-import { STATION_3D_LAYOUTS, calculateStationTransferRoute } from '../../../src/fixtures/stationLayoutsData';
+import {
+  STATION_3D_LAYOUTS,
+  calculateStationTransferRoute,
+  PlatformLayout,
+  FootOverBridge
+} from '../src/fixtures/stationLayoutsData';
+import Svg, { Rect, Line, Circle, G, Text as SvgText, Path } from 'react-native-svg';
 
 const MAJOR_STATIONS = [
   { code: 'DR', name: 'Dadar Junction', subtitle: 'CR & WR 15 Platforms' },
@@ -35,6 +41,9 @@ export default function WayfindingScreen() {
   const [toPlatformId, setToPlatformId] = useState<string>('');
   const [stepFreeRequired, setStepFreeRequired] = useState(false);
 
+  // Zoom for SVG canvas
+  const [canvasZoom, setCanvasZoom] = useState(1);
+
   // Walk route result
   const [walkRoute, setWalkRoute] = useState<any | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
@@ -50,7 +59,7 @@ export default function WayfindingScreen() {
           setStationLayout(layout);
           if (layout.platforms && layout.platforms.length >= 2) {
             setFromPlatformId(layout.platforms[0].id);
-            setToPlatformId(layout.platforms[1].id);
+            setToPlatformId(layout.platforms[Math.min(3, layout.platforms.length - 1)].id);
           }
           return;
         }
@@ -63,7 +72,7 @@ export default function WayfindingScreen() {
         setStationLayout(fallback);
         if (fallback.platforms && fallback.platforms.length >= 2) {
           setFromPlatformId(fallback.platforms[0].id);
-          setToPlatformId(fallback.platforms[1].id);
+          setToPlatformId(fallback.platforms[Math.min(3, fallback.platforms.length - 1)].id);
         }
       }
     }
@@ -116,7 +125,25 @@ export default function WayfindingScreen() {
     };
   }, [selectedStationCode, fromPlatformId, toPlatformId, stepFreeRequired, stationLayout]);
 
-  const currentPlatforms = stationLayout?.platforms || [];
+  const currentPlatforms: PlatformLayout[] = stationLayout?.platforms || [];
+  const currentBridges: FootOverBridge[] = stationLayout?.bridges || [];
+
+  // Determine SVG bounding coordinates
+  const svgWidth = useMemo(() => {
+    if (!currentPlatforms.length) return 400;
+    const maxX = Math.max(...currentPlatforms.map(p => p.x + p.width), ...currentBridges.map(b => Math.max(b.x1, b.x2)));
+    return Math.max(420, maxX + 60);
+  }, [currentPlatforms, currentBridges]);
+
+  const svgHeight = useMemo(() => {
+    if (!currentPlatforms.length) return 350;
+    const maxY = Math.max(...currentPlatforms.map(p => p.y + p.height), ...currentBridges.map(b => Math.max(b.y1, b.y2)));
+    return Math.max(340, maxY + 60);
+  }, [currentPlatforms, currentBridges]);
+
+  const originPlatform = currentPlatforms.find(p => p.id === fromPlatformId);
+  const destPlatform = currentPlatforms.find(p => p.id === toPlatformId);
+  const bridgeUsed = currentBridges.find(b => b.id === walkRoute?.recommendedBridge?.id) || currentBridges[0];
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -183,7 +210,216 @@ export default function WayfindingScreen() {
         </View>
       )}
 
-      {/* 3. Platform-to-Platform Wayfinding Form */}
+      {/* 3. VISUAL PLATFORM TOPOLOGICAL MAP & FOB TRANSFER */}
+      <View style={[styles.visualMapCard, { backgroundColor: '#090d16', borderColor: colors.cardBorder }]}>
+        <View style={styles.visualMapHeader}>
+          <View>
+            <Text style={styles.visualMapTitle}>Platform Topological Layout</Text>
+            <Text style={styles.visualMapSubtitle}>
+              [SCHEMATIC SURVEY MODEL] Platforms, tracks, FOB bridges & lifts
+            </Text>
+          </View>
+
+          <View style={styles.zoomButtonsRow}>
+            <TouchableOpacity style={styles.zoomBtn} onPress={() => setCanvasZoom(z => Math.min(1.8, z + 0.2))}>
+              <Text style={styles.zoomBtnText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.zoomBtn} onPress={() => setCanvasZoom(z => Math.max(0.6, z - 0.2))}>
+              <Text style={styles.zoomBtnText}>−</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator>
+          <ScrollView showsVerticalScrollIndicator>
+            <Svg width={svgWidth * canvasZoom} height={svgHeight * canvasZoom} viewBox={`0 0 ${svgWidth} ${svgHeight}`}>
+              {/* Tracks Running Alongside Platforms */}
+              {currentPlatforms.map(p => (
+                <G key={`track-${p.id}`}>
+                  <Line
+                    x1={p.x - 6}
+                    y1={p.y}
+                    x2={p.x - 6}
+                    y2={p.y + p.height}
+                    stroke="#334155"
+                    strokeWidth={1.5}
+                    strokeDasharray="4,4"
+                  />
+                  <Line
+                    x1={p.x + p.width + 6}
+                    y1={p.y}
+                    x2={p.x + p.width + 6}
+                    y2={p.y + p.height}
+                    stroke="#334155"
+                    strokeWidth={1.5}
+                    strokeDasharray="4,4"
+                  />
+                </G>
+              ))}
+
+              {/* Platform Rectangles */}
+              {currentPlatforms.map(p => {
+                const isOrigin = p.id === fromPlatformId;
+                const isDest = p.id === toPlatformId;
+                const strokeColor = isOrigin ? '#22c55e' : isDest ? '#f59e0b' : p.line === 'western' ? '#ef4444' : '#3b82f6';
+                const fillColor = isOrigin ? '#15803d' : isDest ? '#b45309' : '#1e293b';
+
+                return (
+                  <G key={p.id} onPress={() => setFromPlatformId(p.id)}>
+                    <Rect
+                      x={p.x}
+                      y={p.y}
+                      width={p.width}
+                      height={p.height}
+                      rx={4}
+                      fill={fillColor}
+                      stroke={strokeColor}
+                      strokeWidth={isOrigin || isDest ? 3 : 1}
+                    />
+
+                    {/* Platform Number Label */}
+                    <SvgText
+                      x={p.x + p.width / 2}
+                      y={p.y + 16}
+                      fill="#ffffff"
+                      fontSize={9}
+                      fontWeight="bold"
+                      textAnchor="middle"
+                    >
+                      {p.number.split(' ')[0]}
+                    </SvgText>
+
+                    {/* Train Halt indicator if berthed */}
+                    {p.currentTrain && (
+                      <Rect
+                        x={p.x + 2}
+                        y={p.y + 30}
+                        width={p.width - 4}
+                        height={60}
+                        rx={2}
+                        fill={p.currentTrain.rakeType === 'FAST' ? '#ef444490' : '#3b82f690'}
+                      />
+                    )}
+                  </G>
+                );
+              })}
+
+              {/* Foot-Over-Bridges Crossbars */}
+              {currentBridges.map(b => {
+                const isSelectedBridge = b.id === bridgeUsed?.id;
+                return (
+                  <G key={b.id}>
+                    <Rect
+                      x={Math.min(b.x1, b.x2)}
+                      y={Math.min(b.y1, b.y2) - 8}
+                      width={Math.abs(b.x2 - b.x1) || 240}
+                      height={16}
+                      rx={4}
+                      fill={isSelectedBridge ? '#fbbf24' : '#475569'}
+                      stroke={isSelectedBridge ? '#f59e0b' : '#64748b'}
+                      strokeWidth={isSelectedBridge ? 2 : 1}
+                      opacity={0.9}
+                    />
+
+                    {/* Bridge Name Label */}
+                    <SvgText
+                      x={Math.min(b.x1, b.x2) + 8}
+                      y={Math.min(b.y1, b.y2) + 4}
+                      fill={isSelectedBridge ? '#0f172a' : '#f8fafc'}
+                      fontSize={8}
+                      fontWeight="bold"
+                    >
+                      {b.name} {b.hasLifts ? '· 🛗 LIFT' : ''}
+                    </SvgText>
+                  </G>
+                );
+              })}
+
+              {/* Transfer Walk Route Highlight Path */}
+              {originPlatform && destPlatform && bridgeUsed && (
+                <G>
+                  {/* Vertical path from origin platform up to bridge */}
+                  <Line
+                    x1={originPlatform.x + originPlatform.width / 2}
+                    y1={originPlatform.y + 40}
+                    x2={originPlatform.x + originPlatform.width / 2}
+                    y2={bridgeUsed.y1}
+                    stroke="#22c55e"
+                    strokeWidth={3}
+                    strokeDasharray="4,4"
+                  />
+
+                  {/* Horizontal path across bridge */}
+                  <Line
+                    x1={originPlatform.x + originPlatform.width / 2}
+                    y1={bridgeUsed.y1}
+                    x2={destPlatform.x + destPlatform.width / 2}
+                    y2={bridgeUsed.y1}
+                    stroke="#22c55e"
+                    strokeWidth={4}
+                  />
+
+                  {/* Vertical path down to destination platform */}
+                  <Line
+                    x1={destPlatform.x + destPlatform.width / 2}
+                    y1={bridgeUsed.y1}
+                    x2={destPlatform.x + destPlatform.width / 2}
+                    y2={destPlatform.y + 40}
+                    stroke="#f59e0b"
+                    strokeWidth={3}
+                    strokeDasharray="4,4"
+                  />
+
+                  {/* Start Point Marker */}
+                  <Circle
+                    cx={originPlatform.x + originPlatform.width / 2}
+                    cy={originPlatform.y + 40}
+                    r={6}
+                    fill="#22c55e"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                  />
+
+                  {/* End Destination Marker */}
+                  <Circle
+                    cx={destPlatform.x + destPlatform.width / 2}
+                    cy={destPlatform.y + 40}
+                    r={6}
+                    fill="#f59e0b"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                  />
+                </G>
+              )}
+            </Svg>
+          </ScrollView>
+        </ScrollView>
+
+        <View style={styles.mapLegendRow}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#22c55e' }]} />
+            <Text style={styles.legendText}>Origin PF</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
+            <Text style={styles.legendText}>Destination PF</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#fbbf24' }]} />
+            <Text style={styles.legendText}>FOB Bridge</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#3b82f6' }]} />
+            <Text style={styles.legendText}>Central Line</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#ef4444' }]} />
+            <Text style={styles.legendText}>Western Line</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* 4. Platform-to-Platform Wayfinding Form */}
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[styles.cardHeading, { color: colors.textPrimary }]}>
           Transfer Wayfinding
@@ -194,13 +430,13 @@ export default function WayfindingScreen() {
           <View style={styles.platformPickerCol}>
             <Text style={[styles.pickerLabel, { color: colors.textMuted }]}>FROM PLATFORM</Text>
             <ScrollView style={styles.platformListMini} nestedScrollEnabled>
-              {currentPlatforms.map((p: any) => (
+              {currentPlatforms.map(p => (
                 <TouchableOpacity
                   key={p.id}
                   style={[
                     styles.platformOption,
                     { borderColor: colors.cardBorder },
-                    fromPlatformId === p.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                    fromPlatformId === p.id && { backgroundColor: '#15803d', borderColor: '#22c55e' }
                   ]}
                   onPress={() => setFromPlatformId(p.id)}
                 >
@@ -225,13 +461,13 @@ export default function WayfindingScreen() {
           <View style={styles.platformPickerCol}>
             <Text style={[styles.pickerLabel, { color: colors.textMuted }]}>TO PLATFORM</Text>
             <ScrollView style={styles.platformListMini} nestedScrollEnabled>
-              {currentPlatforms.map((p: any) => (
+              {currentPlatforms.map(p => (
                 <TouchableOpacity
                   key={p.id}
                   style={[
                     styles.platformOption,
                     { borderColor: colors.cardBorder },
-                    toPlatformId === p.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                    toPlatformId === p.id && { backgroundColor: '#b45309', borderColor: '#f59e0b' }
                   ]}
                   onPress={() => setToPlatformId(p.id)}
                 >
@@ -267,7 +503,7 @@ export default function WayfindingScreen() {
         </View>
       </View>
 
-      {/* 4. Pedestrian Route Guide Output */}
+      {/* 5. Pedestrian Route Guide Output */}
       {loadingRoute ? (
         <View style={[styles.loadingBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -298,73 +534,21 @@ export default function WayfindingScreen() {
             )}
           </View>
 
-          {/* Turn-by-turn steps */}
-          <View style={styles.stepsContainer}>
-            {walkRoute.steps.map((stepText: string, idx: number) => (
-              <View key={idx} style={styles.stepRow}>
-                <View style={[styles.stepNumberBadge, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.stepNumberText}>{idx + 1}</Text>
+          {/* Turn-by-turn guidance steps */}
+          {walkRoute.directions && walkRoute.directions.length > 0 && (
+            <View style={styles.directionsList}>
+              {walkRoute.directions.map((step: string, idx: number) => (
+                <View key={idx} style={styles.stepRow}>
+                  <View style={[styles.stepNumberBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.stepNumberText}>{idx + 1}</Text>
+                  </View>
+                  <Text style={[styles.stepText, { color: colors.textPrimary }]}>{step}</Text>
                 </View>
-                <Text style={[styles.stepInstructionText, { color: colors.textPrimary }]}>
-                  {stepText}
-                </Text>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </View>
       ) : null}
-
-      {/* 5. Station Amenities & Accessibility Guide */}
-      {stationLayout?.amenities && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Text style={[styles.cardHeading, { color: colors.textPrimary }]}>
-            Station Amenities & Emergency Posts
-          </Text>
-          <View style={styles.amenitiesGrid}>
-            {stationLayout.amenities.map((am: any) => (
-              <View key={am.id} style={[styles.amenityItem, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
-                <Text style={[styles.amenityType, { color: colors.accent }]}>
-                  {am.type.toUpperCase().replace('_', ' ')}
-                </Text>
-                <Text style={[styles.amenityName, { color: colors.textPrimary }]} numberOfLines={2}>
-                  {am.name}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* 6. Foot-Over-Bridge Catalog */}
-      {stationLayout?.bridges && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder, marginBottom: 32 }]}>
-          <Text style={[styles.cardHeading, { color: colors.textPrimary }]}>
-            Foot-Over-Bridges ({stationLayout.bridges.length})
-          </Text>
-          {stationLayout.bridges.map((b: any) => (
-            <View key={b.id} style={[styles.bridgeRow, { borderBottomColor: colors.cardBorder }]}>
-              <View style={styles.bridgeInfo}>
-                <Text style={[styles.bridgeTitle, { color: colors.textPrimary }]}>{b.name}</Text>
-                <Text style={[styles.bridgeDetail, { color: colors.textMuted }]}>
-                  Level {b.level} · {b.lengthMeters}m · {b.connectedPlatforms.length} Platforms Connected
-                </Text>
-              </View>
-              <View style={styles.bridgeFeatures}>
-                {b.hasLifts && (
-                  <View style={[styles.featBadge, { backgroundColor: colors.success + '18' }]}>
-                    <Text style={[styles.featText, { color: colors.success }]}>LIFT</Text>
-                  </View>
-                )}
-                {b.hasEscalators && (
-                  <View style={[styles.featBadge, { backgroundColor: colors.primary + '18' }]}>
-                    <Text style={[styles.featText, { color: colors.primary }]}>ESCALATOR</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
     </ScrollView>
   );
 }
@@ -375,36 +559,34 @@ const styles = StyleSheet.create({
     padding: 14
   },
   stationChipsRow: {
-    flexDirection: 'row',
     gap: 8,
     paddingBottom: 12
   },
   stationChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    alignItems: 'center',
-    minWidth: 70
+    alignItems: 'center'
   },
   stationChipCode: {
     fontSize: 14,
     fontWeight: '800'
   },
   stationChipName: {
-    fontSize: 11,
+    fontSize: 10,
     marginTop: 2
   },
   card: {
+    padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    padding: 14,
-    marginBottom: 12
+    marginBottom: 14
   },
   stationTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 6
   },
   stationTitle: {
@@ -417,8 +599,8 @@ const styles = StyleSheet.create({
   },
   levelBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 5
+    paddingVertical: 4,
+    borderRadius: 6
   },
   levelBadgeText: {
     fontSize: 10,
@@ -426,59 +608,119 @@ const styles = StyleSheet.create({
   },
   stationDescription: {
     fontSize: 12,
-    lineHeight: 16,
-    marginTop: 6
+    lineHeight: 17
+  },
+  visualMapCard: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 14
+  },
+  visualMapHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10
+  },
+  visualMapTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800'
+  },
+  visualMapSubtitle: {
+    color: '#94a3b8',
+    fontSize: 10,
+    marginTop: 2
+  },
+  zoomButtonsRow: {
+    flexDirection: 'row',
+    gap: 6
+  },
+  zoomBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1e293b',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#475569'
+  },
+  zoomBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  mapLegendRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#334155'
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4
+  },
+  legendText: {
+    color: '#cbd5e1',
+    fontSize: 10
   },
   cardHeading: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 12
   },
   platformPickersRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 12
   },
   platformPickerCol: {
     flex: 1
   },
   pickerLabel: {
     fontSize: 10,
-    fontWeight: '700',
-    marginBottom: 6,
-    letterSpacing: 0.4
+    fontWeight: '800',
+    marginBottom: 6
   },
   platformListMini: {
-    maxHeight: 140
+    maxHeight: 120
   },
   platformOption: {
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
-    marginBottom: 6,
-    alignItems: 'center'
+    marginBottom: 6
   },
   platformOptionText: {
     fontSize: 12,
     fontWeight: '700'
   },
   transferArrowCol: {
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center'
+    paddingHorizontal: 8
   },
   transferArrow: {
-    fontSize: 22,
-    fontWeight: '800'
+    fontSize: 20,
+    fontWeight: 'bold'
   },
   toggleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1
   },
   toggleInfo: {
     flex: 1,
@@ -493,27 +735,28 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   loadingBox: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20
   },
   loadingText: {
     fontSize: 12
   },
   routeResultCard: {
-    padding: 16,
+    padding: 14,
     borderRadius: 14,
-    borderWidth: 2,
-    marginBottom: 14
+    borderWidth: 1,
+    marginBottom: 30
   },
   routeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 14
+    marginBottom: 12
   },
   routeBridgeName: {
     fontSize: 16,
@@ -527,90 +770,40 @@ const styles = StyleSheet.create({
   stepFreeBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 5
+    borderRadius: 6
   },
   stepFreeBadgeText: {
-    color: '#059669',
     fontSize: 10,
-    fontWeight: '800'
+    fontWeight: '800',
+    color: '#059669'
   },
-  stepsContainer: {
-    gap: 10
+  directionsList: {
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#64748b30'
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10
+    gap: 8
   },
   stepNumberBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2
   },
   stepNumberText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800'
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: 'bold'
   },
-  stepInstructionText: {
+  stepText: {
     flex: 1,
     fontSize: 13,
     lineHeight: 18
-  },
-  amenitiesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8
-  },
-  amenityItem: {
-    width: '48%',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1
-  },
-  amenityType: {
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    marginBottom: 2
-  },
-  amenityName: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 16
-  },
-  bridgeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth
-  },
-  bridgeInfo: {
-    flex: 1
-  },
-  bridgeTitle: {
-    fontSize: 13,
-    fontWeight: '700'
-  },
-  bridgeDetail: {
-    fontSize: 11,
-    marginTop: 2
-  },
-  bridgeFeatures: {
-    flexDirection: 'row',
-    gap: 4
-  },
-  featBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4
-  },
-  featText: {
-    fontSize: 9,
-    fontWeight: '800'
   }
 });

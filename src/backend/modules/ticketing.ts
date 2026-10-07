@@ -14,6 +14,7 @@ export interface CreateBookingRequest {
   fromStationCode: string;
   toStationCode: string;
   classBooked: TravelClass;
+  ticketType?: 'STANDARD_JOURNEY' | 'RETURN_JOURNEY' | 'SEASON_MST' | 'PLATFORM_TICKET' | 'METRO_TOKEN' | 'UNRESERVED_SUBURBAN';
   quota?: string;
   passengers: Array<{
     name: string;
@@ -75,14 +76,8 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
     }
   }
 
-  // 2. Train and stations resolution
-  const train = getTrainTrip(req.trainNumber);
-  if (!train) {
-    throw new Error(`Train ${req.trainNumber} not found.`);
-  }
-
   const fromStation = getStationByCode(req.fromStationCode);
-  const toStation = getStationByCode(req.toStationCode);
+  const toStation = getStationByCode(req.toStationCode || req.fromStationCode);
   if (!fromStation || !toStation) {
     throw new Error(`Invalid origin (${req.fromStationCode}) or destination (${req.toStationCode}).`);
   }
@@ -91,42 +86,110 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
     throw new Error('At least one passenger is required.');
   }
 
-  // 3. Stop sequence, direction, and fare computation
-  const isSuburban = train.serviceType.startsWith('suburban_');
-  const isMetro = train.serviceType === 'suburban_ac_slow' && fromStation.line === 'metro';
+  // 2. Train and service resolution:
+  // If specific train requested and exists, bind to it.
+  // Otherwise correctly model unreserved journey, return, season, platform, or metro token.
+  const reqTrainNum = (req.trainNumber || '').trim();
+  const isGenericTrain = !reqTrainNum || ['UNRESERVED', 'UTS-UNRESERVED', 'UTS-RETURN', 'MST-PASS', 'PLATFORM', 'METRO'].includes(reqTrainNum);
+  const matchedTrain = !isGenericTrain ? getTrainTrip(reqTrainNum) : null;
 
-  if (!isSuburban && !train.availableClasses.includes(req.classBooked)) {
-    throw new Error(`Class ${req.classBooked} is not available on train ${train.trainNumber} (${train.trainName}). Available classes: ${train.availableClasses.join(', ')}.`);
+  if (!isGenericTrain && !matchedTrain) {
+    throw new Error(`Train ${req.trainNumber} not found.`);
   }
 
-  const fromStopIdx = train.stops.findIndex(s => s.stationCode.toUpperCase() === fromStation.code.toUpperCase());
-  const toStopIdx = train.stops.findIndex(s => s.stationCode.toUpperCase() === toStation.code.toUpperCase());
-
-  if (fromStopIdx === -1 || toStopIdx === -1) {
-    if (!isSuburban) {
-      throw new Error(`Train ${train.trainNumber} (${train.trainName}) does not call at ${fromStopIdx === -1 ? fromStation.name : toStation.name}.`);
-    }
-  } else if (fromStopIdx >= toStopIdx) {
-    if (!isSuburban) {
-      throw new Error(`Invalid travel direction: Train ${train.trainNumber} runs from ${train.originStation} to ${train.destinationStation}, and does not call at ${toStation.name} after ${fromStation.name}. Destination ${toStation.name} does not occur after origin ${fromStation.name}.`);
-    }
-  }
-
-  let distanceKm = 34;
-  if (fromStopIdx !== -1 && toStopIdx !== -1) {
-    distanceKm = Math.abs(train.stops[toStopIdx].distanceKm - train.stops[fromStopIdx].distanceKm) || 34;
-  } else {
-    // Cross-line suburban or transfer connection
-    distanceKm = calculateStationDistance(fromStation.code, toStation.code);
-  }
-
+  let isSuburban = true;
+  let isMetro = false;
+  let trainNumber = 'UNRESERVED';
+  let trainName = 'Suburban Unreserved Service';
+  let serviceType = 'suburban_local';
+  let distanceKm: number | null = null;
   let unitFare = 10;
-  if (isMetro) {
+
+  if (matchedTrain) {
+    trainNumber = matchedTrain.trainNumber;
+    trainName = matchedTrain.trainName;
+    serviceType = matchedTrain.serviceType;
+    isSuburban = matchedTrain.serviceType.startsWith('suburban_');
+    isMetro = matchedTrain.serviceType === 'suburban_ac_slow' && fromStation.line === 'metro';
+
+    if (!isSuburban && !matchedTrain.availableClasses.includes(req.classBooked)) {
+      throw new Error(`Class ${req.classBooked} is not available on train ${matchedTrain.trainNumber} (${matchedTrain.trainName}). Available classes: ${matchedTrain.availableClasses.join(', ')}.`);
+    }
+
+    const fromStopIdx = matchedTrain.stops.findIndex(s => s.stationCode.toUpperCase() === fromStation.code.toUpperCase());
+    const toStopIdx = matchedTrain.stops.findIndex(s => s.stationCode.toUpperCase() === toStation.code.toUpperCase());
+
+    if (fromStopIdx === -1 || toStopIdx === -1) {
+      if (!isSuburban) {
+        throw new Error(`Train ${matchedTrain.trainNumber} (${matchedTrain.trainName}) does not call at ${fromStopIdx === -1 ? fromStation.name : toStation.name}.`);
+      }
+    } else if (fromStopIdx >= toStopIdx) {
+      if (!isSuburban) {
+        throw new Error(`Invalid travel direction: Train ${matchedTrain.trainNumber} runs from ${matchedTrain.originStation} to ${matchedTrain.destinationStation}, and does not call at ${toStation.name} after ${fromStation.name}. Destination ${toStation.name} does not occur after origin ${fromStation.name}.`);
+      }
+    }
+
+    if (fromStopIdx !== -1 && toStopIdx !== -1) {
+      const d = Math.abs(matchedTrain.stops[toStopIdx].distanceKm - matchedTrain.stops[fromStopIdx].distanceKm);
+      if (d > 0) distanceKm = Math.round(d * 10) / 10;
+    }
+    if (distanceKm === null) {
+      distanceKm = calculateStationDistance(fromStation.code, toStation.code);
+    }
+    if (distanceKm === null || distanceKm <= 0) {
+      throw new Error(`Track distance between ${fromStation.name} (${fromStation.code}) and ${toStation.name} (${toStation.code}) is unavailable. Cannot issue ticket without verified track distance.`);
+    }
+
+    if (isMetro) {
+      unitFare = calculateMetroFare(distanceKm).totalFare;
+    } else if (isSuburban) {
+      unitFare = calculateSuburbanFare(distanceKm, req.classBooked).totalFare;
+    } else {
+      unitFare = calculateExpressFare(distanceKm, req.classBooked, matchedTrain.serviceType === 'superfast').totalFare;
+    }
+  } else if (req.ticketType === 'PLATFORM_TICKET' || reqTrainNum === 'PLATFORM') {
+    trainNumber = 'PLATFORM';
+    trainName = 'Station Platform Permit';
+    serviceType = 'platform';
+    distanceKm = 0;
+    unitFare = 10; // Official ₹10 platform ticket tariff
+  } else if (req.ticketType === 'METRO_TOKEN' || reqTrainNum === 'METRO') {
+    trainNumber = 'METRO';
+    trainName = 'Mumbai Metro Transit Line';
+    serviceType = 'metro';
+    isMetro = true;
+    isSuburban = false;
+    distanceKm = calculateStationDistance(fromStation.code, toStation.code) || 12;
     unitFare = calculateMetroFare(distanceKm).totalFare;
-  } else if (isSuburban) {
-    unitFare = calculateSuburbanFare(distanceKm, req.classBooked).totalFare;
+  } else if (req.ticketType === 'SEASON_MST' || reqTrainNum === 'MST-PASS') {
+    trainNumber = 'MST-PASS';
+    trainName = 'Suburban Monthly Season Ticket (MST)';
+    serviceType = 'suburban_season';
+    distanceKm = calculateStationDistance(fromStation.code, toStation.code);
+    if (distanceKm === null || distanceKm <= 0) {
+      throw new Error(`Track distance between ${fromStation.name} and ${toStation.name} is unavailable.`);
+    }
+    unitFare = req.classBooked === 'AC_LOCAL' ? 1450 : req.classBooked === 'I' ? 670 : 185;
+  } else if (req.ticketType === 'RETURN_JOURNEY' || reqTrainNum === 'UTS-RETURN') {
+    trainNumber = 'UTS-RETURN';
+    trainName = 'Suburban Return Journey Ticket';
+    serviceType = 'suburban_return';
+    distanceKm = calculateStationDistance(fromStation.code, toStation.code);
+    if (distanceKm === null || distanceKm <= 0) {
+      throw new Error(`Track distance between ${fromStation.name} and ${toStation.name} is unavailable.`);
+    }
+    const singleFare = calculateSuburbanFare(distanceKm, req.classBooked).totalFare;
+    unitFare = Math.round(singleFare * 1.9);
   } else {
-    unitFare = calculateExpressFare(distanceKm, req.classBooked, train.serviceType === 'superfast').totalFare;
+    // Standard journey-based unreserved suburban ticket (UTS)
+    trainNumber = 'UNRESERVED';
+    trainName = req.classBooked === 'AC_LOCAL' ? 'Suburban AC Local (Route Journey)' : req.classBooked === 'I' ? 'Suburban First Class (Route Journey)' : 'Suburban Second Class (Route Journey)';
+    serviceType = req.classBooked === 'AC_LOCAL' ? 'suburban_ac' : 'suburban_local';
+    distanceKm = calculateStationDistance(fromStation.code, toStation.code);
+    if (distanceKm === null || distanceKm <= 0) {
+      throw new Error(`Track distance between ${fromStation.name} and ${toStation.name} is unavailable.`);
+    }
+    unitFare = calculateSuburbanFare(distanceKm, req.classBooked).totalFare;
   }
 
   const totalFare = unitFare * req.passengers.length;
@@ -163,7 +226,7 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
   const qrPayload = JSON.stringify({
     specimen: 'DEMO / NOT VALID FOR TRAVEL',
     pnr,
-    train: train.trainNumber,
+    train: trainNumber,
     from: fromStation.code,
     to: toStation.code,
     date: req.journeyDate,
@@ -196,9 +259,9 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
     pnr,
     now,
     req.journeyDate,
-    train.serviceType,
-    train.trainNumber,
-    train.trainName,
+    serviceType,
+    trainNumber,
+    trainName,
     fromStation.code,
     fromStation.name,
     toStation.code,
@@ -232,7 +295,7 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
     actor: req.passengerProfileId || 'guest',
     entityType: 'BOOKING',
     entityId: bookingId,
-    payload: { pnr, totalFare, bookingState, trainNumber: train.trainNumber }
+    payload: { pnr, totalFare, bookingState, trainNumber }
   });
 
   return getBookingById(bookingId)!;
