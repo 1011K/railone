@@ -1304,6 +1304,48 @@ console.log('\nTest Suite 24: All-Trains Departure Board, Express 15-Minute Rule
     dadarStepFree.success && dadarStepFree.stepFreeAvailable === true,
     '24.7: Platform transfer calculates realistic walk times and resolves step-free elevator bridges'
   );
+
+  // 24.8: Scenario C: CSMT -> Kalyan comparison (Slow, Fast, AC, Express) and >= 15-minute rule
+  const csmtToKyn = planJourneys({
+    originCode: 'CSMT',
+    destCode: 'KYN',
+    departureTime: '18:15',
+    timeWindowMinutes: 60,
+    userContext: 'pre_departure',
+    preferences: {
+      classPreference: 'any',
+      priority: 'fastest',
+      hasSeasonPass: false,
+      walkToStationMinutes: 5,
+      maxTransfers: 1
+    }
+  });
+  const hasSlow = csmtToKyn.some(r => r.serviceCategory === 'slow');
+  const hasFast = csmtToKyn.some(r => r.serviceCategory === 'fast');
+  const hasAc = csmtToKyn.some(r => r.serviceCategory === 'ac' || r.isAcService);
+  const hasExpress = csmtToKyn.some(r => r.serviceCategory === 'express');
+  const topCsmt = csmtToKyn[0];
+  assert(
+    hasSlow && hasFast && hasAc && hasExpress &&
+    topCsmt?.serviceCategory !== 'express' &&
+    topCsmt?.isRecommended === true,
+    '24.8: Scenario C: CSMT -> Kalyan compares Slow, Fast, AC, Express and enforces >=15m rule (Express not automatically preferred)'
+  );
+
+  // 24.9: Scenario D: Dadar Easy Journey / Low-Literacy accessibility mode
+  const { STATION_3D_LAYOUTS: stn3d } = await import('../src/fixtures/stationLayoutsData');
+  const dadarLayout = stn3d['DR'];
+  const dadarStepFreePf1To8 = calculateStationTransferRoute('DR', 'DR_WR_1', 'DR_CR_8', true);
+  const dadarExits = getStationExitGuidance('DR');
+  assert(
+    dadarLayout !== undefined &&
+    dadarLayout.platforms.length === 15 &&
+    dadarStepFreePf1To8.success &&
+    dadarStepFreePf1To8.stepFreeAvailable === true &&
+    dadarExits !== null &&
+    dadarExits.exits.length >= 2,
+    '24.9: Scenario D: Passenger with zero railway jargon at Dadar can navigate step-free with verified bridges, platforms, and exits'
+  );
 }
 
 console.log('\nTest Suite 25: Native Mobile Rebuild Architecture, EAS Cloud Build, Offline Vector Geometries, Timetable Densification, TTE Statutory Validator & Speech Resilience');
