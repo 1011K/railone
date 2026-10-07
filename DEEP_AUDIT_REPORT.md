@@ -10,7 +10,7 @@ In addition to the audit, a comprehensive **Interactive 2D & 3D Rail Network Map
 - **National Pan-India network**: 40+ national railway hubs and high-speed trunk corridors connecting Northern, Western, Central, Eastern, and Southern zones.
 - **"Which trains run through what"**: Multi-train track routing displaying all trains traversing each corridor, individual train delays, mathematical corridor average delays, and concrete root-cause operational disruption explanations.
 - **Interactive route illumination & live search**: Autocomplete search for stations and trains in English, Hindi, and Marathi, with instant visual route path lighting.
-- **113/113 automated unit and integration tests passing** with zero errors or warnings.
+- **227/227 automated unit and integration tests passing** across 26 suites with zero errors or warnings.
 
 ---
 
@@ -24,7 +24,7 @@ In addition to the audit, a comprehensive **Interactive 2D & 3D Rail Network Map
 | **Wave 3: Legal Gate & Specimen Ticketing** | Dadar–Kalyan Section 138 travel eligibility, idempotent checkout, refund breakdown. | `src/engine/eligibilityEngine.ts`, `src/engine/mockBookingStore.ts`, `SpecimenTicketModal.tsx` | **PASSED (100%)**: Strict specimen watermarking (`DEMO / NOT VALID FOR TRAVEL`), duplicate tap deduplication, and itemized refund accounting verified. |
 | **Wave 4: Multi-Channel Voice** | 100% deterministic parity between voice tools and manual UI. | `src/engine/voiceTools.ts`, `VoiceDialerModal.tsx` | **PASSED (100%)**: All 9 tools operate identically via voice and manual triggers. |
 | **Wave 5: Mobile-First Transit UI** | Glanceable layouts, high-contrast WCAG 2.1 AA/AAA palettes, SVG iconography. | `JourneyDecisionView.tsx`, `TrainLiveTracker.tsx`, `ThemeContext.tsx`, `Navbar.tsx` | **PASSED (100%)**: 8 accessible themes, 44px touch targets, zero emoji icons. |
-| **Wave 6: Automated Verification** | All 18 canonical scenarios (G1–G18) + architectural test suites 1–17. | `tests/run-all-tests.ts` (113/113 passing tests) | **PASSED (100%)**: Zero failing tests, zero flaky tests, runs in <3s. |
+| **Wave 6: Automated Verification** | All 18 canonical scenarios (G1–G18) + architectural test suites 1–26. | `tests/run-all-tests.ts` (227/227 passing tests) | **PASSED (100%)**: Zero failing tests, zero flaky tests, runs in <3s. |
 
 ### 1.2 Prior Attempt Deficiencies Identified & Resolved
 1. **Incomplete Suburban Station Coverage**:
@@ -90,11 +90,10 @@ In addition to the audit, a comprehensive **Interactive 2D & 3D Rail Network Map
 
 ### 4.1 Automated Test Suite
 - Executed via `npm test` (`tsx tests/run-all-tests.ts`).
-- **Results: 113/113 passing tests (0 failures, 100% pass rate)**.
+- **Results: 227/227 passing tests (0 failures, 100% pass rate)**.
 - Covers:
   - 18 canonical Master Plan acceptance scenarios (`[G1]`–`[G18]`).
-  - Integration Test Suites 1, 8, 13, 16.
-  - Test Suite 17: Interactive 2D/3D Network Map Engine & Multi-Train Track Delays (29 dedicated assertions).
+  - Integration Test Suites 1 through 26 (including Suite 26 Mobile Rebuild & Coach Guide Domain Verification).
 
 ### 4.2 Typecheck & Lint
 - Executed via `npm run lint` (`tsc --noEmit`).

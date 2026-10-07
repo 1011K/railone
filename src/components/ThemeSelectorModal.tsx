@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTheme, ColorTheme, THEME_CONFIG } from './ThemeContext';
 import { 
   Palette, 
@@ -23,6 +23,15 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
 }) => {
   const { theme, setTheme, isDark, toggleDarkMode, language } = useTheme();
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const themes: ColorTheme[] = [
@@ -37,7 +46,10 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+    <div 
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 select-none"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div 
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden"
         role="dialog"

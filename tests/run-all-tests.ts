@@ -829,17 +829,48 @@ console.log('\nTest Suite 21: Global Benchmarks, Coach Alignment (Wagenstandsanz
 {
   const coachGuidePath = path.resolve(process.cwd(), 'src/components/CoachPositionGuide.tsx');
   assert(fs.existsSync(coachGuidePath), '21.1: CoachPositionGuide component exists in src/components');
-  if (fs.existsSync(coachGuidePath)) {
-    const content = fs.readFileSync(coachGuidePath, 'utf8');
-    assert(content.includes('12_car_suburban') && content.includes('12_car_ac_suburban'), 
-      '21.2: 12-car Non-AC and AC local suburban rake models supported');
-    assert(content.includes('divyangjan') && content.includes('Wheelchair'), 
-      '21.3: Divyangjan handicap accessible coach alignment mapped with tactile guidance');
-    assert(content.includes('16_car_vande_bharat') && content.includes('Executive'), 
-      '21.4: 16-car Vande Bharat Express configuration with Executive Chair Car (EC) mapped');
-    assert(content.includes('nearestFobDadar') && content.includes('Middle Foot-Over-Bridge'), 
-      '21.5: Platform Foot-Over-Bridge exit mapping guides commuter to fast interchange stairs');
-  }
+  
+  const { getRakeFormation, computeCoachRecommendation, getPlatformAlignment } = await import('../src/models/coachGuide');
+  const sub12 = getRakeFormation('12_car_suburban');
+  const ac12 = getRakeFormation('12_car_ac_suburban');
+  assert(
+    !!sub12 && sub12.totalCoaches === 12 && !!ac12 && ac12.totalCoaches === 12 && ac12.isAirConditioned,
+    '21.2: 12-car Non-AC and AC local suburban rake models supported'
+  );
+
+  const accessibleCoach = sub12?.coaches.find(c => c.isAccessible);
+  assert(
+    !!accessibleCoach && accessibleCoach.category === 'divyangjan' && accessibleCoach.ticketNotice.toLowerCase().includes('divyangjan'),
+    '21.3: Divyangjan handicap accessible coach alignment mapped with tactile guidance'
+  );
+
+  const vb16 = getRakeFormation('16_car_vande_bharat');
+  const ecCoaches = vb16?.coaches.filter(c => c.category === 'executive');
+  assert(
+    !!vb16 && vb16.totalCoaches === 16 && (ecCoaches?.length ?? 0) >= 2,
+    '21.4: 16-car Vande Bharat Express configuration with Executive Chair Car (EC) mapped'
+  );
+
+  // 21.5: Behavioral platform landmark recommendation (Dadar PF 3 -> Middle FOB for Coach 4/5)
+  const dadarRec = computeCoachRecommendation({
+    rakeType: '12_car_suburban',
+    coachSequence: 4,
+    stationCode: 'DR',
+    platformNumber: '3'
+  });
+  const unalignedRec = computeCoachRecommendation({
+    rakeType: '12_car_suburban',
+    coachSequence: 4,
+    stationCode: 'XYZ',
+    platformNumber: '99'
+  });
+  assert(
+    dadarRec.status === 'AVAILABLE' && 
+    Boolean(dadarRec.nearestLandmark?.name.includes('Foot-Over-Bridge')) &&
+    unalignedRec.status === 'UNAVAILABLE' &&
+    Boolean(unalignedRec.message?.includes('unavailable')),
+    '21.5: Platform Foot-Over-Bridge exit mapping guides commuter to fast interchange stairs'
+  );
 
   const dossierPath = path.resolve(process.cwd(), 'src/components/InstitutionalDossierModal.tsx');
   assert(fs.existsSync(dossierPath), '21.6: InstitutionalDossierModal exists for academic exam evaluation');
@@ -1496,6 +1527,129 @@ console.log('\nTest Suite 25: Native Mobile Rebuild Architecture, EAS Cloud Buil
   assert(
     Boolean(fallbackInvoked) && Boolean(speechDone),
     '25.13: SpeechEngine gracefully invokes fallback handler and completes audio cycle'
+  );
+}
+
+console.log('\nTest Suite 26: Phone-First Mobile Architecture, Coach Separation, Dynamic Booking & Provenance Truth');
+{
+  const { 
+    getRakeFormation, 
+    PLATFORM_ALIGNMENTS, 
+    computeCoachRecommendation 
+  } = await import('../src/models/coachGuide');
+
+  // 26.1: Verify all 5 rake formations are defined with exact coach counts
+  const suburban12 = getRakeFormation('12_car_suburban');
+  const suburban12Ac = getRakeFormation('12_car_ac_suburban');
+  const suburban15 = getRakeFormation('15_car_suburban');
+  const vb16 = getRakeFormation('16_car_vande_bharat');
+  const express22 = getRakeFormation('22_car_express');
+  const unknownRake = getRakeFormation('unknown_test_rake' as any);
+
+  assert(
+    suburban12 !== null && suburban12.coaches.length === 12 &&
+    suburban12Ac !== null && suburban12Ac.coaches.length === 12 && suburban12Ac.coaches.every(c => c.isAirConditioned) &&
+    suburban15 !== null && suburban15.coaches.length === 15 &&
+    vb16 !== null && vb16.coaches.length === 16 &&
+    express22 !== null && express22.coaches.length === 22 &&
+    unknownRake === null,
+    '26.1: All 5 rake formations resolve exact coach counts and unknown rakes return null without silent fallback'
+  );
+
+  // 26.2: Verify Vande Bharat and Express compositions
+  assert(
+    Boolean(vb16?.coaches.some(c => c.category === 'executive' || c.identifier.includes('EC'))) &&
+    Boolean(express22?.coaches.some(c => c.category === 'sleeper' || c.identifier.includes('S1'))) &&
+    Boolean(express22?.coaches.some(c => c.category === 'ac_sleeper' || c.identifier.includes('A1') || c.identifier.includes('B1'))),
+    '26.2: 16-car Vande Bharat has Executive Chair (EC) and 22-car Express includes Sleeper and AC Sleeper coaches'
+  );
+
+  // 26.3: Separation of PlatformAlignment and RakeFormation
+  const dadarAlignment = PLATFORM_ALIGNMENTS['DR_3'];
+  assert(
+    dadarAlignment !== undefined && 
+    dadarAlignment.landmarks.length > 0 &&
+    dadarAlignment.stoppingZones['12_car_suburban'] !== undefined,
+    '26.3: PlatformAlignment isolates physical platform geometry and stopping zones from train rake'
+  );
+
+  // 26.4: Coach Recommendation honesty for unmapped platform
+  const missingRec = computeCoachRecommendation({
+    rakeType: '12_car_suburban',
+    coachSequence: 1,
+    stationCode: 'XYZ',
+    platformNumber: '99'
+  });
+  assert(
+    missingRec.status === 'UNAVAILABLE' &&
+    !missingRec.nearestLandmark &&
+    !missingRec.distanceMeters &&
+    Boolean(missingRec.message?.includes('unavailable')),
+    '26.4: Coach recommendation returns UNAVAILABLE for unmapped station without fallback to Dadar'
+  );
+
+  // 26.5: Dynamic Booking Invariants (no stale hardcoded dates)
+  const { MockBookingStore } = await import('../src/engine/mockBookingStore');
+  const bookingRes = MockBookingStore.createSpecimenBooking({
+    trainNumber: '95112',
+    trainName: 'Fast Local',
+    fromCode: 'TNA',
+    fromName: 'Thane',
+    toCode: 'CSMT',
+    toName: 'CSMT',
+    classBooked: 'II',
+    fare: 10,
+    passengers: [{ name: 'Test Commuter', age: 25, gender: 'M' }],
+    paymentMethod: 'UPI (Simulated)'
+  });
+  const todayIso = new Date().toISOString().split('T')[0];
+  assert(
+    Boolean(bookingRes.ticket) &&
+    bookingRes.ticket.journeyDate >= todayIso &&
+    bookingRes.ticket.pnrMock.startsWith('MOCK-') &&
+    bookingRes.ticket.pnrMock !== '8421904123' &&
+    bookingRes.ticket.id.startsWith('TKT-'),
+    '26.5: Specimen booking generates dynamic valid journeyDate and cryptographically random PNR'
+  );
+
+  // 26.6: AI Service Fallback Truth & Provenance
+  const { AiRailwayService } = await import('../src/services/aiService');
+  const aiPlan = await AiRailwayService.decomposeTravelPlan('Kurla to Dadar fast train delayed +22m');
+  assert(
+    aiPlan.provenance === 'DEMO' && 
+    Boolean(aiPlan.feedStatusNotice?.includes('Operational feed unavailable')),
+    '26.6: AI decomposition fallback returns explicit DEMO provenance and feed unavailable notice'
+  );
+
+  // 26.7: Accessible Dialog and Mobile Styles in index.css
+  const cssContent = fs.readFileSync(path.resolve(process.cwd(), 'src/index.css'), 'utf8');
+  assert(
+    cssContent.includes('pt-safe') &&
+    cssContent.includes('pb-safe') &&
+    cssContent.includes('touch-target') &&
+    cssContent.includes('prefers-reduced-motion'),
+    '26.7: Mobile design primitives in index.css include safe-area insets, touch-targets, and reduced motion'
+  );
+
+  // 26.8: Phone-First Bottom Navigation contract
+  const { BottomNavigation } = await import('../src/components/common/BottomNavigation');
+  const bottomNavContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/common/BottomNavigation.tsx'), 'utf8');
+  assert(
+    typeof BottomNavigation === 'function' &&
+    bottomNavContent.includes("'home'") &&
+    bottomNavContent.includes("'journey'") &&
+    bottomNavContent.includes("'live'") &&
+    bottomNavContent.includes("'tickets'") &&
+    bottomNavContent.includes("'help'"),
+    '26.8: BottomNavigation implements the 5 commuter-first passenger tabs (Home, Journey, Live, Tickets, Help)'
+  );
+
+  // 26.9: Responsive Live Tracker Timeline
+  const liveTrackerContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/TrainLiveTracker.tsx'), 'utf8');
+  assert(
+    liveTrackerContent.includes('block md:hidden') &&
+    liveTrackerContent.includes('hidden md:block'),
+    '26.9: TrainLiveTracker renders both mobile vertical route timeline and wide desktop horizontal schematic'
   );
 }
 

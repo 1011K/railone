@@ -955,7 +955,7 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-theme-primary" />
-                <span>Coach Alignment (Wagenstandsanzeiger)</span>
+                <span>Train Coach Position Guide</span>
               </span>
               <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold">
                 {coachStationCode} · PF {coachPlatform}
@@ -999,6 +999,7 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
                 { id: '12_car_ac_suburban', label: '12-Car AC Local' },
                 { id: '15_car_suburban', label: '15-Car Suburban' },
                 { id: '16_car_vande_bharat', label: 'Vande Bharat' },
+                { id: '22_car_express', label: '22-Car Express' },
               ].map(m => (
                 <button
                   key={m.id}

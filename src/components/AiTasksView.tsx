@@ -39,12 +39,12 @@ interface AiTasksViewProps {
 }
 
 export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut }) => {
-  // Initial realistic institutional railway tasks
+  // Initial realistic institutional railway tasks (clearly labeled as simulation models)
   const [tasks, setTasks] = useState<CommuterTask[]>([
     {
       id: 'task-1',
-      title: 'Divert to Slow Line at Kurla (PF 1)',
-      description: 'Fast Local 95112 held by Vidyavihar signal lock (+22m delay). Alight at Kurla PF 6 and cross to PF 1 to catch Slow Local 97045 departing in 4m.',
+      title: 'Delay Inversion Reroute [SIMULATED SCENARIO]',
+      description: 'Educational simulation: Fast Local 95112 held by signal bunching. Alight at Kurla PF 6 and cross to PF 1 to catch Slow Local 97045 departing in 4m.',
       category: 'DISRUPTION_RECOVERY',
       priority: 'P0_CRITICAL',
       status: 'PENDING',
@@ -56,8 +56,8 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
     },
     {
       id: 'task-2',
-      title: 'Leave Home for Kalyan AC Fast Local (95114)',
-      description: 'Train 95114 delayed at Kalyan electric shed (+18m). Recalculated leave-home time is 10:48 instead of 10:30.',
+      title: 'Dynamic Leave-Home Time [SIMULATED SCENARIO]',
+      description: 'Educational simulation: Train 95114 delayed at Kalyan electric shed. Recalculated leave-home time is 10:48 instead of 10:30.',
       category: 'JOURNEY_PLANNING',
       priority: 'P1_HIGH',
       status: 'PENDING',

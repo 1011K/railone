@@ -27,8 +27,14 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setTickets(MockBookingStore.listBookings());
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -48,14 +54,22 @@ export const TicketWalletModal: React.FC<TicketWalletModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 select-none"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ticket-wallet-title"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden"
+      >
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Ticket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="font-bold text-base text-slate-900 dark:text-white">
+            <h3 id="ticket-wallet-title" className="font-bold text-base text-slate-900 dark:text-white">
               Specimen Ticket Wallet
             </h3>
             <span className="text-xs text-slate-500 font-normal">

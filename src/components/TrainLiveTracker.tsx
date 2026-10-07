@@ -581,7 +581,107 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
         {/* ======================================================================= */}
         {heatmapScope === 'route' && (
           <div className="space-y-4">
-            <div className="overflow-x-auto pb-4 pt-2">
+            {/* Mobile Vertical Route Timeline (< md screens) */}
+            <div className="block md:hidden space-y-1 py-2 px-1">
+              {routeSegments.map((segment, idx) => {
+                const isSelected = activeInspectedSegment?.segmentId === segment.segmentId;
+                const isVisible = !filterBottlenecksOnly || segment.isBottleneck;
+                if (!isVisible) return null;
+
+                return (
+                  <div key={segment.segmentId} className="relative">
+                    {/* Station Node Row */}
+                    <div 
+                      onClick={() => setSelectedHeatSegment(segment)}
+                      className={`flex items-center gap-3 p-2 rounded-xl transition-colors cursor-pointer ${
+                        isSelected ? 'bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800' : 'hover:bg-slate-50 dark:hover:bg-slate-900/40'
+                      }`}
+                    >
+                      <div className="relative flex items-center justify-center w-6 shrink-0">
+                        <div className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
+                          segment.hasCurrentTrain
+                            ? 'bg-blue-600 border-white ring-4 ring-blue-500/30 scale-125'
+                            : isSelected
+                            ? 'bg-slate-900 dark:bg-white border-blue-500 scale-110'
+                            : 'bg-white dark:bg-slate-900 border-slate-400 dark:border-slate-600'
+                        }`}>
+                          {segment.hasCurrentTrain && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0 flex items-baseline justify-between">
+                        <div className="flex items-baseline gap-1.5 min-w-0">
+                          <span className={`text-xs font-bold ${
+                            isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-slate-100'
+                          }`}>
+                            {segment.fromStationCode}
+                          </span>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            {segment.fromStationName}
+                          </span>
+                        </div>
+                        {segment.hasCurrentTrain && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-600 text-white shrink-0">
+                            Loco #{train.trainNumber}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Connecting Vertical Track Bar */}
+                    <div 
+                      onClick={() => setSelectedHeatSegment(segment)}
+                      className="ml-5 pl-4 py-1.5 flex items-center justify-between border-l-2 cursor-pointer transition-colors"
+                      style={{ borderColor: segment.colorHex }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                          segment.intensity === 'CRITICAL'
+                            ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-300'
+                            : segment.intensity === 'HEAVY'
+                            ? 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 border-orange-300'
+                            : segment.intensity === 'MODERATE'
+                            ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300'
+                            : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300'
+                        }`}>
+                          +{segment.delayMinutes}m
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {segment.distanceKm} km · {segment.intensity.toLowerCase()}
+                        </span>
+                      </div>
+                      {segment.speedLimitKmh < 80 && (
+                        <span className="text-[9px] font-mono text-amber-600 dark:text-amber-400 font-semibold">
+                          ⚠️ {segment.speedLimitKmh} km/h
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Terminus Station */}
+              {routeSegments.length > 0 && (
+                <div className="flex items-center gap-3 p-2">
+                  <div className="relative flex items-center justify-center w-6 shrink-0">
+                    <div className="w-4 h-4 rounded-full border-2 bg-white dark:bg-slate-900 border-slate-400 dark:border-slate-600" />
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                      {routeSegments[routeSegments.length - 1].toStationCode}
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {routeSegments[routeSegments.length - 1].toStationName} (Terminus)
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Horizontal Route Track Rail Schematic (>= md screens) */}
+            <div className="hidden md:block overflow-x-auto pb-4 pt-2">
               <div className="min-w-[840px] px-2 py-4">
                 
                 {/* Horizontal Route Track Rail Schematic */}

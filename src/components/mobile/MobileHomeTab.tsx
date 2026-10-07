@@ -19,12 +19,14 @@ import {
   FileText
 } from 'lucide-react';
 
+import { PassengerNavTab } from '../common/BottomNavigation';
+
 interface MobileHomeTabProps {
   currentCity: CityCoverageConfig;
   onSelectCityClick: () => void;
   onNavigateToJourney: (fromCode: string, toCode: string) => void;
   onOpenActionModal: (action: string, payload?: any) => void;
-  onSwitchTab: (tab: 'home' | 'journeys' | 'live' | 'tickets' | 'railsathi') => void;
+  onSwitchTab: (tab: PassengerNavTab) => void;
 }
 
 export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
@@ -175,11 +177,16 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
         </div>
       </div>
 
-      {/* Live Disruption Alert Ticker */}
+      {/* Sectional Advisory Ticker with Provenance */}
       <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5">
         <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
         <div className="text-[11px] leading-tight">
-          <span className="font-bold text-amber-800 dark:text-amber-300">Sectional Delay Advisory: </span>
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+              [SIMULATED SCENARIO]
+            </span>
+            <span className="font-bold text-amber-800 dark:text-amber-300">Sectional Delay Advisory</span>
+          </div>
           <span className="text-amber-900/80 dark:text-amber-200/80">
             Slow Local 97045 running on through track. Fast Local 95112 held +22m at Kurla. Slow local recommended for Dadar/CSMT.
           </span>

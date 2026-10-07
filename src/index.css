@@ -256,3 +256,62 @@
   0%, 100% { box-shadow: 0 0 10px #ef4444, 0 0 20px #dc2626; }
   50% { box-shadow: 0 0 4px #ef4444; }
 }
+
+/* =========================================================================
+   Phone-First Safe Area Insets & Standalone PWA Architecture
+   ========================================================================= */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+}
+
+.pl-safe {
+  padding-left: max(env(safe-area-inset-left, 0px), 12px);
+}
+
+.pr-safe {
+  padding-right: max(env(safe-area-inset-right, 0px), 12px);
+}
+
+.pb-nav {
+  padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 64px);
+}
+
+/* Prevent accidental horizontal document scrolling on mobile devices */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Accessible Minimum Touch Target Class (WCAG 2.5.5 / 2.5.8) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Reduced Motion Accessible Override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

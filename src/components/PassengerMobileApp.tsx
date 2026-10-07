@@ -9,6 +9,9 @@ import { MobileJourneysTab } from './mobile/MobileJourneysTab';
 import { MobileLiveTab } from './mobile/MobileLiveTab';
 import { MobileTicketsTab } from './mobile/MobileTicketsTab';
 import { MobileRailSathiTab } from './mobile/MobileRailSathiTab';
+import { MobileHelpTab } from './mobile/MobileHelpTab';
+import { BottomNavigation, PassengerNavTab } from './common/BottomNavigation';
+import { AccessibleModal } from './common/AccessibleModal';
 
 import { LaunchSequence } from './LaunchSequence';
 import { OnboardingModal } from './OnboardingModal';
@@ -41,8 +44,9 @@ import {
 
 const MovingTrain3DModal = React.lazy(() => import('./MovingTrain3DModal'));
 const StationGodsEyeModal = React.lazy(() => import('./StationGodsEyeModal'));
+const InstitutionalDossierModal = React.lazy(() => import('./InstitutionalDossierModal').then(m => ({ default: m.InstitutionalDossierModal })));
 
-export type MobileTab = 'home' | 'journeys' | 'live' | 'tickets' | 'railsathi';
+export type MobileTab = PassengerNavTab;
 
 interface PassengerMobileAppProps {
   presetOrigin?: string;
@@ -56,7 +60,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const { theme, language, setLanguage, isDark, toggleDarkMode } = useTheme();
 
   // App Navigation & Selection State
-  const [activeTab, setActiveTab] = useState<MobileTab>('home');
+  const [activeTab, setActiveTab] = useState<PassengerNavTab>('home');
   const [selectedCityId, setSelectedCityId] = useState<string>(() => {
     return localStorage.getItem('railone_user_city') || 'mumbai';
   });
@@ -82,6 +86,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const [show3DTrain, setShow3DTrain] = useState<boolean>(false);
   const [showGodsEye, setShowGodsEye] = useState<boolean>(false);
   const [godsEyeStationCode, setGodsEyeStationCode] = useState<string>('DR');
+  const [showInstitutionalDossier, setShowInstitutionalDossier] = useState<boolean>(false);
 
   // Booking Modal State
   const [selectedItinerary, setSelectedItinerary] = useState<JourneyItinerary | null>(null);
@@ -167,7 +172,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       case 'uts_local':
       case 'express_reserved':
       case 'season_pass':
-        setActiveTab('journeys');
+        setActiveTab('journey');
         break;
       case 'platform_ticket': {
         const fromStationObj = STATIONS[journeyOrigin] || STATIONS['DR'];
@@ -362,7 +367,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       </header>
 
       {/* 3. MAIN TAB CONTENT VIEWPORT */}
-      <main className="flex-1 overflow-y-auto overscroll-contain relative">
+      <main className="flex-1 overflow-y-auto overscroll-contain relative pb-20">
         {activeTab === 'home' && (
           <MobileHomeTab
             currentCity={currentCity}
@@ -370,14 +375,14 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
             onNavigateToJourney={(from, to) => {
               setJourneyOrigin(from);
               setJourneyDest(to);
-              setActiveTab('journeys');
+              setActiveTab('journey');
             }}
             onOpenActionModal={handleActionModal}
             onSwitchTab={setActiveTab}
           />
         )}
 
-        {activeTab === 'journeys' && (
+        {activeTab === 'journey' && (
           <MobileJourneysTab
             initialOrigin={journeyOrigin}
             initialDest={journeyDest}
@@ -392,189 +397,97 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
             onOpenGodsEye={handleOpenGodsEye}
             onPlanRouteFromStation={(code) => {
               setJourneyOrigin(code);
-              setActiveTab('journeys');
+              setActiveTab('journey');
             }}
             onPlanRouteToStation={(code) => {
               setJourneyDest(code);
-              setActiveTab('journeys');
+              setActiveTab('journey');
             }}
           />
         )}
 
         {activeTab === 'tickets' && (
           <MobileTicketsTab
-            onNavigateToJourney={() => setActiveTab('journeys')}
+            onNavigateToJourney={() => setActiveTab('journey')}
             onOpenSpecimenModal={(ticket) => {
               // Open existing ticket inspection
             }}
           />
         )}
 
-        {activeTab === 'railsathi' && (
-          <MobileRailSathiTab
-            onViewTicketWallet={() => setActiveTab('tickets')}
-            onBookSpecimen={handleOpenBooking}
+        {activeTab === 'help' && (
+          <MobileHelpTab
+            onOpenInstitutionalDossier={() => setShowInstitutionalDossier(true)}
+            onOpen3DStation={() => handleOpenGodsEye('DR')}
           />
         )}
       </main>
 
-      {/* 4. PERSISTENT MOBILE BOTTOM NAVIGATION (5 Principal Tabs) */}
-      <nav 
-        aria-label="Mobile principal navigation"
-        className="shrink-0 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 px-2 pt-1 pb-3 z-30 shadow-lg backdrop-blur-md"
-      >
-        <div className="grid grid-cols-5 gap-1 items-center max-w-md mx-auto">
-          {/* Tab 1: Home */}
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all min-h-[44px] ${
-              activeTab === 'home'
-                ? 'text-theme-primary font-black bg-theme-primary/10'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
-            }`}
-          >
-            <Compass className={`w-5 h-5 transition-transform ${activeTab === 'home' ? 'scale-110' : ''}`} />
-            <span className="text-[10px] mt-0.5">Home</span>
-          </button>
-
-          {/* Tab 2: Journeys */}
-          <button
-            onClick={() => setActiveTab('journeys')}
-            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all min-h-[44px] ${
-              activeTab === 'journeys'
-                ? 'text-theme-primary font-black bg-theme-primary/10'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
-            }`}
-          >
-            <Navigation className={`w-5 h-5 transition-transform ${activeTab === 'journeys' ? 'scale-110' : ''}`} />
-            <span className="text-[10px] mt-0.5">Journeys</span>
-          </button>
-
-          {/* Tab 3: Live */}
-          <button
-            onClick={() => setActiveTab('live')}
-            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all min-h-[44px] relative ${
-              activeTab === 'live'
-                ? 'text-rose-500 font-black bg-rose-500/10'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
-            }`}
-          >
-            <div className="relative">
-              <Radio className={`w-5 h-5 transition-transform ${activeTab === 'live' ? 'scale-110' : ''}`} />
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            </div>
-            <span className="text-[10px] mt-0.5">Live</span>
-          </button>
-
-          {/* Tab 4: Tickets */}
-          <button
-            onClick={() => {
-              refreshTickets();
-              setActiveTab('tickets');
-            }}
-            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all min-h-[44px] relative ${
-              activeTab === 'tickets'
-                ? 'text-theme-primary font-black bg-theme-primary/10'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
-            }`}
-          >
-            <div className="relative">
-              <Ticket className={`w-5 h-5 transition-transform ${activeTab === 'tickets' ? 'scale-110' : ''}`} />
-              {savedTicketCount > 0 && (
-                <span className="absolute -top-1 -right-1.5 px-1 min-w-[14px] h-[14px] rounded-full bg-emerald-500 text-white font-mono text-[9px] font-black flex items-center justify-center">
-                  {savedTicketCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] mt-0.5">Tickets</span>
-          </button>
-
-          {/* Tab 5: RailSathi AI */}
-          <button
-            onClick={() => setActiveTab('railsathi')}
-            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all min-h-[44px] ${
-              activeTab === 'railsathi'
-                ? 'text-indigo-500 font-black bg-indigo-500/10 shadow-xs'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
-            }`}
-          >
-            <Sparkles className={`w-5 h-5 transition-transform text-indigo-500 ${activeTab === 'railsathi' ? 'scale-110' : ''}`} />
-            <span className="text-[10px] mt-0.5">RailSathi</span>
-          </button>
-        </div>
-      </nav>
+      {/* 4. PERSISTENT PHONE-FIRST BOTTOM NAVIGATION */}
+      <BottomNavigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        savedTicketCount={savedTicketCount}
+      />
 
       {/* 5. MODALS & SUB-FLOWS */}
       
       {/* City Switcher Modal */}
-      {showCityPicker && (
-        <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col justify-end p-3 animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 max-h-[82%] flex flex-col space-y-3 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-theme-primary" />
-                  Select Transit City Network
-                </h3>
-                <p className="text-[11px] text-slate-500">8 Supported Metropolitan Networks with Transparent Provenance</p>
-              </div>
+      <AccessibleModal
+        isOpen={showCityPicker}
+        onClose={() => setShowCityPicker(false)}
+        title="Select Transit City Network"
+        subtitle="8 Supported Metropolitan Networks with Transparent Provenance"
+        icon={<Building2 className="w-5 h-5" />}
+        variant="sheet"
+      >
+        <div className="space-y-2 pr-1">
+          {Object.values(CITIES_REGISTRY).map(city => {
+            const isSelected = city.id === selectedCityId;
+            return (
               <button
-                onClick={() => setShowCityPicker(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                key={city.id}
+                onClick={() => handleCitySelect(city.id)}
+                className={`w-full p-3 rounded-2xl border text-left flex items-start justify-between transition-all touch-target ${
+                  isSelected
+                    ? 'border-theme-primary bg-theme-primary/10 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                }`}
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto space-y-2 pr-1">
-              {Object.values(CITIES_REGISTRY).map(city => {
-                const isSelected = city.id === selectedCityId;
-                return (
-                  <button
-                    key={city.id}
-                    onClick={() => handleCitySelect(city.id)}
-                    className={`w-full p-3 rounded-2xl border text-left flex items-start justify-between transition-all ${
-                      isSelected
-                        ? 'border-theme-primary bg-theme-primary/10 shadow-sm'
-                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-900 dark:text-white">
-                          {city.name}
-                        </span>
-                        <span className="text-[10px] text-slate-500 font-medium">({city.nativeName})</span>
-                        {city.tier === 'FLAGSHIP_TIER1' && (
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                            Flagship
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
-                        {city.provenanceExplanation}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1.5 text-[9px] text-slate-400 font-mono">
-                        <span>Hubs: {city.primaryHubs.map(h => h.code).slice(0, 4).join(', ')}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0 ml-2">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold font-mono ${
-                        city.provenanceTag === '[VERIFIED LIVE]'
-                          ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                          : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                      }`}>
-                        {city.provenanceTag}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                      {city.name}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">({city.nativeName})</span>
+                    {city.tier === 'FLAGSHIP_TIER1' && (
+                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                        Flagship
                       </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
+                    {city.provenanceExplanation}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1.5 text-[9px] text-slate-400 font-mono">
+                    <span>Hubs: {city.primaryHubs.map(h => h.code).slice(0, 4).join(', ')}</span>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0 ml-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold font-mono ${
+                    city.provenanceTag === '[VERIFIED LIVE]'
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                  }`}>
+                    {city.provenanceTag}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
-      )}
+      </AccessibleModal>
 
       {/* Specimen Ticket Modal */}
       <SpecimenTicketModal
@@ -631,32 +544,24 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         }
 
         return (
-          <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col justify-end p-2 animate-fadeIn">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-3 max-h-[90%] overflow-y-auto">
-              <div className="flex justify-between items-center mb-2">
-                <div>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Coach Guidance (Wagenstandsanzeiger)</span>
-                  <div className="text-[10px] text-slate-500 font-semibold">
-                    Station: {activeStation} · Platform: {activePlatform}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCoachGuide(false)}
-                  className="px-2.5 py-1 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold"
-                >
-                  ✕ Close
-                </button>
-              </div>
-              <CoachPositionGuide
-                key={`${activeStation}-${activePlatform}-${activeRake}`}
-                stationCode={activeStation}
-                platformNumber={activePlatform}
-                initialRakeType={activeRake}
-                onClose={() => setShowCoachGuide(false)}
-                compactMode={true}
-              />
-            </div>
-          </div>
+          <AccessibleModal
+            isOpen={showCoachGuide}
+            onClose={() => setShowCoachGuide(false)}
+            title="Train Coach Position Guide"
+            subtitle={`Station: ${activeStation} · Platform: ${activePlatform}`}
+            icon={<Train className="w-5 h-5" />}
+            variant="sheet"
+            maxWidthClass="max-w-2xl"
+          >
+            <CoachPositionGuide
+              key={`${activeStation}-${activePlatform}-${activeRake}`}
+              stationCode={activeStation}
+              platformNumber={activePlatform}
+              initialRakeType={activeRake}
+              onClose={() => setShowCoachGuide(false)}
+              compactMode={true}
+            />
+          </AccessibleModal>
         );
       })()}
 
@@ -677,6 +582,16 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
             isOpen={showGodsEye}
             onClose={() => setShowGodsEye(false)}
             initialStationCode={godsEyeStationCode}
+          />
+        </React.Suspense>
+      )}
+
+      {/* Institutional Dossier Modal */}
+      {showInstitutionalDossier && (
+        <React.Suspense fallback={null}>
+          <InstitutionalDossierModal
+            isOpen={showInstitutionalDossier}
+            onClose={() => setShowInstitutionalDossier(false)}
           />
         </React.Suspense>
       )}

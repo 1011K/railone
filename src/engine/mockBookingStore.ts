@@ -8,6 +8,7 @@ let idempotencyMap: Record<string, string> = {}; // idempotencyKey -> ticketId
 
 export interface CreateBookingParams {
   idempotencyKey?: string;
+  journeyDate?: string;
   trainNumber: string;
   trainName: string;
   fromCode: string;
@@ -19,6 +20,25 @@ export interface CreateBookingParams {
   passengers: Array<{ name: string; age: number; gender: string; berthOrCoachMock?: string }>;
   paymentMethod: string;
   simulateAmbiguousTimeout?: boolean; // Demo failure recovery toggle
+}
+
+function generateSecureMockPnr(): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto?.getRandomValues) {
+    const buf = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(buf);
+    const num = 1000000000 + (buf[0] % 9000000000);
+    return `MOCK-${num}`;
+  }
+  return `MOCK-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+}
+
+function generateSecureTicketId(): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto?.getRandomValues) {
+    const buf = new Uint16Array(1);
+    globalThis.crypto.getRandomValues(buf);
+    return `TKT-${Date.now().toString(36).toUpperCase()}-${buf[0].toString(16).toUpperCase()}`;
+  }
+  return `TKT-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
 }
 
 export interface ReconcileResult {
@@ -100,9 +120,10 @@ export class MockBookingStore {
       }
     }
 
-    const pnrMock = 'MOCK-' + Math.floor(1000000000 + Math.random() * 9000000000);
-    const id = 'TKT-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(Math.random() * 1000);
+    const pnrMock = generateSecureMockPnr();
+    const id = generateSecureTicketId();
     const now = new Date().toISOString();
+    const journeyDate = params.journeyDate || now.split('T')[0];
 
     const qrPayload = JSON.stringify({
       disclaimer: 'DEMO / NOT VALID FOR TRAVEL - UNOFFICIAL EDUCATIONAL SPECIMEN ONLY',
@@ -130,7 +151,7 @@ export class MockBookingStore {
       idempotencyKey: params.idempotencyKey,
       pnrMock,
       bookingTimestamp: now,
-      journeyDate: '2026-10-06',
+      journeyDate,
       trainNumber: params.trainNumber,
       trainName: params.trainName,
       fromStation: { code: params.fromCode, name: params.fromName },

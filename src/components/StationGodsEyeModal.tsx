@@ -118,6 +118,15 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
     }
   }, [initialStationCode, initialFromPlatformId, initialToPlatformId]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Synchronize when stationCode changes via selector
   const handleStationChange = (code: string) => {
     setStationCode(code);
@@ -182,7 +191,10 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn select-none"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div 
         className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-6xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-slate-100"
         role="dialog"

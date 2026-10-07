@@ -370,14 +370,14 @@ export function reconcileBooking(id: string): BookingRecord {
 }
 
 function generateTicketNumber(): string {
-  const rand = Math.floor(100000 + Math.random() * 900000);
+  const rand = crypto.randomInt(100000, 1000000);
   const time = Date.now().toString().slice(-6);
   return `UTS${time}${rand}`;
 }
 
 function generatePnr(): string {
-  const prefix = Math.floor(100 + Math.random() * 900);
-  const suffix = Math.floor(1000000 + Math.random() * 9000000);
+  const prefix = crypto.randomInt(100, 1000);
+  const suffix = crypto.randomInt(1000000, 10000000);
   return `${prefix}-${suffix}`;
 }
 

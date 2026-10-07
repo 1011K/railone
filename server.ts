@@ -99,35 +99,41 @@ Return ONLY valid JSON array of objects with keys:
 
   if (q.includes('delay') || q.includes('signal') || q.includes('late') || q.includes('crowd')) {
     fallbackTasks.push({
-      title: 'Delay Inversion Assessment [TIMETABLE MODEL]',
-      description: 'Check sectional headway between Fast and Slow corridors. When fast lines bunch, slow local services can offer faster transfer.',
+      title: 'Delay Inversion Rule [TIMETABLE MODEL]',
+      description: 'Live operational feed unavailable. When fast lines encounter congestion, slow local corridors often provide faster transfers according to timetable models.',
       category: 'DISRUPTION_RECOVERY',
       priority: 'P0_CRITICAL',
       dueTime: 'Immediate',
-      associatedTrain: '95112',
-      stationCode: 'CLA'
+      stationCode: 'CLA',
+      provenance: 'DEMO'
     });
   }
 
   fallbackTasks.push({
-    title: 'Dynamic Leave-Home Window Advisory',
-    description: 'Allow standard walking buffer before scheduled departure. Verify platform headway before departing origin.',
+    title: 'Scheduled Leave-Home Buffer Advisory',
+    description: 'Allow standard walking buffer before scheduled departure. Verify platform headway indicators before departing origin.',
     category: 'JOURNEY_PLANNING',
     priority: 'P1_HIGH',
-    dueTime: '10:48',
-    associatedTrain: '95114',
-    stationCode: 'TNA'
+    dueTime: now,
+    stationCode: 'TNA',
+    provenance: 'SCHEDULED'
   });
 
   fallbackTasks.push({
     title: 'Pre-book Specimen UTS QR Ticket',
-    description: 'Generate educational specimen ticket with cryptographic QR verification to bypass station booking queues.',
+    description: 'Generate educational specimen ticket with test QR code for practice validation [DEMO].',
     category: 'BOOKING_TICKETING',
     priority: 'P2_MEDIUM',
-    stationCode: 'DR'
+    stationCode: 'DR',
+    provenance: 'DEMO'
   });
 
-  return res.json({ tasks: fallbackTasks, source: 'deterministic_fallback' });
+  return res.json({
+    tasks: fallbackTasks,
+    source: 'deterministic_fallback',
+    provenance: 'DEMO',
+    feedStatusNotice: 'Operational feed unavailable. Showing scheduled/demo information only.'
+  });
 });
 
 // 2. AI Copilot Chat API
@@ -176,18 +182,23 @@ Always be direct, empathetic, and specify actionable platform numbers and timing
 
   // Deterministic Domain Fallback response
   const q = query.toLowerCase();
-  let fallbackReply = `Namaste! Based on timetable schedule information [TIMETABLE MODEL]:\n`;
+  let fallbackReply = `Namaste! Operational feed unavailable. Showing scheduled/demo information only [TIMETABLE MODEL]:\n\n`;
   if (q.includes('dadar') && q.includes('churchgate')) {
     fallbackReply += `If traveling from Thane to Churchgate via Dadar, alight at Dadar CR Platform 6/7, take the northern Foot Overbridge (FOB) across to Western Railway Platform 1/2. Allow at least 7 minutes walking buffer. An AC Fast Local is scheduled every 20-30 minutes.`;
   } else if (q.includes('ac') || q.includes('fare')) {
     fallbackReply += `Suburban AC Local fare for Thane to Dadar is ₹95 (Single Journey), compared to ₹10 for Second Class and ₹105 for First Class. Ordinary First Class season passes are NOT valid in AC Locals without AC surcharge coupon.`;
   } else if (q.includes('delay') || q.includes('late')) {
-    fallbackReply += `Delay & Headway Advisory [TIMETABLE MODEL]: Check real-time headway on the Live Status screen. During peak-hour congestion, Slow Local services on local lines often avoid fast line bunching between Thane and Kurla.`;
+    fallbackReply += `Delay & Headway Advisory [TIMETABLE MODEL]: Live operational telemetry is unavailable. During peak-hour congestion, Slow Local services on local lines often avoid fast line bunching between Thane and Kurla. Check platform indicator boards for confirmed dispatch times.`;
   } else {
     fallbackReply += `For your route, check the Journey Decision Engine to view scheduled headways, interchanges, and legal ticket validity.`;
   }
 
-  return res.json({ reply: fallbackReply, source: 'deterministic_fallback' });
+  return res.json({
+    reply: fallbackReply,
+    source: 'deterministic_fallback',
+    provenance: 'DEMO',
+    feedStatusNotice: 'Operational feed unavailable. Showing scheduled/demo information only.'
+  });
 });
 
 // 3. RailMadad Complaint Drafter API

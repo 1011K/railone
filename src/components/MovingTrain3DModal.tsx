@@ -58,6 +58,15 @@ export const MovingTrain3DModal: React.FC<MovingTrain3DModalProps> = ({
     return () => clearInterval(interval);
   }, [isOpen, targetSpeed]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Synthesize realistic railway horn chime using browser Web Audio API
@@ -107,10 +116,18 @@ export const MovingTrain3DModal: React.FC<MovingTrain3DModalProps> = ({
   const trackAnimDuration = speed > 0 ? Math.max(0.12, 12 / Math.max(speed, 20)).toFixed(2) : '10s';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-6 overflow-hidden select-none animate-fadeIn">
+    <div 
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-6 overflow-hidden select-none animate-fadeIn"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
       
       {/* 3D Train Simulation Viewport Container */}
-      <div className={`relative w-full max-w-5xl h-[88vh] rounded-3xl overflow-hidden border border-slate-700/80 shadow-2xl bg-gradient-to-b ${bgGradient} flex flex-col justify-between`}>
+      <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="moving-train-3d-title"
+        className={`relative w-full max-w-5xl h-[88vh] rounded-3xl overflow-hidden border border-slate-700/80 shadow-2xl bg-gradient-to-b ${bgGradient} flex flex-col justify-between`}
+      >
         
         {/* Top HUD Controls Bar */}
         <div className="relative z-30 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between border-b border-white/10 bg-black/40 backdrop-blur-md gap-3">
@@ -120,7 +137,7 @@ export const MovingTrain3DModal: React.FC<MovingTrain3DModalProps> = ({
               <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
             </span>
             <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+              <div id="moving-train-3d-title" className="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5" />
                 <span>3D Train Dynamics Simulator</span>
               </div>

@@ -95,13 +95,34 @@
 - [x] Divyangjan handicap tactile marker & step-free platform alignment.
 - [x] Institutional Academic Evaluation Dossier (`src/components/InstitutionalDossierModal.tsx`) incorporating 5-nation transit benchmarks (Japan JR East, Switzerland SBB, UK TfL, Germany DB, Singapore SMRT).
 - [x] Statutory Railways Act 1989 Section 138 legal excess charge documentation & DPDP Act 2023 zero-telemetry architecture.
-- [x] Automated Verification Suite 21 with 8 assertions, expanding test suite total to 169/169 passing tests (100% pass rate).
+### Wave 11: Phone-First Mobile Rebuild, Coach Guide Domain Separation & Provenance Truth
+- [x] **Separated Coach Guide Domain Models** (`src/models/coachGuide.ts`):
+  - Strictly separated intrinsic `RakeFormation` (all 5 rakes: 12-car, 12-car AC, 15-car suburban, 16-car Vande Bharat, 22-car Express) from station `PlatformAlignment` and `PlatformLandmark`.
+  - Dynamic `computeCoachRecommendation` calculates nearest FOB/lift without silent fallbacks or reusing Dadar data for unmapped stations.
+  - Rebuilt `CoachPositionGuide.tsx` into a phone-first layout with glanceable answers and compressed coach strip fitting phone widths without horizontal scrolling.
+  - Removed German/academic terminology ("Wagenstandsanzeiger", "JR East benchmark") from primary passenger UI.
+- [x] **Phone-First Passenger Navigation** (`PassengerMobileApp.tsx`):
+  - 5 principal commuter tabs: `Home`, `Journey`, `Live`, `Tickets`, `Help`.
+  - Created `BottomNavigation.tsx` with thumb-reachable 48px touch targets and safe-area inset awareness (`pb-safe`).
+  - Created `MobileHelpTab.tsx` for commuter assistance (139 SOS, RailMadad complaint drafter, statutory rules, theme liveries) and relegated academic dossiers / 3D models to secondary access.
+  - Replaced modal overlays with `AccessibleModal.tsx` enforcing `role="dialog"`, `aria-modal="true"`, focus management, Escape key dismissals, and safe-area sheet presentation.
+- [x] **P0 Provenance Truth & Defect Closure**:
+  - Eliminated unverified live delay claims in `server.ts` and `aiService.ts` (e.g. "+22m Vidyavihar delay", "train 95112").
+  - Exposed honest fallback notices (`Operational feed unavailable. Showing scheduled/demo information only`) and explicit provenance tags (`[SIMULATED SCENARIO]`, `[SCHEDULED]`, `[DEMO]`).
+  - Resolved booking data defects in `mockBookingStore.ts`: removed hardcoded `'2026-10-06'` stale date, generated cryptographically secure random values via `crypto.getRandomValues()` for PNRs and ticket IDs.
+  - Updated `main.tsx` to use Vite's `import.meta.env.PROD` instead of `process.env.NODE_ENV`.
+- [x] **Responsive Live Tracker Timeline** (`TrainLiveTracker.tsx`):
+  - Added dedicated mobile vertical route timeline for small screens (< md), displaying station nodes, connecting track segments with thermal delay badges, and loco markers without requiring horizontal scrolling.
+  - Preserved wide horizontal schematic for desktop/tablet screens (>= md).
+- [x] **Automated Verification Suite 26**:
+  - Added 9 dedicated assertions in `tests/run-all-tests.ts` verifying all 5 rake formations, unmapped platform honesty, dynamic booking dates/PNRs, AI fallback notices, accessible mobile styling, and phone navigation.
+  - Expanded test suite to 227/227 passing tests (0 failed).
 
 ## Active State & Next Steps
-- **Branch:** `main` synchronized and verified.
-- **Verification Evidence:** All 169 unit and integration tests passing cleanly (100% pass rate).
-- **Typecheck & Lint Status:** 0 errors.
-- **Production Build:** Clean bundle in 4.86s via `npm run build`.
-- **Live Local Preview:** `http://localhost:3000` running with Gemini 3.8 Flash API active.
+- **Branch:** `feature/mobile-rebuild`
+- **Verification Evidence:** All 227 automated tests passing cleanly (100% pass rate) across Suites 1–26 and G1–G18.
+- **Typecheck & Lint Status:** 0 errors via `npm run lint` (`tsc --noEmit`).
+- **Production Build:** Clean bundle via `npm run build` (`vite build`).
+- **Local Preview:** Full mobile responsiveness verified across 360px–430px phone viewports and desktop.
 
 

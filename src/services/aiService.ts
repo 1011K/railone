@@ -9,8 +9,11 @@ export interface DecomposeResponse {
     dueTime?: string;
     associatedTrain?: string;
     stationCode?: string;
+    provenance?: 'LIVE_VERIFIED' | 'SCHEDULED' | 'DEMO' | 'UNKNOWN';
   }>;
   source: 'gemini' | 'deterministic_fallback';
+  provenance: 'LIVE_VERIFIED' | 'SCHEDULED' | 'DEMO' | 'UNKNOWN';
+  feedStatusNotice?: string;
 }
 
 function getApiUrl(endpoint: string): string {
@@ -37,7 +40,12 @@ export class AiRailwayService {
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.tasks) && data.tasks.length >= 2) {
-            return { tasks: data.tasks, source: data.source || 'gemini' };
+            return {
+              tasks: data.tasks,
+              source: data.source || 'gemini',
+              provenance: data.provenance || (data.source === 'gemini' ? 'PREDICTED' : 'DEMO'),
+              feedStatusNotice: data.feedStatusNotice
+            };
           }
         }
       }
@@ -45,88 +53,98 @@ export class AiRailwayService {
       // Deterministic fallback handles offline and tests
     }
 
-    // Client-side & Test deterministic backup
+    // Client-side & Test deterministic backup with strict data provenance
     const q = prompt.toLowerCase();
     const tasks: DecomposeResponse['tasks'] = [];
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     if (q.includes('delay') || q.includes('signal') || q.includes('late') || q.includes('slow') || q.includes('fast')) {
       tasks.push({
-        title: 'Execute Delay Inversion Reroute',
-        description: 'Vidyavihar signal lock holding Fast Local 95112 (+22m delay). Transfer to Platform 1 Slow Local to save 14 minutes.',
+        title: 'Delay Inversion Rule [TIMETABLE MODEL]',
+        description: 'Live operational feed unavailable. Under timetable delay inversion rules, transferring to an operating Slow Local can avoid bunched fast corridor headways.',
         category: 'DISRUPTION_RECOVERY',
         priority: 'P0_CRITICAL',
         dueTime: 'Immediate',
-        associatedTrain: '95112',
-        stationCode: 'CLA'
+        stationCode: 'CLA',
+        provenance: 'DEMO'
       });
 
       tasks.push({
         title: 'Check Slow Line Platform Headway',
-        description: 'Cross to Platform 1 at Kurla using foot overbridge. Next slow service departing in 4 mins.',
+        description: 'Verify local platform indicator at Kurla via foot overbridge. Consult station board for next dispatched slow service.',
         category: 'JOURNEY_PLANNING',
         priority: 'P1_HIGH',
-        dueTime: '11:05',
-        stationCode: 'CLA'
+        dueTime: now,
+        stationCode: 'CLA',
+        provenance: 'SCHEDULED'
       });
     }
 
     if (q.includes('ac') || q.includes('leave') || q.includes('home') || q.includes('time') || q.includes('kalyan')) {
       tasks.push({
-        title: 'Recalculate Dynamic Leave-Home Time',
-        description: 'AC Local 95114 has not departed Kalyan origin shed (+18m delay). Defer departure from home until 10:48.',
+        title: 'Departure Timing Buffer Advisory',
+        description: 'Live rake telemetry unavailable. Allow standard 10–15 min walking buffer before scheduled departure and check platform display upon arrival.',
         category: 'JOURNEY_PLANNING',
         priority: 'P1_HIGH',
-        dueTime: '10:48',
-        associatedTrain: '95114',
-        stationCode: 'TNA'
+        dueTime: now,
+        stationCode: 'TNA',
+        provenance: 'SCHEDULED'
       });
     }
 
     if (q.includes('ticket') || q.includes('mst') || q.includes('pass') || q.includes('book') || q.includes('deccan')) {
       tasks.push({
         title: 'Verify Suburban MST Pass for Express Hop',
-        description: 'Check Central Railway MST permitted train list for 12123 Deccan Queen. General Second Class coach travel only.',
+        description: 'Check Central Railway MST permitted train list for 12123 Deccan Queen. General Second Class coach travel only under statutory rules.',
         category: 'BOOKING_TICKETING',
         priority: 'P2_MEDIUM',
         associatedTrain: '12123',
-        stationCode: 'DR'
+        stationCode: 'DR',
+        provenance: 'SCHEDULED'
       });
     }
 
     if (q.includes('coach') || q.includes('position') || q.includes('ladies') || q.includes('handicap') || q.includes('divyang')) {
       tasks.push({
         title: 'Verify Rake Coach Composition at Platform',
-        description: 'Align near 3rd coach from south end for Divyangjan/Handicap compartment, or middle 4 coaches for Ladies Special.',
+        description: 'Align near designated platform tactile indicators for Divyangjan/Handicap compartments or marked Ladies sections.',
         category: 'COACH_POSITIONING',
         priority: 'P2_MEDIUM',
-        stationCode: 'CSMT'
+        stationCode: 'CSMT',
+        provenance: 'SCHEDULED'
       });
     }
 
     if (tasks.length < 2) {
       tasks.push({
-        title: 'Review Commute Timetable & Headway',
-        description: `Check live OCC delay alerts and platform allocations for "${prompt}".`,
+        title: 'Review Scheduled Timetable & Headway',
+        description: 'Live operational data unavailable. Consult scheduled timetable and platform display indicators for journey planning.',
         category: 'JOURNEY_PLANNING',
         priority: 'P1_HIGH',
-        dueTime: now
+        dueTime: now,
+        provenance: 'SCHEDULED'
       });
       tasks.push({
         title: 'Pre-generate Specimen UTS QR Ticket',
-        description: 'Generate specimen QR pass to inspect fare tariffs and simulate contactless validation.',
+        description: 'Generate educational specimen ticket to inspect fare tariffs and simulate contactless validation [DEMO].',
         category: 'BOOKING_TICKETING',
-        priority: 'P2_MEDIUM'
+        priority: 'P2_MEDIUM',
+        provenance: 'DEMO'
       });
     }
 
-    return { tasks, source: 'deterministic_fallback' };
+    return {
+      tasks,
+      source: 'deterministic_fallback',
+      provenance: 'DEMO',
+      feedStatusNotice: 'Operational feed unavailable. Showing scheduled/demo information only.'
+    };
   }
 
   /**
    * Ask the AI Travel Copilot
    */
-  static async askCopilot(query: string, history: Array<{ role: 'user' | 'assistant'; text: string }>): Promise<{ reply: string; source: string }> {
+  static async askCopilot(query: string, history: Array<{ role: 'user' | 'assistant'; text: string }>): Promise<{ reply: string; source: string; provenance?: string; feedStatusNotice?: string }> {
     try {
       if (typeof window !== 'undefined') {
         const res = await fetch(getApiUrl('/api/ai/copilot'), {
@@ -138,7 +156,12 @@ export class AiRailwayService {
         if (res.ok) {
           const data = await res.json();
           if (data.reply) {
-            return { reply: data.reply, source: data.source || 'gemini' };
+            return {
+              reply: data.reply,
+              source: data.source || 'gemini',
+              provenance: data.provenance || 'PREDICTED',
+              feedStatusNotice: data.feedStatusNotice
+            };
           }
         }
       }
@@ -147,28 +170,33 @@ export class AiRailwayService {
     }
 
     const q = query.toLowerCase();
-    let reply = `Namaste! RailOne Next Operations Intelligence reports:\n\n`;
+    let reply = `Namaste! Operational feed unavailable. Showing scheduled/demo information only [TIMETABLE MODEL].\n\n`;
     if (q.includes('dadar') && q.includes('churchgate')) {
       reply += `To transfer from Central Line (Thane/Kalyan) to Western Line (Churchgate):\n` +
         `• Alight at Dadar Platform 6 or 7.\n` +
         `• Use the Northern Foot Overbridge (FOB) across to Western Railway Platform 1 or 2.\n` +
-        `• Walking transfer time is calculated at 7 minutes.\n` +
-        `• AC Fast Locals depart every 20-30 minutes towards Churchgate.`;
+        `• Walking transfer time is calculated at 7 minutes minimum.\n` +
+        `• AC Fast Locals depart every 20-30 minutes towards Churchgate according to schedule.`;
     } else if (q.includes('delay') || q.includes('slow') || q.includes('fast')) {
-      reply += `Current Delay Inversion Status:\n` +
-        `• Fast Local 95112 is delayed by +22 min behind Vidyavihar signal locks.\n` +
-        `• Slow Local 97045 is running on time on the local line.\n` +
-        `• Recommendation: Alight at Kurla or Thane and board the Slow Local — it will reach Dadar 14 minutes earlier!`;
+      reply += `Delay & Headway Advisory [TIMETABLE MODEL]:\n` +
+        `• Live operational telemetry is currently unavailable.\n` +
+        `• Timetable guidance: During peak congestion, Slow Local services on local lines often avoid fast line bunching.\n` +
+        `• Check platform display indicators for current train dispatch order.`;
     } else if (q.includes('ac') || q.includes('fare')) {
       reply += `Suburban Mumbai AC Local Fare Structure:\n` +
         `• Thane to Dadar: ₹95 (Single Journey), Season Pass: ₹1,495/month.\n` +
         `• Churchgate to Borivali: ₹105 (Single Journey).\n` +
         `• Note: Non-AC season tickets are NOT valid on AC services (Section 138 penalty applies).`;
     } else {
-      reply += `For your travel: Check the Journey Decision Engine for calculated leave-home windows and real-time delay inversions. You can also view live OCC alerts under the Live Status tab.`;
+      reply += `For your travel: Check the Journey Decision Engine for calculated scheduled windows. Live operational data is currently unavailable; consult station announcements for real-time tracking.`;
     }
 
-    return { reply, source: 'deterministic_fallback' };
+    return {
+      reply,
+      source: 'deterministic_fallback',
+      provenance: 'DEMO',
+      feedStatusNotice: 'Operational feed unavailable. Showing scheduled/demo information only.'
+    };
   }
 
   /**

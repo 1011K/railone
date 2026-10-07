@@ -46,8 +46,14 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
       setCancellationResult(null);
       setIsProcessing(false);
       setOtpCode('');
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, itinerary?.id]);
+  }, [isOpen, itinerary?.id, onClose]);
 
   if (!isOpen || !itinerary) return null;
 
@@ -101,14 +107,22 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div 
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 select-none"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="specimen-booking-title"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      >
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Ticket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="font-bold text-base text-slate-900 dark:text-white">
+            <h3 id="specimen-booking-title" className="font-bold text-base text-slate-900 dark:text-white">
               Specimen Booking Simulator
             </h3>
           </div>
