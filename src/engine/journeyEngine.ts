@@ -290,13 +290,24 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     };
   };
 
+  // Helper to map equivalent twin stations (e.g. Dadar Central DR vs Dadar Western DDR)
+  const getEquivalentCodes = (code: string): string[] => {
+    if (code === 'DR' || code === 'DDR') return ['DR', 'DDR'];
+    return [code];
+  };
+
+  const originCodes = getEquivalentCodes(originCode);
+  const destCodes = getEquivalentCodes(destCode);
+
   // 1. Direct Trains Search
   for (const train of allAvailableTrains) {
-    const fromIdx = train.stops.findIndex(s => s.stationCode === originCode);
-    const toIdx = train.stops.findIndex(s => s.stationCode === destCode);
+    const fromIdx = train.stops.findIndex(s => originCodes.includes(s.stationCode));
+    const toIdx = train.stops.findIndex(s => destCodes.includes(s.stationCode));
 
     if (fromIdx !== -1 && toIdx !== -1 && fromIdx < toIdx) {
-      const leg = buildLeg(train, originStation, destStation, 0);
+      const legFromStation = resolveStation(train.stops[fromIdx].stationCode) || originStation;
+      const legToStation = resolveStation(train.stops[toIdx].stationCode) || destStation;
+      const leg = buildLeg(train, legFromStation, legToStation, 0);
       if (!leg) continue;
 
       // Filter by arrive-by deadline if specified
@@ -323,8 +334,8 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
       let eligibility = evaluateJourneyEligibility({
         train,
-        fromStationCode: originCode,
-        toStationCode: destCode,
+        fromStationCode: legFromStation.code,
+        toStationCode: legToStation.code,
         userTicketType: preferences.hasSeasonPass ? 'suburban_season_pass' : 'suburban_single',
         userClass: userClassForEligibility,
         hasMST: preferences.hasSeasonPass
@@ -424,12 +435,12 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
   for (const interchange of potentialInterchanges) {
     if (!interchange.station) continue;
-    if (originCode === interchange.centralCode || originCode === interchange.westernCode) continue;
-    if (destCode === interchange.centralCode || destCode === interchange.westernCode) continue;
+    if (originCodes.includes(interchange.centralCode) || originCodes.includes(interchange.westernCode)) continue;
+    if (destCodes.includes(interchange.centralCode) || destCodes.includes(interchange.westernCode)) continue;
 
     // First leg: originCode to interchange
     const firstLegTrains = allAvailableTrains.filter(t => {
-      const fIdx = t.stops.findIndex(s => s.stationCode === originCode);
+      const fIdx = t.stops.findIndex(s => originCodes.includes(s.stationCode));
       const tIdx = t.stops.findIndex(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode);
       return fIdx !== -1 && tIdx !== -1 && fIdx < tIdx;
     });
@@ -437,12 +448,13 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     // Second leg: interchange to destCode
     const secondLegTrains = allAvailableTrains.filter(t => {
       const fIdx = t.stops.findIndex(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode);
-      const tIdx = t.stops.findIndex(s => s.stationCode === destCode);
+      const tIdx = t.stops.findIndex(s => destCodes.includes(s.stationCode));
       return fIdx !== -1 && tIdx !== -1 && fIdx < tIdx;
     });
 
     for (const train1 of firstLegTrains) {
-      const leg1FromStation = originStation;
+      const leg1FromStopCode = train1.stops.find(s => originCodes.includes(s.stationCode))!.stationCode;
+      const leg1FromStation = resolveStation(leg1FromStopCode) || originStation;
       const leg1ToStation = resolveStation(train1.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode)!.stationCode)!;
       const leg1 = buildLeg(train1, leg1FromStation, leg1ToStation, 0);
       if (!leg1) continue;
@@ -459,7 +471,8 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
       for (const train2 of secondLegTrains) {
         const leg2FromStation = resolveStation(train2.stops.find(s => s.stationCode === interchange.centralCode || s.stationCode === interchange.westernCode)!.stationCode)!;
-        const leg2ToStation = destStation;
+        const leg2ToStopCode = train2.stops.find(s => destCodes.includes(s.stationCode))!.stationCode;
+        const leg2ToStation = resolveStation(leg2ToStopCode) || destStation;
         const leg2 = buildLeg(train2, leg2FromStation, leg2ToStation, 1);
         if (!leg2) continue;
 

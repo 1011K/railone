@@ -17,9 +17,12 @@ export function evaluateJourneyEligibility(query: EligibilityQuery): Eligibility
   const { train, fromStationCode, toStationCode, userTicketType, userClass, hasMST } = query;
   const rulesApplied: string[] = [];
 
-  // Check stops exist and in correct direction
-  const fromIdx = train.stops.findIndex(s => s.stationCode === fromStationCode);
-  const toIdx = train.stops.findIndex(s => s.stationCode === toStationCode);
+  // Check stops exist and in correct direction (allowing DR/DDR equivalent interchange codes)
+  const fromCodes = (fromStationCode === 'DR' || fromStationCode === 'DDR') ? ['DR', 'DDR'] : [fromStationCode];
+  const toCodes = (toStationCode === 'DR' || toStationCode === 'DDR') ? ['DR', 'DDR'] : [toStationCode];
+
+  const fromIdx = train.stops.findIndex(s => fromCodes.includes(s.stationCode));
+  const toIdx = train.stops.findIndex(s => toCodes.includes(s.stationCode));
 
   if (fromIdx === -1 || toIdx === -1 || fromIdx >= toIdx) {
     return {

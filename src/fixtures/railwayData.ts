@@ -959,6 +959,348 @@ export const TRAIN_TRIPS: TrainTrip[] = [
       { stationCode: 'MMCT', stationName: 'Mumbai Central', scheduledArrival: '11:48', scheduledDeparture: '11:49', platform: '4', distanceKm: 29.9, isHalt: true },
       { stationCode: 'CCG', stationName: 'Churchgate', scheduledArrival: '11:57', scheduledDeparture: '11:57', platform: '2', distanceKm: 34.2, isHalt: true }
     ]
+  },
+
+  // 16. Central Northbound Fast Local: 95111 CSMT - Kalyan Fast Local
+  {
+    trainNumber: '95111',
+    trainName: 'CSMT - Kalyan Fast Local',
+    hindiName: 'सीएसएमटी - कल्याण फास्ट लोकल',
+    marathiName: 'सीएसएमटी - कल्याण जलद लोकल',
+    originStation: 'CSMT',
+    destinationStation: 'KYN',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'BY', stationName: 'Byculla', scheduledArrival: '10:37', scheduledDeparture: '10:38', platform: '3', distanceKm: 4.8, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '10:45', scheduledDeparture: '10:46', platform: '5', distanceKm: 9.0, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla', scheduledArrival: '10:53', scheduledDeparture: '10:54', platform: '5', distanceKm: 15.3, isHalt: true },
+      { stationCode: 'GC', stationName: 'Ghatkopar', scheduledArrival: '11:00', scheduledDeparture: '11:01', platform: '3', distanceKm: 19.3, isHalt: true },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:14', scheduledDeparture: '11:15', platform: '6', distanceKm: 33.6, isHalt: true },
+      { stationCode: 'DI', stationName: 'Dombivli', scheduledArrival: '11:28', scheduledDeparture: '11:29', platform: '4', distanceKm: 48.2, isHalt: true },
+      { stationCode: 'KYN', stationName: 'Kalyan', scheduledArrival: '11:38', scheduledDeparture: '11:38', platform: '5', distanceKm: 53.5, isHalt: true }
+    ]
+  },
+
+  // 17. Central Northbound AC Fast Local: 95113 CSMT - Kalyan AC Fast Local
+  {
+    trainNumber: '95113',
+    trainName: 'CSMT - Kalyan AC Fast Local',
+    hindiName: 'सीएसएमटी - कल्याण एसी फास्ट लोकल',
+    marathiName: 'सीएसएमटी - कल्याण एसी जलद लोकल',
+    originStation: 'CSMT',
+    destinationStation: 'KYN',
+    serviceType: 'suburban_ac_fast',
+    runningDays: [1, 2, 3, 4, 5],
+    rakeType: '12_car',
+    availableClasses: ['AC_LOCAL'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '10:45', scheduledDeparture: '10:45', platform: '5', distanceKm: 0, isHalt: true },
+      { stationCode: 'BY', stationName: 'Byculla', scheduledArrival: '10:52', scheduledDeparture: '10:53', platform: '3', distanceKm: 4.8, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '11:00', scheduledDeparture: '11:01', platform: '5', distanceKm: 9.0, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla', scheduledArrival: '11:08', scheduledDeparture: '11:09', platform: '5', distanceKm: 15.3, isHalt: true },
+      { stationCode: 'GC', stationName: 'Ghatkopar', scheduledArrival: '11:15', scheduledDeparture: '11:16', platform: '3', distanceKm: 19.3, isHalt: true },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:29', scheduledDeparture: '11:30', platform: '6', distanceKm: 33.6, isHalt: true },
+      { stationCode: 'DI', stationName: 'Dombivli', scheduledArrival: '11:43', scheduledDeparture: '11:44', platform: '4', distanceKm: 48.2, isHalt: true },
+      { stationCode: 'KYN', stationName: 'Kalyan', scheduledArrival: '11:53', scheduledDeparture: '11:53', platform: '5', distanceKm: 53.5, isHalt: true }
+    ]
+  },
+
+  // 18. Central Northbound Slow Local: 97040 CSMT - Thane Slow Local
+  {
+    trainNumber: '97040',
+    trainName: 'CSMT - Thane Slow Local',
+    hindiName: 'सीएसएमटी - ठाणे धीमी लोकल',
+    marathiName: 'सीएसएमटी - ठाणे धीम्या लोकल',
+    originStation: 'CSMT',
+    destinationStation: 'TNA',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '10:25', scheduledDeparture: '10:25', platform: '1', distanceKm: 0, isHalt: true },
+      { stationCode: 'BY', stationName: 'Byculla', scheduledArrival: '10:33', scheduledDeparture: '10:34', platform: '1', distanceKm: 4.8, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '10:42', scheduledDeparture: '10:43', platform: '1', distanceKm: 9.0, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla', scheduledArrival: '10:53', scheduledDeparture: '10:54', platform: '3', distanceKm: 15.3, isHalt: true },
+      { stationCode: 'GC', stationName: 'Ghatkopar', scheduledArrival: '11:00', scheduledDeparture: '11:01', platform: '2', distanceKm: 19.3, isHalt: true },
+      { stationCode: 'VK', stationName: 'Vikhroli', scheduledArrival: '11:05', scheduledDeparture: '11:06', platform: '2', distanceKm: 23.0, isHalt: true },
+      { stationCode: 'BND', stationName: 'Bhandup', scheduledArrival: '11:10', scheduledDeparture: '11:11', platform: '2', distanceKm: 26.5, isHalt: true },
+      { stationCode: 'MLND', stationName: 'Mulund', scheduledArrival: '11:15', scheduledDeparture: '11:16', platform: '2', distanceKm: 30.8, isHalt: true },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:20', scheduledDeparture: '11:20', platform: '2', distanceKm: 33.6, isHalt: true }
+    ]
+  },
+
+  // 19. Central Northbound Slow Local: 97046 CSMT - Kalyan Slow Local
+  {
+    trainNumber: '97046',
+    trainName: 'CSMT - Kalyan Slow Local',
+    hindiName: 'सीएसएमटी - कल्याण धीमी लोकल',
+    marathiName: 'सीएसएमटी - कल्याण धीम्या लोकल',
+    originStation: 'CSMT',
+    destinationStation: 'KYN',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '10:55', scheduledDeparture: '10:55', platform: '1', distanceKm: 0, isHalt: true },
+      { stationCode: 'BY', stationName: 'Byculla', scheduledArrival: '11:03', scheduledDeparture: '11:04', platform: '1', distanceKm: 4.8, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '11:12', scheduledDeparture: '11:13', platform: '1', distanceKm: 9.0, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla', scheduledArrival: '11:23', scheduledDeparture: '11:24', platform: '3', distanceKm: 15.3, isHalt: true },
+      { stationCode: 'GC', stationName: 'Ghatkopar', scheduledArrival: '11:30', scheduledDeparture: '11:31', platform: '2', distanceKm: 19.3, isHalt: true },
+      { stationCode: 'VK', stationName: 'Vikhroli', scheduledArrival: '11:35', scheduledDeparture: '11:36', platform: '2', distanceKm: 23.0, isHalt: true },
+      { stationCode: 'BND', stationName: 'Bhandup', scheduledArrival: '11:40', scheduledDeparture: '11:41', platform: '2', distanceKm: 26.5, isHalt: true },
+      { stationCode: 'MLND', stationName: 'Mulund', scheduledArrival: '11:45', scheduledDeparture: '11:46', platform: '2', distanceKm: 30.8, isHalt: true },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:50', scheduledDeparture: '11:51', platform: '2', distanceKm: 33.6, isHalt: true },
+      { stationCode: 'DI', stationName: 'Dombivli', scheduledArrival: '12:09', scheduledDeparture: '12:10', platform: '2', distanceKm: 48.2, isHalt: true },
+      { stationCode: 'KYN', stationName: 'Kalyan', scheduledArrival: '12:20', scheduledDeparture: '12:20', platform: '2', distanceKm: 53.5, isHalt: true }
+    ]
+  },
+
+  // 20. Central Southbound Fast Local: 95116 Kalyan - CSMT Fast Local
+  {
+    trainNumber: '95116',
+    trainName: 'Kalyan - CSMT Fast Local',
+    hindiName: 'कल्याण - सीएसएमटी फास्ट लोकल',
+    marathiName: 'कल्याण - सीएसएमटी जलद लोकल',
+    originStation: 'KYN',
+    destinationStation: 'CSMT',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'KYN', stationName: 'Kalyan', scheduledArrival: '10:45', scheduledDeparture: '10:45', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'DI', stationName: 'Dombivli', scheduledArrival: '10:54', scheduledDeparture: '10:55', platform: '3', distanceKm: 5.3, isHalt: true },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:09', scheduledDeparture: '11:10', platform: '5', distanceKm: 19.9, isHalt: true },
+      { stationCode: 'GC', stationName: 'Ghatkopar', scheduledArrival: '11:23', scheduledDeparture: '11:24', platform: '4', distanceKm: 34.2, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla', scheduledArrival: '11:29', scheduledDeparture: '11:30', platform: '6', distanceKm: 38.2, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '11:38', scheduledDeparture: '11:39', platform: '4', distanceKm: 44.5, isHalt: true },
+      { stationCode: 'BY', stationName: 'Byculla', scheduledArrival: '11:46', scheduledDeparture: '11:47', platform: '4', distanceKm: 48.7, isHalt: true },
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '11:55', scheduledDeparture: '11:55', platform: '5', distanceKm: 53.5, isHalt: true }
+    ]
+  },
+
+  // 21. Central Southbound AC Fast Local: 95118 Kalyan - CSMT AC Fast Local
+  {
+    trainNumber: '95118',
+    trainName: 'Kalyan - CSMT AC Fast Local',
+    hindiName: 'कल्याण - सीएसएमटी एसी फास्ट लोकल',
+    marathiName: 'कल्याण - सीएसएमटी एसी जलद लोकल',
+    originStation: 'KYN',
+    destinationStation: 'CSMT',
+    serviceType: 'suburban_ac_fast',
+    runningDays: [1, 2, 3, 4, 5],
+    rakeType: '12_car',
+    availableClasses: ['AC_LOCAL'],
+    stops: [
+      { stationCode: 'KYN', stationName: 'Kalyan', scheduledArrival: '11:00', scheduledDeparture: '11:00', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'DI', stationName: 'Dombivli', scheduledArrival: '11:09', scheduledDeparture: '11:10', platform: '3', distanceKm: 5.3, isHalt: true },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:24', scheduledDeparture: '11:25', platform: '5', distanceKm: 19.9, isHalt: true },
+      { stationCode: 'GC', stationName: 'Ghatkopar', scheduledArrival: '11:38', scheduledDeparture: '11:39', platform: '4', distanceKm: 34.2, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla', scheduledArrival: '11:44', scheduledDeparture: '11:45', platform: '6', distanceKm: 38.2, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '11:53', scheduledDeparture: '11:54', platform: '4', distanceKm: 44.5, isHalt: true },
+      { stationCode: 'BY', stationName: 'Byculla', scheduledArrival: '12:01', scheduledDeparture: '12:02', platform: '4', distanceKm: 48.7, isHalt: true },
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '12:10', scheduledDeparture: '12:10', platform: '6', distanceKm: 53.5, isHalt: true }
+    ]
+  },
+
+  // 22. Central Southbound Slow Local: 97055 Thane - CSMT Slow Local
+  {
+    trainNumber: '97055',
+    trainName: 'Thane - CSMT Slow Local',
+    hindiName: 'ठाणे - सीएसएमटी धीमी लोकल',
+    marathiName: 'ठाणे - सीएसएमटी धीम्या लोकल',
+    originStation: 'TNA',
+    destinationStation: 'CSMT',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:15', scheduledDeparture: '11:15', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'MLND', stationName: 'Mulund', scheduledArrival: '11:19', scheduledDeparture: '11:20', platform: '1', distanceKm: 2.8, isHalt: true },
+      { stationCode: 'BND', stationName: 'Bhandup', scheduledArrival: '11:24', scheduledDeparture: '11:25', platform: '1', distanceKm: 7.1, isHalt: true },
+      { stationCode: 'VK', stationName: 'Vikhroli', scheduledArrival: '11:29', scheduledDeparture: '11:30', platform: '1', distanceKm: 10.6, isHalt: true },
+      { stationCode: 'GC', stationName: 'Ghatkopar', scheduledArrival: '11:35', scheduledDeparture: '11:36', platform: '1', distanceKm: 14.3, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla', scheduledArrival: '11:42', scheduledDeparture: '11:43', platform: '1', distanceKm: 18.3, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '11:53', scheduledDeparture: '11:54', platform: '2', distanceKm: 24.6, isHalt: true },
+      { stationCode: 'BY', stationName: 'Byculla', scheduledArrival: '12:01', scheduledDeparture: '12:02', platform: '2', distanceKm: 28.8, isHalt: true },
+      { stationCode: 'CSMT', stationName: 'CSMT', scheduledArrival: '12:09', scheduledDeparture: '12:09', platform: '2', distanceKm: 33.6, isHalt: true }
+    ]
+  },
+
+  // 23. Western Northbound Fast Local: 90233 Churchgate - Borivali Fast Local
+  {
+    trainNumber: '90233',
+    trainName: 'Churchgate - Borivali Fast Local',
+    hindiName: 'चर्चगेट - बोरिवली फास्ट लोकल',
+    marathiName: 'चर्चगेट - बोरिवली जलद लोकल',
+    originStation: 'CCG',
+    destinationStation: 'BVI',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '15_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CCG', stationName: 'Churchgate', scheduledArrival: '10:35', scheduledDeparture: '10:35', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'MMCT', stationName: 'Mumbai Central', scheduledArrival: '10:43', scheduledDeparture: '10:44', platform: '3', distanceKm: 4.3, isHalt: true },
+      { stationCode: 'DDR', stationName: 'Dadar (Western)', scheduledArrival: '10:50', scheduledDeparture: '10:51', platform: '3', distanceKm: 10.2, isHalt: true },
+      { stationCode: 'BA', stationName: 'Bandra', scheduledArrival: '10:57', scheduledDeparture: '10:58', platform: '5', distanceKm: 15.1, isHalt: true },
+      { stationCode: 'ADH', stationName: 'Andheri', scheduledArrival: '11:05', scheduledDeparture: '11:06', platform: '4', distanceKm: 21.8, isHalt: true },
+      { stationCode: 'BVI', stationName: 'Borivali', scheduledArrival: '11:20', scheduledDeparture: '11:20', platform: '3', distanceKm: 34.2, isHalt: true }
+    ]
+  },
+
+  // 24. Western Northbound AC Fast Local: 90237 Churchgate - Virar AC Fast Local
+  {
+    trainNumber: '90237',
+    trainName: 'Churchgate - Virar AC Fast Local',
+    hindiName: 'चर्चगेट - विरार एसी फास्ट लोकल',
+    marathiName: 'चर्चगेट - विरार एसी जलद लोकल',
+    originStation: 'CCG',
+    destinationStation: 'VR',
+    serviceType: 'suburban_ac_fast',
+    runningDays: [1, 2, 3, 4, 5],
+    rakeType: '12_car',
+    availableClasses: ['AC_LOCAL'],
+    stops: [
+      { stationCode: 'CCG', stationName: 'Churchgate', scheduledArrival: '10:50', scheduledDeparture: '10:50', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'MMCT', stationName: 'Mumbai Central', scheduledArrival: '10:58', scheduledDeparture: '10:59', platform: '3', distanceKm: 4.3, isHalt: true },
+      { stationCode: 'DDR', stationName: 'Dadar (Western)', scheduledArrival: '11:05', scheduledDeparture: '11:06', platform: '3', distanceKm: 10.2, isHalt: true },
+      { stationCode: 'BA', stationName: 'Bandra', scheduledArrival: '11:12', scheduledDeparture: '11:13', platform: '5', distanceKm: 15.1, isHalt: true },
+      { stationCode: 'ADH', stationName: 'Andheri', scheduledArrival: '11:20', scheduledDeparture: '11:21', platform: '4', distanceKm: 21.8, isHalt: true },
+      { stationCode: 'BVI', stationName: 'Borivali', scheduledArrival: '11:35', scheduledDeparture: '11:36', platform: '5', distanceKm: 34.2, isHalt: true },
+      { stationCode: 'VR', stationName: 'Virar', scheduledArrival: '12:05', scheduledDeparture: '12:05', platform: '2', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+
+  // 25. Western Northbound Slow Local: 90241 Churchgate - Andheri Slow Local
+  {
+    trainNumber: '90241',
+    trainName: 'Churchgate - Andheri Slow Local',
+    hindiName: 'चर्चगेट - अंधेरी धीमी लोकल',
+    marathiName: 'चर्चगेट - अंधेरी धीम्या लोकल',
+    originStation: 'CCG',
+    destinationStation: 'ADH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CCG', stationName: 'Churchgate', scheduledArrival: '10:40', scheduledDeparture: '10:40', platform: '1', distanceKm: 0, isHalt: true },
+      { stationCode: 'MEL', stationName: 'Marine Lines', scheduledArrival: '10:44', scheduledDeparture: '10:45', platform: '1', distanceKm: 1.4, isHalt: true },
+      { stationCode: 'MMCT', stationName: 'Mumbai Central', scheduledArrival: '10:50', scheduledDeparture: '10:51', platform: '1', distanceKm: 4.3, isHalt: true },
+      { stationCode: 'DDR', stationName: 'Dadar (Western)', scheduledArrival: '11:00', scheduledDeparture: '11:01', platform: '2', distanceKm: 10.2, isHalt: true },
+      { stationCode: 'BA', stationName: 'Bandra', scheduledArrival: '11:10', scheduledDeparture: '11:11', platform: '3', distanceKm: 15.1, isHalt: true },
+      { stationCode: 'ADH', stationName: 'Andheri', scheduledArrival: '11:25', scheduledDeparture: '11:25', platform: '2', distanceKm: 21.8, isHalt: true }
+    ]
+  },
+
+  // 26. Western Southbound Fast Local: 90242 Borivali - Churchgate Fast Local
+  {
+    trainNumber: '90242',
+    trainName: 'Borivali - Churchgate Fast Local',
+    hindiName: 'बोरिवली - चर्चगेट फास्ट लोकल',
+    marathiName: 'बोरिवली - चर्चगेट जलद लोकल',
+    originStation: 'BVI',
+    destinationStation: 'CCG',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '15_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BVI', stationName: 'Borivali', scheduledArrival: '11:25', scheduledDeparture: '11:25', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'ADH', stationName: 'Andheri', scheduledArrival: '11:40', scheduledDeparture: '11:41', platform: '5', distanceKm: 12.4, isHalt: true },
+      { stationCode: 'BA', stationName: 'Bandra', scheduledArrival: '11:49', scheduledDeparture: '11:50', platform: '4', distanceKm: 19.1, isHalt: true },
+      { stationCode: 'DDR', stationName: 'Dadar (Western)', scheduledArrival: '11:56', scheduledDeparture: '11:57', platform: '4', distanceKm: 24.0, isHalt: true },
+      { stationCode: 'MMCT', stationName: 'Mumbai Central', scheduledArrival: '12:03', scheduledDeparture: '12:04', platform: '4', distanceKm: 29.9, isHalt: true },
+      { stationCode: 'CCG', stationName: 'Churchgate', scheduledArrival: '12:12', scheduledDeparture: '12:12', platform: '2', distanceKm: 34.2, isHalt: true }
+    ]
+  },
+
+  // 27. Harbour Line Inbound: 98046 Panvel - CSMT Local (Midday)
+  {
+    trainNumber: '98046',
+    trainName: 'Panvel - CSMT Harbour Local',
+    hindiName: 'पनवेल - सीएसएमटी हार्बर लोकल',
+    marathiName: 'पनवेल - सीएसएमटी हार्बर लोकल',
+    originStation: 'PNVL',
+    destinationStation: 'CSMT',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'PNVL', stationName: 'Panvel', scheduledArrival: '10:35', scheduledDeparture: '10:35', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'VSH', stationName: 'Vashi', scheduledArrival: '11:00', scheduledDeparture: '11:01', platform: '2', distanceKm: 28.5, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla (Harbour)', scheduledArrival: '11:17', scheduledDeparture: '11:18', platform: '7', distanceKm: 38.0, isHalt: true },
+      { stationCode: 'VDLR', stationName: 'Vadala Road', scheduledArrival: '11:29', scheduledDeparture: '11:30', platform: '2', distanceKm: 42.0, isHalt: true },
+      { stationCode: 'CSMT', stationName: 'CSMT (Harbour)', scheduledArrival: '11:47', scheduledDeparture: '11:47', platform: '1', distanceKm: 48.9, isHalt: true }
+    ]
+  },
+
+  // 28. Harbour Line Inbound: 98050 Panvel - CSMT Local
+  {
+    trainNumber: '98050',
+    trainName: 'Panvel - CSMT Harbour Local',
+    hindiName: 'पनवेल - सीएसएमटी हार्बर लोकल',
+    marathiName: 'पनवेल - सीएसएमटी हार्बर लोकल',
+    originStation: 'PNVL',
+    destinationStation: 'CSMT',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'PNVL', stationName: 'Panvel', scheduledArrival: '11:00', scheduledDeparture: '11:00', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'VSH', stationName: 'Vashi', scheduledArrival: '11:25', scheduledDeparture: '11:26', platform: '2', distanceKm: 28.5, isHalt: true },
+      { stationCode: 'CLA', stationName: 'Kurla (Harbour)', scheduledArrival: '11:42', scheduledDeparture: '11:43', platform: '7', distanceKm: 38.0, isHalt: true },
+      { stationCode: 'VDLR', stationName: 'Vadala Road', scheduledArrival: '11:54', scheduledDeparture: '11:55', platform: '2', distanceKm: 42.0, isHalt: true },
+      { stationCode: 'CSMT', stationName: 'CSMT (Harbour)', scheduledArrival: '12:12', scheduledDeparture: '12:12', platform: '1', distanceKm: 48.9, isHalt: true }
+    ]
+  },
+
+  // 29. Trans-Harbour Line: 99011 Thane - Panvel Local
+  {
+    trainNumber: '99011',
+    trainName: 'Thane - Panvel Trans-Harbour Local',
+    hindiName: 'ठाणे - पनवेल ट्रांस-हार्बर लोकल',
+    marathiName: 'ठाणे - पनवेल ट्रान्स-हार्बर लोकल',
+    originStation: 'TNA',
+    destinationStation: 'PNVL',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '10:40', scheduledDeparture: '10:40', platform: '9', distanceKm: 0, isHalt: true },
+      { stationCode: 'VSH', stationName: 'Vashi', scheduledArrival: '11:02', scheduledDeparture: '11:03', platform: '3', distanceKm: 18.5, isHalt: true },
+      { stationCode: 'PNVL', stationName: 'Panvel', scheduledArrival: '11:32', scheduledDeparture: '11:32', platform: '4', distanceKm: 47.0, isHalt: true }
+    ]
+  },
+
+  // 30. Trans-Harbour Line: 99012 Panvel - Thane Local
+  {
+    trainNumber: '99012',
+    trainName: 'Panvel - Thane Trans-Harbour Local',
+    hindiName: 'पनवेल - ठाणे ट्रांस-हार्बर लोकल',
+    marathiName: 'पनवेल - ठाणे ट्रान्स-हार्बर लोकल',
+    originStation: 'PNVL',
+    destinationStation: 'TNA',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'PNVL', stationName: 'Panvel', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'VSH', stationName: 'Vashi', scheduledArrival: '11:00', scheduledDeparture: '11:01', platform: '4', distanceKm: 28.5, isHalt: true },
+      { stationCode: 'TNA', stationName: 'Thane', scheduledArrival: '11:22', scheduledDeparture: '11:22', platform: '10', distanceKm: 47.0, isHalt: true }
+    ]
   }
 ];
 
