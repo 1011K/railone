@@ -333,7 +333,7 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3">
                   <div className="space-y-1">
                     <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                      CRIS Dynamic Specimen QR
+                      Dynamic Specimen QR
                     </div>
                     <div className="text-[9px] text-slate-500 font-mono max-w-[200px] break-all">
                       {createdTicket.pnrMock} · {createdTicket.classBooked}

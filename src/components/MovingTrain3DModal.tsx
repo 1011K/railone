@@ -122,7 +122,7 @@ export const MovingTrain3DModal: React.FC<MovingTrain3DModalProps> = ({
             <div>
               <div className="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5" />
-                <span>CRIS 3D Train Dynamics Simulator</span>
+                <span>3D Train Dynamics Simulator</span>
               </div>
               <div className="text-[11px] text-slate-300">
                 Quad-Track Fast Corridor · Central & Western Railways Mumbai

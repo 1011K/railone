@@ -1794,7 +1794,7 @@ export const INITIAL_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     isCanceled: false,
     disruptionReason: 'Signal failure between Vidyavihar and Kurla (Down & Up Through tracks held)',
     dataStatus: 'DEMO',
-    dataSource: 'CRIS NTES Suburban Simulation Fixture #A12',
+    dataSource: 'NTES Suburban Simulation Fixture #A12',
     dataRetrievedAt: '11:16',
     uncertaintyMarginMinutes: 4
   },
@@ -1811,7 +1811,7 @@ export const INITIAL_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     isCanceled: false,
     disruptionReason: 'Inbound rake delayed at Kalyan yard for AC motor unit inspection',
     dataStatus: 'DEMO',
-    dataSource: 'CRIS NTES Suburban Simulation Fixture #A14',
+    dataSource: 'NTES Suburban Simulation Fixture #A14',
     dataRetrievedAt: '10:36',
     uncertaintyMarginMinutes: 6
   },
@@ -1828,7 +1828,7 @@ export const INITIAL_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     delayMinutesAtCurrent: 2, // Running virtually on time on slow corridor!
     isCanceled: false,
     dataStatus: 'DEMO',
-    dataSource: 'CRIS NTES Suburban Simulation Fixture #B01',
+    dataSource: 'NTES Suburban Simulation Fixture #B01',
     dataRetrievedAt: '11:04',
     uncertaintyMarginMinutes: 1
   },
@@ -1879,7 +1879,7 @@ export const INITIAL_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     delayMinutesAtCurrent: 0,
     isCanceled: false,
     dataStatus: 'DEMO',
-    dataSource: 'CRIS NTES National Feed Simulator',
+    dataSource: 'NTES National Feed Simulator',
     dataRetrievedAt: '09:45',
     uncertaintyMarginMinutes: 2
   },
@@ -1897,7 +1897,7 @@ export const INITIAL_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     isCanceled: false,
     disruptionReason: 'Overhead equipment (OHE) trip between Dadar and Kurla',
     dataStatus: 'DEMO',
-    dataSource: 'CRIS NTES National Feed Simulator',
+    dataSource: 'NTES National Feed Simulator',
     dataRetrievedAt: '07:36',
     uncertaintyMarginMinutes: 10
   },

@@ -1,25 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PassengerMobileApp } from './PassengerMobileApp';
-import { InstitutionalDossierModal } from './InstitutionalDossierModal';
 import { VisualQRCode } from './VisualQRCode';
 import {
   Smartphone,
   Maximize2,
   Minimize2,
   QrCode,
-  Sparkles,
-  ShieldCheck,
-  Activity,
-  Layers,
   ChevronDown,
   X,
-  ExternalLink,
-  Laptop,
-  CheckCircle2,
-  AlertTriangle,
-  RotateCcw,
-  Sliders,
-  Info,
   Copy,
   Check
 } from 'lucide-react';
@@ -82,10 +70,8 @@ export const MobileDeviceSimulator: React.FC = () => {
   const [scaleFactor, setScaleFactor] = useState<number>(1);
   const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
 
-  // Reviewer External Modals
-  const [isDossierOpen, setIsDossierOpen] = useState<boolean>(false);
+  // Phone QR Modal State
   const [isQrModalOpen, setIsQrModalOpen] = useState<boolean>(false);
-  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
   const [copiedUrl, setCopiedUrl] = useState<boolean>(false);
 
   // Quick Scenario Preset to feed into Passenger Mobile App
@@ -148,15 +134,8 @@ export const MobileDeviceSimulator: React.FC = () => {
     return (
       <div className="w-full h-full min-h-screen bg-slate-950 flex flex-col relative">
         <PassengerMobileApp
-          onOpenReviewerDossier={() => setIsDossierOpen(true)}
           presetOrigin={presetOrigin}
           presetDest={presetDest}
-        />
-
-        {/* External Reviewer Modals accessible if requested */}
-        <InstitutionalDossierModal
-          isOpen={isDossierOpen}
-          onClose={() => setIsDossierOpen(false)}
         />
       </div>
     );
@@ -268,26 +247,6 @@ export const MobileDeviceSimulator: React.FC = () => {
             <QrCode className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Real Phone</span>
           </button>
-
-          {/* System Health & Provenance Inspector */}
-          <button
-            onClick={() => setIsInspectorOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all active:scale-95"
-            title="Truth-in-Data & 20-Module Inspector"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Data Integrity</span>
-          </button>
-
-          {/* CRIS Academic Dossier Button */}
-          <button
-            onClick={() => setIsDossierOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-primary hover:bg-theme-primary/90 text-white text-xs font-bold transition-all active:scale-95 shadow-sm"
-            title="Open Institutional Academic Dossier"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">CRIS Dossier</span>
-          </button>
         </div>
       </header>
 
@@ -358,7 +317,6 @@ export const MobileDeviceSimulator: React.FC = () => {
 
               {/* The Actual Passenger Mobile Application */}
               <PassengerMobileApp
-                onOpenReviewerDossier={() => setIsDossierOpen(true)}
                 presetOrigin={presetOrigin}
                 presetDest={presetDest}
               />
@@ -430,95 +388,6 @@ export const MobileDeviceSimulator: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* 2. Reviewer Data Provenance & Health Inspector Drawer */}
-      {isInspectorOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex justify-end animate-fadeIn">
-          <div className="w-full max-w-lg h-full bg-slate-900 border-l border-slate-800 p-6 flex flex-col space-y-4 overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-amber-400" />
-                <h3 className="text-base font-black text-white">System Data Provenance & Health</h3>
-              </div>
-              <button
-                onClick={() => setIsInspectorOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Truth in Data Principles */}
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2 text-amber-200">
-              <div className="font-bold flex items-center gap-1.5 text-amber-400">
-                <AlertTriangle className="w-4 h-4" />
-                Statutory Truth-in-Data Notice (October 2026 Fixture)
-              </div>
-              <p className="leading-relaxed">
-                RailOne Next strictly categorizes all telemetry into <code>[VERIFIED LIVE]</code>, <code>[TIMETABLE SCHEDULE]</code>, and <code>[SIMULATED DATASET]</code>. No live CRIS / NTES feed is fabricated or claimed.
-              </p>
-            </div>
-
-            {/* 20-Module Health Checklist */}
-            <div className="space-y-2">
-              <div className="text-xs font-black uppercase text-slate-400 tracking-wider">
-                20-Module System Verification (100% Operational)
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                {[
-                  '1. Station Normalizer',
-                  '2. Delay Propagation Model',
-                  '3. Multi-Line Graph Planner',
-                  '4. AC Local Eligibility',
-                  '5. Railways Act Sec 138',
-                  '6. Wagenstandsanzeiger (Coach)',
-                  '7. 3D God\'s Eye (Dadar/CSMT)',
-                  '8. Dograh Telephony Bridge',
-                  '9. 15 RailSathi Voice Tools',
-                  '10. Idempotent Ticketing',
-                  '11. Timeout Reconciliation',
-                  '12. Wallet Refund Breakdown',
-                  '13. Mumbai Metro Lines 1/2A/7/3',
-                  '14. Pan-India PRS Index',
-                  '15. 8 Transit Cities Registry',
-                  '16. Offline PWA SW.js',
-                  '17. 8 Livery Color Themes',
-                  '18. TTE Verification Validator',
-                  '19. SQLite DB Persistence',
-                  '20. Smartphone Simulator'
-                ].map(mod => (
-                  <div key={mod} className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span className="truncate">{mod}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Section 138 Legal Safeguard */}
-            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1.5 text-slate-400">
-              <div className="font-bold text-slate-200">Legal Section 138 Penalty Shield</div>
-              <p className="text-[11px]">
-                Suburban Season Tickets (MST) are legally invalid on Mail/Express services. RailOne checks Central Railway MST circulars and explicitly warns passengers before boarding.
-              </p>
-            </div>
-
-            {/* Telephony Bridge Notice */}
-            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1.5 text-slate-400">
-              <div className="font-bold text-slate-200">RailSathi Voice Assistant & DoT Compliance</div>
-              <p className="text-[11px]">
-                RailSathi tools strictly prohibit co-opting Indian Railways statutory 139 emergency shortcode without CRIS bilateral agreement. All 15 tools operate with deterministic parameters.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. CRIS Academic Dossier Modal */}
-      <InstitutionalDossierModal
-        isOpen={isDossierOpen}
-        onClose={() => setIsDossierOpen(false)}
-      />
 
     </div>
   );

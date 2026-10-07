@@ -83,7 +83,7 @@ export const MyTicketsView: React.FC<MyTicketsViewProps> = ({
             <div className="font-bold flex items-center gap-2">
               <span>[SIMULATED SPECIMEN TICKETING ENGINE]</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
-                CRIS EDUCATIONAL BENCHMARK
+                RAILONE TRANSIT BENCHMARK
               </span>
             </div>
             <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 mt-0.5">
@@ -132,7 +132,7 @@ export const MyTicketsView: React.FC<MyTicketsViewProps> = ({
             </span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage active suburban journeys, inspect CRIS cryptographic QR specimen payloads, and review automated refund statements.
+            Manage active suburban journeys, inspect cryptographic QR specimen payloads, and review automated refund statements.
           </p>
         </div>
 
@@ -163,7 +163,7 @@ export const MyTicketsView: React.FC<MyTicketsViewProps> = ({
           { id: 'history', label: language === 'hi' ? 'टिकट इतिहास' : language === 'mr' ? 'तिकीट इतिहास' : 'Booking History', count: tickets.length },
           { id: 'refunds', label: language === 'hi' ? 'रद्द व धनवापसी' : language === 'mr' ? 'रद्द आणि परतावा' : 'Cancelled & Refunds', count: cancelledTickets.length },
           { id: 'season_pass', label: language === 'hi' ? 'मासिक पास (MST)' : language === 'mr' ? 'मासिक पास (MST)' : 'Season Passes (MST)', isSpecial: true },
-          { id: 'rules', label: language === 'hi' ? 'CRIS बुकिंग नियम' : language === 'mr' ? 'CRIS बुकिंग नियम' : 'CRIS Ticketing Rules' }
+          { id: 'rules', label: language === 'hi' ? 'रेलवे बुकिंग नियम' : language === 'mr' ? 'रेल्वे बुकिंग नियम' : 'Railway Ticketing Rules' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -525,12 +525,12 @@ export const MyTicketsView: React.FC<MyTicketsViewProps> = ({
         </div>
       )}
 
-      {/* Tab 6: CRIS Ticketing Rules */}
+      {/* Tab 6: Railway Ticketing Rules */}
       {activeTab === 'rules' && (
         <div className="space-y-4 bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 text-xs">
           <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-theme-primary" />
-            <span>CRIS & Indian Railways Commuter Regulations</span>
+            <span>Indian Railways Commuter Regulations</span>
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">

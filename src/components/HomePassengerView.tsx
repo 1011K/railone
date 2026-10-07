@@ -72,7 +72,7 @@ export const HomePassengerView: React.FC<HomePassengerViewProps> = ({
         <div className="relative z-10 max-w-3xl space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-theme-primary/20 text-blue-300 border border-theme-primary/40">
             <ShieldCheck className="w-4 h-4 text-theme-primary" />
-            <span>Official CRIS / Indian Railways Institutional Benchmark</span>
+            <span>Indian Railways Institutional Transit Benchmark</span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
@@ -337,7 +337,7 @@ export const HomePassengerView: React.FC<HomePassengerViewProps> = ({
                 Help & RailSathi Assistant
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Multilingual station query assistant (English, Hindi, Marathi) and CRIS RailMadad formal grievance complaint drafter.
+                Multilingual station query assistant (English, Hindi, Marathi) and RailMadad formal grievance complaint drafter.
               </p>
             </div>
             <div className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1 pt-1">

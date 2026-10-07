@@ -80,7 +80,7 @@ export const HelpAndRailSathiView: React.FC<HelpAndRailSathiViewProps> = ({
             }`}
           >
             <Bot className="w-4 h-4" />
-            <span>CRIS RailMadad & AI Operations</span>
+            <span>RailMadad & AI Operations</span>
           </button>
 
           <button

@@ -261,7 +261,7 @@ export const PAN_INDIA_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     isCanceled: false,
     disruptionReason: 'Routine freight trailing regulation in Nagda-Ratlam section',
     dataStatus: 'DEMO',
-    dataSource: 'CRIS NTES National Feed Stream',
+    dataSource: 'NTES National Feed Stream',
     dataRetrievedAt: '01:05',
     uncertaintyMarginMinutes: 2
   },

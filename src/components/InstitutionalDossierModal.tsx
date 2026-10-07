@@ -51,7 +51,7 @@ export const InstitutionalDossierModal: React.FC<InstitutionalDossierModalProps>
                 </span>
               </div>
               <h2 className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
-                RailOne Next 3.0 — CRIS Institutional Benchmark & System Specification
+                RailOne Next 3.0 — Indian Railways Institutional Benchmark & System Specification
               </h2>
             </div>
           </div>

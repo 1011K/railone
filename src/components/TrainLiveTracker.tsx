@@ -139,7 +139,7 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
             </span>
             <div className="text-xs font-bold tracking-wider uppercase text-slate-200 flex items-center gap-1.5">
               <Activity className="w-3.5 h-3.5 text-rose-400" />
-              <span>CRIS Operations Control Centre (OCC) · Mumbai Suburban & National Broadcast</span>
+              <span>Operations Control Centre (OCC) · Mumbai Suburban & National Broadcast</span>
             </div>
           </div>
 

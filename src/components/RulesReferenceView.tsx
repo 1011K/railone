@@ -85,7 +85,7 @@ export const RulesReferenceView: React.FC = () => {
       <section aria-label="Official Fare Tariff Slabs" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs space-y-3">
         <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
           <Table className="w-4 h-4 text-blue-600" />
-          <span>Mumbai Suburban Fare Slabs (Single Journey, CRIS Revised Tariff)</span>
+          <span>Mumbai Suburban Fare Slabs (Single Journey, Official Revised Tariff)</span>
         </div>
 
         <div className="overflow-x-auto">

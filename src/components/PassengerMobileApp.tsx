@@ -44,13 +44,11 @@ const StationGodsEyeModal = React.lazy(() => import('./StationGodsEyeModal'));
 export type MobileTab = 'home' | 'journeys' | 'live' | 'tickets' | 'railsathi';
 
 interface PassengerMobileAppProps {
-  onOpenReviewerDossier?: () => void;
   presetOrigin?: string;
   presetDest?: string;
 }
 
 export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
-  onOpenReviewerDossier,
   presetOrigin = 'TNA',
   presetDest = 'CSMT'
 }) => {

@@ -125,7 +125,7 @@ export const LaunchSequence: React.FC<LaunchSequenceProps> = ({ onComplete }) =>
       {/* Bottom Legal Notice */}
       <div className="w-full text-center pb-3">
         <span className="text-[10px] text-slate-500">
-          Unofficial Educational Transit Prototype · CRIS / IR Model
+          Unofficial Educational Transit Prototype · Indian Railways Transit Model
         </span>
       </div>
     </div>

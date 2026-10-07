@@ -195,13 +195,13 @@ app.post('/api/ai/grievance', async (req, res) => {
   const { complaintType, trainNumber, coachNumber, description } = req.body;
 
   const systemInstruction = `
-You are the CRIS RailMadad official grievance drafting assistant for Indian Railways.
+You are the RailMadad official grievance drafting assistant for Indian Railways.
 Draft a formal, concise, and structured complaint following official railway grievance standards.
 Include:
 1. Incident Summary
 2. Train & Coach Identification (${trainNumber || 'N/A'}, Coach: ${coachNumber || 'N/A'})
 3. Categorized Issue (${complaintType})
-4. CRIS Routing Department (e.g. Mechanical/Electrical Carriage & Wagon, Commercial, RPF)
+4. Designated Railway Routing Department (e.g. Mechanical/Electrical Carriage & Wagon, Commercial, RPF)
 5. Demanded Action & Safety Assessment
 `;
 
@@ -224,7 +224,7 @@ Include:
     }
   }
 
-  const fallbackDraft = `OFFICIAL GRIEVANCE DRAFT — INDIAN RAILWAYS / CRIS RAILMADAD
+  const fallbackDraft = `OFFICIAL GRIEVANCE DRAFT — INDIAN RAILWAYS RAILMADAD
 Reference Category: ${complaintType || 'COACH_ELECTRICAL_FAILURE'}
 Train Number: ${trainNumber || '95114 AC Local'}
 Coach Number: ${coachNumber || 'AC-03'}

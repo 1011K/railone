@@ -94,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   RailOne<span className="text-theme-primary">Next</span>
                 </span>
                 <span className="text-[10px] tracking-wider uppercase font-extrabold px-1.5 py-0.5 rounded bg-theme-light text-theme-text border border-theme-border">
-                  CRIS Redesign
+                  NextGen Redesign
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
@@ -154,15 +154,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* Academic & CRIS Dossier Shortcut */}
+            {/* Academic & System Dossier Shortcut */}
             {onOpenDossier && (
               <button
                 onClick={onOpenDossier}
                 className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary font-bold text-xs border border-theme-primary/30 transition-all min-h-[38px]"
-                title="Open Academic Evaluation Dossier & CRIS Specifications"
+                title="Open System Architecture Dossier & Technical Specifications"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>CRIS Dossier</span>
+                <span>System Dossier</span>
               </button>
             )}
 
@@ -293,7 +293,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               );
             })}
 
-            {/* Mobile Actions: Appearance, 3D Sim, Coach Guide, CRIS Dossier */}
+            {/* Mobile Actions: Appearance, 3D Sim, Coach Guide, System Dossier */}
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
               <button
                 onClick={() => {
@@ -328,7 +328,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="py-2 px-3 rounded-xl bg-theme-primary/10 text-theme-primary text-xs font-bold flex items-center justify-center gap-2 border border-theme-primary/30"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>CRIS Dossier</span>
+                  <span>System Dossier</span>
                 </button>
               )}
 

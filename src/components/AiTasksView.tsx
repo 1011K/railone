@@ -82,7 +82,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
     {
       id: 'task-4',
       title: 'File RailMadad AC Cooling Grievance in Coach C-4',
-      description: 'Air conditioning thermostat failure in Virar-Churchgate AC Local coach 4. Draft official CRIS complaint.',
+      description: 'Air conditioning thermostat failure in Virar-Churchgate AC Local coach 4. Draft official RailMadad complaint.',
       category: 'GRIEVANCE_RAILMADAD',
       priority: 'P3_LOW',
       status: 'PENDING',
@@ -848,7 +848,7 @@ export const AiTasksView: React.FC<AiTasksViewProps> = ({ onSearchRouteShortcut 
               </span>
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  Official CRIS RailMadad Grievance Generator
+                  Official RailMadad Grievance Generator
                 </h3>
                 <p className="text-[11px] text-slate-500">
                   Standardized passenger complaint drafting for Indian Railways grievance redressal portal

@@ -38,7 +38,7 @@ export const THEME_CONFIG: Record<ColorTheme, {
     marathiName: 'इलेक्ट्रिक ब्लू (रेल्वे)',
     primaryHex: '#2563eb',
     accentHex: '#60a5fa',
-    description: 'Classic CRIS Indian Railways institutional livery'
+    description: 'Classic Indian Railways institutional livery'
   },
   forest: {
     name: 'Emerald Heritage Express',
@@ -89,12 +89,12 @@ export const THEME_CONFIG: Record<ColorTheme, {
     description: 'Modern luxury passenger rail bronze & gold'
   },
   contrast: {
-    name: 'CRIS Accessible High-Contrast',
+    name: 'High-Contrast Accessible',
     hindiName: 'उच्च कंट्रास्ट (सुलभता)',
     marathiName: 'हाय कॉन्ट्रास्ट (सुलभता)',
     primaryHex: '#0f172a',
     accentHex: '#ffffff',
-    description: 'Ultra-crisp WCAG AAA contrast for daylight outdoor visibility'
+    description: 'Ultra high-contrast WCAG AAA for daylight outdoor visibility'
   }
 };
 

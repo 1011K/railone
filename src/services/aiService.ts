@@ -194,7 +194,7 @@ export class AiRailwayService {
       // fallback
     }
 
-    const draft = `INDIAN RAILWAYS / CRIS RAILMADAD OFFICIAL GRIEVANCE
+    const draft = `INDIAN RAILWAYS RAILMADAD OFFICIAL GRIEVANCE
 ====================================================
 Category: ${complaintType}
 Train: ${trainNumber || '95114 AC Local'}
