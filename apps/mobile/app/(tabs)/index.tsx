@@ -33,6 +33,18 @@ export default function HomeScreen() {
   const [toStation, setToStation] = useState({ code: 'CSMT', name: 'CSMT (Mumbai)' });
   const [journeyDate, setJourneyDate] = useState('Today');
   const [acOnly, setAcOnly] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<Array<{ from: string; to: string }>>([]);
+
+  React.useEffect(() => {
+    try {
+      const recents = OfflineStorage.getRecentSearches();
+      if (recents && recents.length > 0) {
+        setRecentSearches(recents.slice(0, 4));
+      }
+    } catch {
+      // offline fallback
+    }
+  }, []);
 
   // Station picker modal
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -106,7 +118,22 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* 2. Prominent Call RailSathi Card */}
+      {/* 2. Active Commute Card */}
+      <View style={[styles.activeCommuteCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        <View style={styles.activeCommuteHeader}>
+          <View style={styles.livePulseDot} />
+          <Text style={[styles.activeCommuteTag, { color: colors.primary }]}>ACTIVE COMMUTE</Text>
+          <Text style={[styles.activeCommuteStatus, { color: colors.success }]}>On Time</Text>
+        </View>
+        <Text style={[styles.activeCommuteTrain, { color: colors.textPrimary }]}>
+          Kalyan - CSMT Fast Local (95112)
+        </Text>
+        <Text style={[styles.activeCommuteSub, { color: colors.textMuted }]}>
+          Thane (PF 5) ➔ CSMT · Arriving 10:40
+        </Text>
+      </View>
+
+      {/* 3. Prominent Call RailSathi Card */}
       <TouchableOpacity
         style={[styles.callBanner, { backgroundColor: colors.primary }]}
         activeOpacity={0.88}
@@ -129,7 +156,7 @@ export default function HomeScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* 3. Journey Search Container */}
+      {/* 4. Journey Search Container */}
       <View style={[styles.searchCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Plan Journey</Text>
 
@@ -177,6 +204,33 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* Date / Time */}
+        <View style={[styles.inputRow, { borderColor: colors.cardBorder }]}>
+          <View style={styles.inputPrefix}>
+            <Text style={[styles.inputPrefixText, { color: colors.primary }]}>DATE</Text>
+          </View>
+          <View style={styles.dateTimeContainer}>
+            {(['Today', 'Tomorrow'] as const).map(d => (
+              <TouchableOpacity
+                key={d}
+                onPress={() => setJourneyDate(d)}
+                style={[
+                  styles.datePill,
+                  {
+                    backgroundColor: journeyDate === d ? colors.primary : 'transparent',
+                    borderColor: journeyDate === d ? colors.primary : colors.cardBorder
+                  }
+                ]}
+              >
+                <Text style={[styles.datePillText, { color: journeyDate === d ? '#ffffff' : colors.textPrimary }]}>
+                  {d}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <Text style={[styles.timeNowText, { color: colors.textMuted }]}>Depart Now</Text>
+          </View>
+        </View>
+
         {/* AC Only Switch */}
         <TouchableOpacity
           style={styles.filterRow}
@@ -219,6 +273,29 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Saved Journeys */}
+      {recentSearches.length > 0 && (
+        <View style={[styles.savedSection, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Text style={[styles.savedSectionTitle, { color: colors.textPrimary }]}>Saved Journeys</Text>
+          <View style={styles.savedPillsRow}>
+            {recentSearches.map((sj, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.savedSearchPill, { borderColor: colors.cardBorder }]}
+                onPress={() => {
+                  setFromStation({ code: sj.from, name: POPULAR_STATIONS.find(x => x.code === sj.from)?.name || sj.from });
+                  setToStation({ code: sj.to, name: POPULAR_STATIONS.find(x => x.code === sj.to)?.name || sj.to });
+                }}
+              >
+                <Text style={[styles.savedSearchText, { color: colors.textPrimary }]}>
+                  {sj.from} ➔ {sj.to}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* 4. Quick Nav: Network Map & FOB Wayfinding */}
       <View style={styles.toolsRow}>
@@ -546,5 +623,86 @@ const styles = StyleSheet.create({
   stationListName: {
     fontSize: 14,
     fontWeight: '600'
+  },
+  activeCommuteCard: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16
+  },
+  activeCommuteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4
+  },
+  livePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#22c55e'
+  },
+  activeCommuteTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    flex: 1
+  },
+  activeCommuteStatus: {
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  activeCommuteTrain: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 2
+  },
+  activeCommuteSub: {
+    fontSize: 11
+  },
+  dateTimeContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  datePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1
+  },
+  datePillText: {
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  timeNowText: {
+    fontSize: 11,
+    marginLeft: 'auto'
+  },
+  savedSection: {
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 16
+  },
+  savedSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 10
+  },
+  savedPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  savedSearchPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1
+  },
+  savedSearchText: {
+    fontSize: 12,
+    fontWeight: '700'
   }
 });

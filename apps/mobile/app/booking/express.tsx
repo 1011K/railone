@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,29 @@ import {
   TextInput,
   Alert
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useMobileTheme } from '../../src/theme/ThemeContext';
 import { MobileApiClient } from '../../src/api/client';
+
+function CheckIcon({ size = 16, color = '#ffffff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M20 6L9 17L4 12" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+const TRAIN_CLASSES: Record<string, string[]> = {
+  '12951': ['1A', '2A', '3A'],
+  '12952': ['1A', '2A', '3A'],
+  '12137': ['1A', '2A', '3A', 'SL', '2S'],
+  '12138': ['1A', '2A', '3A', 'SL', '2S'],
+  '12009': ['CC', 'EC'],
+  '12010': ['CC', 'EC'],
+  '22221': ['1A', '2A', '3A'],
+  '22222': ['1A', '2A', '3A']
+};
 
 export default function ExpressBookingScreen() {
   const { colors } = useMobileTheme();
@@ -27,8 +47,52 @@ export default function ExpressBookingScreen() {
   const [trainName, setTrainName] = useState(params.trainName || 'Mumbai Rajdhani Express');
   const [fromCode, setFromCode] = useState(params.from || 'MMCT');
   const [toCode, setToCode] = useState(params.to || 'NDLS');
-  const [travelClass, setTravelClass] = useState(params.classBooked || '3A');
+
+  const availableClasses = TRAIN_CLASSES[trainNumber] || ['1A', '2A', '3A', 'SL', '2S'];
+  const initialClass = params.classBooked && availableClasses.includes(params.classBooked)
+    ? params.classBooked
+    : availableClasses.includes('3A')
+    ? '3A'
+    : availableClasses[0];
+
+  const [travelClass, setTravelClass] = useState(initialClass);
   const [quota, setQuota] = useState('GN');
+
+  // Dates
+  const today = new Date();
+  const tomorrow = new Date(today.getTime() + 86400000);
+  const dayAfter = new Date(today.getTime() + 86400000 * 2);
+
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const [journeyDate, setJourneyDate] = useState(formatDate(today));
+
+  // Dynamic Fare
+  const [farePerPassenger, setFarePerPassenger] = useState<number>(() => {
+    return travelClass === '1A' ? 2520 : travelClass === '2A' ? 1480 : travelClass === '3A' ? 1025 : travelClass === 'SL' ? 385 : 210;
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    MobileApiClient.getFareQuote('express', undefined, travelClass, true, fromCode, toCode)
+      .then(res => {
+        if (isMounted && res?.quote?.totalFare) {
+          setFarePerPassenger(res.quote.totalFare);
+        } else if (isMounted && res?.quote?.baseFare) {
+          setFarePerPassenger(res.quote.baseFare);
+        }
+      })
+      .catch(() => {
+        const fallbackFare =
+          travelClass === '1A' ? 2520 :
+          travelClass === '2A' ? 1480 :
+          travelClass === '3A' ? 1025 :
+          travelClass === 'SL' ? 385 :
+          travelClass === 'CC' ? 890 :
+          travelClass === 'EC' ? 1720 : 210;
+        if (isMounted) setFarePerPassenger(fallbackFare);
+      });
+    return () => { isMounted = false; };
+  }, [travelClass, fromCode, toCode]);
 
   // Passenger state
   const [passengerName, setPassengerName] = useState('Rohan Sharma');
@@ -39,7 +103,6 @@ export default function ExpressBookingScreen() {
   const [issuedBooking, setIssuedBooking] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const farePerPassenger = travelClass === '1A' ? 2520 : travelClass === '2A' ? 1480 : travelClass === '3A' ? 1025 : 385;
   const totalFare = farePerPassenger;
 
   const handleAuthorizeBooking = async () => {
@@ -48,7 +111,7 @@ export default function ExpressBookingScreen() {
       const idempotencyKey = `EXP-MOB-${Date.now()}`;
       const booking = await MobileApiClient.createBooking({
         trainNumber,
-        journeyDate: new Date().toISOString().split('T')[0],
+        journeyDate,
         fromStationCode: fromCode,
         toStationCode: toCode,
         classBooked: travelClass,
@@ -100,13 +163,13 @@ export default function ExpressBookingScreen() {
 
         <View style={styles.stepItem}>
           <View style={[styles.stepDot, step >= 4 && { backgroundColor: colors.success }]}>
-            <Text style={styles.stepDotText}>✓</Text>
+            {step >= 4 ? <CheckIcon size={12} color="#ffffff" /> : <Text style={styles.stepDotText}>4</Text>}
           </View>
           <Text style={[styles.stepLabel, { color: step >= 4 ? colors.success : colors.textMuted }]}>Issued</Text>
         </View>
       </View>
 
-      {/* Step 1: Train & Class Selection */}
+      {/* Step 1: Train, Date & Class Selection */}
       {step === 1 && (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Train & Class Selection</Text>
@@ -121,9 +184,39 @@ export default function ExpressBookingScreen() {
             <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{fromCode} ➔ {toCode}</Text>
           </View>
 
+          {/* Journey Date Selection */}
+          <Text style={[styles.inputLabel, { color: colors.textPrimary, marginTop: 14 }]}>Journey Date:</Text>
+          <View style={styles.dateRow}>
+            {[
+              { label: 'Today', val: formatDate(today) },
+              { label: 'Tomorrow', val: formatDate(tomorrow) },
+              { label: '+2 Days', val: formatDate(dayAfter) }
+            ].map(d => (
+              <TouchableOpacity
+                key={d.val}
+                onPress={() => setJourneyDate(d.val)}
+                style={[
+                  styles.dateBtn,
+                  {
+                    backgroundColor: journeyDate === d.val ? colors.primary : 'transparent',
+                    borderColor: journeyDate === d.val ? colors.primary : colors.cardBorder
+                  }
+                ]}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: journeyDate === d.val ? '#ffffff' : colors.textPrimary }}>
+                  {d.label}
+                </Text>
+                <Text style={{ fontSize: 10, color: journeyDate === d.val ? '#ffffff' : colors.textMuted, marginTop: 2 }}>
+                  {d.val}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Travel Class Selection */}
           <Text style={[styles.inputLabel, { color: colors.textPrimary, marginTop: 14 }]}>Select Travel Class:</Text>
           <View style={styles.classesGrid}>
-            {(['1A', '2A', '3A', 'SL', '2S'] as const).map(cls => (
+            {availableClasses.map(cls => (
               <TouchableOpacity
                 key={cls}
                 onPress={() => setTravelClass(cls)}
@@ -139,7 +232,33 @@ export default function ExpressBookingScreen() {
                   {cls}
                 </Text>
                 <Text style={[styles.classBtnSub, { color: travelClass === cls ? '#ffffff' : colors.textMuted }]}>
-                  {cls === '1A' ? '₹2520' : cls === '2A' ? '₹1480' : cls === '3A' ? '₹1025' : '₹385'}
+                  {cls === '1A' ? '₹2520' : cls === '2A' ? '₹1480' : cls === '3A' ? '₹1025' : cls === 'SL' ? '₹385' : '₹210'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Quota Selection */}
+          <Text style={[styles.inputLabel, { color: colors.textPrimary, marginTop: 14 }]}>Quota:</Text>
+          <View style={styles.quotaRow}>
+            {[
+              { id: 'GN', label: 'General (GN)' },
+              { id: 'TQ', label: 'Tatkal (TQ)' },
+              { id: 'LD', label: 'Ladies (LD)' }
+            ].map(q => (
+              <TouchableOpacity
+                key={q.id}
+                onPress={() => setQuota(q.id)}
+                style={[
+                  styles.quotaBtn,
+                  {
+                    backgroundColor: quota === q.id ? colors.primary : 'transparent',
+                    borderColor: quota === q.id ? colors.primary : colors.cardBorder
+                  }
+                ]}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: quota === q.id ? '#ffffff' : colors.textPrimary }}>
+                  {q.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -238,6 +357,10 @@ export default function ExpressBookingScreen() {
               <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{fromCode} ➔ {toCode}</Text>
             </View>
             <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Date:</Text>
+              <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{journeyDate}</Text>
+            </View>
+            <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Class / Quota:</Text>
               <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{travelClass} · {quota}</Text>
             </View>
@@ -282,7 +405,7 @@ export default function ExpressBookingScreen() {
       {step === 4 && issuedBooking && (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.successIconCircle}>
-            <Text style={styles.successIconText}>✓</Text>
+            <CheckIcon size={28} color="#ffffff" />
           </View>
 
           <Text style={[styles.issuedTitle, { color: colors.textPrimary }]}>Express Ticket Issued!</Text>
@@ -298,6 +421,9 @@ export default function ExpressBookingScreen() {
             </Text>
             <Text style={[styles.summaryValue, { color: colors.textMuted, textAlign: 'center', marginTop: 4 }]}>
               {issuedBooking.fromStationName} ➔ {issuedBooking.toStationName}
+            </Text>
+            <Text style={[styles.summaryValue, { color: colors.textMuted, textAlign: 'center', marginTop: 2, fontSize: 11 }]}>
+              Journey Date: {issuedBooking.journeyDate}
             </Text>
           </View>
 
@@ -382,6 +508,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 6
   },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 6
+  },
+  dateBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: 'center'
+  },
   classesGrid: {
     flexDirection: 'row',
     gap: 8,
@@ -401,6 +539,18 @@ const styles = StyleSheet.create({
   classBtnSub: {
     fontSize: 10,
     marginTop: 2
+  },
+  quotaRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4
+  },
+  quotaBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center'
   },
   primaryBtn: {
     borderRadius: 12,
@@ -456,11 +606,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12
-  },
-  successIconText: {
-    color: '#ffffff',
-    fontSize: 28,
-    fontWeight: '900'
   },
   issuedTitle: {
     fontSize: 18,

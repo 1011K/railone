@@ -62,5 +62,17 @@ export const OfflineStorage = {
     const filtered = existing.filter(t => t.id !== ticket.id);
     filtered.unshift(ticket);
     memoryCache.set('offline_tickets', filtered);
+  },
+
+  // 4. Saved Commuter Journeys
+  saveSavedJourney(journey: { id: string; fromStationCode: string; fromStationName: string; toStationCode: string; toStationName: string; preferredClass?: string }): void {
+    const existing: any[] = memoryCache.get('saved_journeys') || [];
+    const filtered = existing.filter(j => j.id !== journey.id);
+    filtered.unshift(journey);
+    memoryCache.set('saved_journeys', filtered);
+  },
+
+  getSavedJourneys(): Array<{ id: string; fromStationCode: string; fromStationName: string; toStationCode: string; toStationName: string; preferredClass?: string }> {
+    return memoryCache.get('saved_journeys') || [];
   }
 };

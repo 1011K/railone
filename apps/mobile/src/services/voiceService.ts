@@ -25,6 +25,7 @@ export class NativeVoiceService {
   private onBookingConfirmed: (booking: any) => void = () => {};
   private durationSeconds = 0;
   private durationTimer: any = null;
+  private speechTimeout: any = null;
 
   constructor(language: 'en' | 'hi' | 'mr' = 'en') {
     this.language = language;
@@ -128,7 +129,22 @@ export class NativeVoiceService {
     return this.sendUserUtterance(text);
   }
 
+  interrupt(): void {
+    if (this.speechTimeout) {
+      clearTimeout(this.speechTimeout);
+      this.speechTimeout = null;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    this.setState('LISTENING');
+  }
+
   endCall(): void {
+    if (this.speechTimeout) {
+      clearTimeout(this.speechTimeout);
+      this.speechTimeout = null;
+    }
     this.stopDurationTimer();
     this.setState('ENDED');
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -153,8 +169,12 @@ export class NativeVoiceService {
       };
       window.speechSynthesis.speak(utterance);
     } else {
-      // In headless or mock environment, simulate speech delay
-      setTimeout(onEnd, 1200);
+      // In headless or mock environment, simulate speech delay with cancellable timeout
+      if (this.speechTimeout) clearTimeout(this.speechTimeout);
+      this.speechTimeout = setTimeout(() => {
+        this.speechTimeout = null;
+        onEnd();
+      }, 1200);
     }
   }
 

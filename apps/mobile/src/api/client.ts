@@ -3,7 +3,7 @@
  * Directly targets the versioned /api/v1 service-oriented backend contracts.
  */
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+const BASE_URL = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:3000/api/v1';
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${endpoint}`;
@@ -156,12 +156,26 @@ export const MobileApiClient = {
   },
 
   // 9. Fares & Tariffs
-  async getFareQuote(serviceType: 'suburban' | 'metro' | 'express', distanceKm: number, travelClass = 'II', isSuperfast = false): Promise<any> {
-    const data = await fetchJson<{ quote: any }>('/fares/quote', {
+  async getFareQuote(
+    serviceType: 'suburban' | 'metro' | 'express',
+    distanceKm?: number,
+    travelClass = 'II',
+    isSuperfast = false,
+    fromStationCode?: string,
+    toStationCode?: string
+  ): Promise<any> {
+    const data = await fetchJson<{ quote: any; distanceKm?: number }>('/fares/quote', {
       method: 'POST',
-      body: JSON.stringify({ serviceType, distanceKm, travelClass, isSuperfast })
+      body: JSON.stringify({
+        serviceType,
+        distanceKm,
+        travelClass,
+        isSuperfast,
+        from: fromStationCode,
+        to: toStationCode
+      })
     });
-    return data.quote;
+    return data.quote ? { ...data.quote, calculatedDistance: data.distanceKm } : data;
   },
 
   // 10. Metro Network

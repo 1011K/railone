@@ -5,7 +5,7 @@ import { searchTrainServices, getTrainTrip } from '../modules/services';
 import { getStationDepartures } from '../modules/timetable';
 import { getTrainStatus } from '../modules/trainStatus';
 import { checkAvailability } from '../modules/availability';
-import { calculateSuburbanFare, calculateMetroFare, calculateExpressFare } from '../modules/fares';
+import { calculateSuburbanFare, calculateMetroFare, calculateExpressFare, calculateStationDistance } from '../modules/fares';
 import { validateEligibility } from '../modules/eligibility';
 import { evaluateDisruptionReplan } from '../modules/disruptions';
 import { createBooking, reconcileBooking, getBookingById, getBookingByPnr } from '../modules/ticketing';
@@ -145,8 +145,14 @@ v1Router.get('/availability', (req: Request, res: Response) => {
 });
 
 v1Router.post('/fares/quote', (req: Request, res: Response) => {
-  const { serviceType, distanceKm, travelClass = 'II', isSuperfast = false } = req.body;
-  const dist = distanceKm ? Number(distanceKm) : 25;
+  const { serviceType, distanceKm, from, to, fromStationCode, toStationCode, travelClass = 'II', isSuperfast = false } = req.body;
+  const orig = from || fromStationCode;
+  const dest = to || toStationCode;
+  let dist = distanceKm ? Number(distanceKm) : 0;
+  if (!dist && orig && dest) {
+    dist = calculateStationDistance(orig, dest);
+  }
+  if (!dist) dist = 25;
 
   let quote;
   if (serviceType === 'metro') {
@@ -157,7 +163,7 @@ v1Router.post('/fares/quote', (req: Request, res: Response) => {
     quote = calculateSuburbanFare(dist, travelClass as TravelClass);
   }
 
-  res.json({ quote });
+  res.json({ quote, distanceKm: dist });
 });
 
 // ---------------------------------------------------------------------------

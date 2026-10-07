@@ -1,4 +1,6 @@
 import { TravelClass } from '../../types/railway';
+import { CENTRAL_KM, WESTERN_KM, HARBOUR_KM } from '../../fixtures/railwayData';
+import { getAllTrainTrips } from './services';
 
 export interface FareBreakdown {
   serviceType: 'suburban' | 'metro' | 'express';
@@ -154,3 +156,62 @@ export function calculateExpressFare(distanceKm: number, travelClass: TravelClas
     tariffNotice: 'IRCTC / PRS Telescopic Mail/Express Distance Tariff'
   };
 }
+
+export function calculateStationDistance(fromCode: string, toCode: string): number {
+  const from = (fromCode || '').trim().toUpperCase();
+  const to = (toCode || '').trim().toUpperCase();
+  if (!from || !to) return 25;
+  if (from === to) return 0;
+
+  // 1. Direct Central line
+  if (CENTRAL_KM[from] !== undefined && CENTRAL_KM[to] !== undefined) {
+    return Math.round(Math.abs(CENTRAL_KM[to] - CENTRAL_KM[from]) * 10) / 10;
+  }
+
+  // 2. Direct Western line
+  if (WESTERN_KM[from] !== undefined && WESTERN_KM[to] !== undefined) {
+    return Math.round(Math.abs(WESTERN_KM[to] - WESTERN_KM[from]) * 10) / 10;
+  }
+
+  // 3. Direct Harbour line
+  if (HARBOUR_KM[from] !== undefined && HARBOUR_KM[to] !== undefined) {
+    return Math.round(Math.abs(HARBOUR_KM[to] - HARBOUR_KM[from]) * 10) / 10;
+  }
+
+  // 4. Central to Western (via Dadar transfer)
+  if (CENTRAL_KM[from] !== undefined && WESTERN_KM[to] !== undefined) {
+    const d1 = Math.abs(CENTRAL_KM[from] - CENTRAL_KM['DR']);
+    const d2 = Math.abs(WESTERN_KM['DDR'] - WESTERN_KM[to]);
+    return Math.round((d1 + d2) * 10) / 10;
+  }
+  if (WESTERN_KM[from] !== undefined && CENTRAL_KM[to] !== undefined) {
+    const d1 = Math.abs(WESTERN_KM[from] - WESTERN_KM['DDR']);
+    const d2 = Math.abs(CENTRAL_KM['DR'] - CENTRAL_KM[to]);
+    return Math.round((d1 + d2) * 10) / 10;
+  }
+
+  // 5. Central to Harbour (via Kurla transfer)
+  if (CENTRAL_KM[from] !== undefined && HARBOUR_KM[to] !== undefined) {
+    const d1 = Math.abs(CENTRAL_KM[from] - CENTRAL_KM['CLA']);
+    const d2 = Math.abs(HARBOUR_KM['CLA'] - HARBOUR_KM[to]);
+    return Math.round((d1 + d2) * 10) / 10;
+  }
+  if (HARBOUR_KM[from] !== undefined && CENTRAL_KM[to] !== undefined) {
+    const d1 = Math.abs(HARBOUR_KM[from] - HARBOUR_KM['CLA']);
+    const d2 = Math.abs(CENTRAL_KM['CLA'] - CENTRAL_KM[to]);
+    return Math.round((d1 + d2) * 10) / 10;
+  }
+
+  // 6. National / Pan-India trunk train stops
+  const allTrips = getAllTrainTrips();
+  for (const t of allTrips) {
+    const sFrom = t.stops.find(s => s.stationCode.toUpperCase() === from);
+    const sTo = t.stops.find(s => s.stationCode.toUpperCase() === to);
+    if (sFrom && sTo) {
+      return Math.round(Math.abs(sTo.distanceKm - sFrom.distanceKm) * 10) / 10;
+    }
+  }
+
+  return 25;
+}
+

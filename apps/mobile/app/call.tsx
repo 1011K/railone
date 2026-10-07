@@ -13,6 +13,66 @@ import { router } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
 import { NativeVoiceService, VoiceCallTurn, VoiceCallState } from '../src/services/voiceService';
 
+import Svg, { Path, Rect, Polyline, Line } from 'react-native-svg';
+
+function MicIcon({ color = '#ffffff', size = 26 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+      <Path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <Line x1="12" y1="19" x2="12" y2="23" />
+      <Line x1="8" y1="23" x2="16" y2="23" />
+    </Svg>
+  );
+}
+
+function MicOffIcon({ color = '#ffffff', size = 22 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Line x1="1" y1="1" x2="23" y2="23" />
+      <Path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+      <Path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+      <Line x1="12" y1="19" x2="12" y2="23" />
+      <Line x1="8" y1="23" x2="16" y2="23" />
+    </Svg>
+  );
+}
+
+function SpeakerIcon({ color = '#ffffff', size = 22 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M11 5L6 9H2v6h4l5 4V5z" />
+      <Path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+    </Svg>
+  );
+}
+
+function KeypadIcon({ color = '#ffffff', size = 22 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Rect x="2" y="4" width="20" height="16" rx="2" />
+      <Path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10" />
+    </Svg>
+  );
+}
+
+function EndCallIcon({ color = '#ffffff', size = 22 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 11.36 11.36 0 0 0 3.53.56 2 2 0 0 1 2 2v3.5a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3.5a2 2 0 0 1 2 2 11.36 11.36 0 0 0 .57 3.53 2 2 0 0 1-.45 2.11L8.46 10.9" />
+      <Line x1="23" y1="1" x2="1" y2="23" />
+    </Svg>
+  );
+}
+
+function CheckIcon({ color = '#22c55e', size = 16 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+      <Polyline points="20 6 9 17 4 12" />
+    </Svg>
+  );
+}
+
 export default function VoiceCallScreen() {
   const { colors, language } = useMobileTheme();
 
@@ -111,13 +171,33 @@ export default function VoiceCallScreen() {
         </View>
       </View>
 
-      {/* 2. Audio Visualizer Pulse Waves */}
+      {/* 2. Audio Visualizer Pulse Waves with Tap-to-Interrupt */}
       <View style={styles.visualizerContainer}>
-        <View style={[styles.pulseCircle, callState === 'SPEAKING' && styles.pulseActive]}>
+        <TouchableOpacity
+          style={[styles.pulseCircle, callState === 'SPEAKING' && styles.pulseActive]}
+          onPress={() => {
+            if (callState === 'SPEAKING') {
+              voiceServiceRef.current?.interrupt();
+            }
+          }}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={callState === 'SPEAKING' ? 'Interrupt RailSathi and speak' : 'Microphone status'}
+        >
           <View style={[styles.innerCircle, { backgroundColor: colors.primary }]}>
-            <Text style={styles.micIconText}>🎤</Text>
+            <MicIcon color="#ffffff" size={30} />
           </View>
-        </View>
+        </TouchableOpacity>
+        {callState === 'SPEAKING' && (
+          <TouchableOpacity
+            style={styles.interruptBtn}
+            onPress={() => voiceServiceRef.current?.interrupt()}
+            activeOpacity={0.8}
+            accessibilityLabel="Tap to interrupt RailSathi"
+          >
+            <Text style={styles.interruptBtnText}>Tap to Interrupt & Speak</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 3. Live Transcript Feed */}
@@ -147,7 +227,10 @@ export default function VoiceCallScreen() {
         {/* Issued Booking Card inside transcript */}
         {confirmedBooking && (
           <View style={styles.bookingConfirmedCard}>
-            <Text style={styles.bookingConfirmedTitle}>✓ TICKET ISSUED IN MY TICKETS</Text>
+            <View style={styles.bookingConfirmedHeaderRow}>
+              <CheckIcon color="#22c55e" size={18} />
+              <Text style={styles.bookingConfirmedTitle}>TICKET ISSUED IN MY TICKETS</Text>
+            </View>
             <Text style={styles.bookingConfirmedDetails}>
               PNR: {confirmedBooking.pnr}{'\n'}
               Train: {confirmedBooking.trainName}{'\n'}
@@ -212,7 +295,7 @@ export default function VoiceCallScreen() {
           onPress={() => setIsMuted(!isMuted)}
           accessibilityLabel="Toggle mute"
         >
-          <Text style={styles.controlIcon}>{isMuted ? '🔇' : '🎙️'}</Text>
+          {isMuted ? <MicOffIcon color="#f87171" size={22} /> : <MicIcon color="#94a3b8" size={22} />}
           <Text style={styles.controlLabel}>{isMuted ? 'Muted' : 'Mute'}</Text>
         </TouchableOpacity>
 
@@ -221,8 +304,8 @@ export default function VoiceCallScreen() {
           onPress={() => setShowTextInput(!showTextInput)}
           accessibilityLabel="Toggle text keypad fallback"
         >
-          <Text style={styles.controlIcon}>⌨️</Text>
-          <Text style={styles.controlLabel}>Keyboard</Text>
+          <KeypadIcon color={showTextInput ? '#38bdf8' : '#94a3b8'} size={22} />
+          <Text style={styles.controlLabel}>Keypad</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -230,7 +313,7 @@ export default function VoiceCallScreen() {
           onPress={() => setIsSpeaker(!isSpeaker)}
           accessibilityLabel="Toggle speaker"
         >
-          <Text style={styles.controlIcon}>🔊</Text>
+          <SpeakerIcon color={isSpeaker ? '#38bdf8' : '#94a3b8'} size={22} />
           <Text style={styles.controlLabel}>Speaker</Text>
         </TouchableOpacity>
 
@@ -239,7 +322,7 @@ export default function VoiceCallScreen() {
           onPress={onEndCall}
           accessibilityLabel="End call"
         >
-          <Text style={styles.endCallIcon}>✕</Text>
+          <EndCallIcon color="#ffffff" size={22} />
           <Text style={styles.endCallLabel}>End Call</Text>
         </TouchableOpacity>
       </View>
@@ -348,11 +431,30 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 6
   },
+  bookingConfirmedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4
+  },
   bookingConfirmedTitle: {
     color: '#34d399',
     fontSize: 12,
-    fontWeight: '900',
-    marginBottom: 4
+    fontWeight: '900'
+  },
+  interruptBtn: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ef4444'
+  },
+  interruptBtnText: {
+    color: '#fca5a5',
+    fontSize: 11,
+    fontWeight: '700'
   },
   bookingConfirmedDetails: {
     color: '#ffffff',

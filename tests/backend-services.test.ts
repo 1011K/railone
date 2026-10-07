@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { resetDatabase, getDatabase } from '../src/backend/database/db';
 import { searchStations, getStationByCode } from '../src/backend/modules/stations';
 import { searchRoutes } from '../src/backend/modules/routePlanner';
-import { getTrainTrip, searchTrainServices } from '../src/backend/modules/services';
+import { getTrainTrip, searchTrainServices, findExpressTrainsBetween } from '../src/backend/modules/services';
 import { getStationDepartures } from '../src/backend/modules/timetable';
 import { getTrainStatus } from '../src/backend/modules/trainStatus';
 import { checkAvailability } from '../src/backend/modules/availability';
-import { calculateSuburbanFare, calculateMetroFare, calculateExpressFare } from '../src/backend/modules/fares';
+import { calculateSuburbanFare, calculateMetroFare, calculateExpressFare, calculateStationDistance } from '../src/backend/modules/fares';
 import { validateEligibility } from '../src/backend/modules/eligibility';
 import { evaluateDisruptionReplan } from '../src/backend/modules/disruptions';
 import { createBooking, reconcileBooking, getBookingById, getBookingByIdempotencyKey } from '../src/backend/modules/ticketing';
@@ -145,7 +145,7 @@ export async function runBackendServicesTests() {
   );
   assert.strictEqual(turn2.state, 'ITINERARY_OFFERED');
   assert.strictEqual(turn2.activeDraft.preferredClass, 'AC_LOCAL');
-  assert.strictEqual(turn2.activeDraft.totalFare, 95);
+  assert.strictEqual(turn2.activeDraft.totalFare, 160);
 
   // Turn 3: "Book this one"
   const turn3 = await processVoiceTurn(session.sessionId, 'Book this one');
@@ -173,4 +173,73 @@ export async function runBackendServicesTests() {
   assert.strictEqual(health.modulesCount, 20);
   assert.strictEqual(health.database.status, 'connected');
   console.log('  [PASS] 22.11: Health check validates all 20 modules and SQLite database operational');
+
+  // 12. Authentic Express Search & Sleeper Class (SL) Booking
+  const expressTrains = findExpressTrainsBetween('CSMT', 'NDLS', 'SL');
+  const punjabMail = expressTrains.find(t => t.trainNumber === '12137');
+  assert.ok(punjabMail, 'Found Punjab Mail 12137 between Mumbai and Delhi');
+  assert.ok(punjabMail.availableClasses.includes('SL'), 'Punjab Mail offers authentic Sleeper Class (SL)');
+  const punjabBooking = createBooking({
+    idempotencyKey: 'IDEMP-TEST-PUNJAB-SL',
+    trainNumber: '12137',
+    journeyDate: '2026-10-25',
+    fromStationCode: 'CSMT',
+    toStationCode: 'NDLS',
+    classBooked: 'SL',
+    passengers: [{ name: 'Deepak Sharma', age: 34, gender: 'M' }]
+  });
+  assert.strictEqual(punjabBooking.bookingState, 'TICKET_ISSUED_DEMO');
+  assert.strictEqual(punjabBooking.classBooked, 'SL');
+  assert.strictEqual(punjabBooking.farePaid, 976);
+  console.log('  [PASS] 22.12: Express finder returns authentic Punjab Mail 12137 and books Sleeper (SL) at ₹976');
+
+  // 13. Voice Agent Mid-Dialogue Station Correction
+  const sessionCorr = startVoiceSession({ language: 'en' });
+  await processVoiceTurn(sessionCorr.sessionId, 'Book ticket from Thane to CST');
+  const correctedTurn = await processVoiceTurn(sessionCorr.sessionId, 'Actually not Thane, from Borivali');
+  assert.strictEqual(correctedTurn.activeDraft.originCode, 'BVI');
+  console.log('  [PASS] 22.13: RailSathi voice agent dynamically accepts mid-dialogue origin station correction');
+
+  // 14. Server-Side Stop Direction and Unsupported Class Rejection
+  let caughtReverse = false;
+  try {
+    createBooking({
+      idempotencyKey: 'IDEMP-TEST-REVERSE',
+      trainNumber: '12951', // MMCT -> NDLS
+      journeyDate: '2026-10-25',
+      fromStationCode: 'NDLS',
+      toStationCode: 'MMCT',
+      classBooked: '3A',
+      passengers: [{ name: 'Test User', age: 28, gender: 'M' }]
+    });
+  } catch (err: any) {
+    if (err.message.includes('does not occur after')) caughtReverse = true;
+  }
+  assert.ok(caughtReverse, 'Strictly rejects reverse stop bookings');
+
+  let caughtClass = false;
+  try {
+    createBooking({
+      idempotencyKey: 'IDEMP-TEST-INVALID-CLS',
+      trainNumber: '12951', // all-AC
+      journeyDate: '2026-10-25',
+      fromStationCode: 'MMCT',
+      toStationCode: 'NDLS',
+      classBooked: 'SL',
+      passengers: [{ name: 'Test User', age: 28, gender: 'M' }]
+    });
+  } catch (err: any) {
+    if (err.message.includes('not available')) caughtClass = true;
+  }
+  assert.ok(caughtClass, 'Strictly rejects booking classes not available on train');
+  console.log('  [PASS] 22.14: Ticketing engine enforces stop sequence direction and class availability');
+
+  // 15. Dynamic Station Track Distance Engine
+  const tnaToCcgDist = calculateStationDistance('TNA', 'CCG');
+  const bviToCcgDist = calculateStationDistance('BVI', 'CCG');
+  const sameDist = calculateStationDistance('CSMT', 'CSMT');
+  assert.strictEqual(Math.round(tnaToCcgDist), 35, 'TNA to CCG via Dadar FOB is 35 km');
+  assert.strictEqual(Math.round(bviToCcgDist), 34, 'BVI to CCG is 34 km');
+  assert.strictEqual(sameDist, 0, 'Same station distance is 0 km');
+  console.log('  [PASS] 22.15: Station distance engine accurately calculates track kilometers across lines');
 }

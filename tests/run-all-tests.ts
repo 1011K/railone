@@ -17,12 +17,13 @@ import { THEME_CONFIG } from '../src/components/ThemeContext';
 import { resetDatabase, getDatabase } from '../src/backend/database/db';
 import { searchStations, getStationByCode } from '../src/backend/modules/stations';
 import { searchRoutes } from '../src/backend/modules/routePlanner';
-import { calculateSuburbanFare as calcSubFare, calculateMetroFare as calcMetroFare } from '../src/backend/modules/fares';
+import { calculateSuburbanFare as calcSubFare, calculateMetroFare as calcMetroFare, calculateStationDistance } from '../src/backend/modules/fares';
 import { createBooking, reconcileBooking, getBookingById } from '../src/backend/modules/ticketing';
 import { cancelBooking } from '../src/backend/modules/bookingHistory';
 import { startVoiceSession, processVoiceTurn } from '../src/backend/modules/voiceAgent';
 import { checkSystemHealth } from '../src/backend/modules/health';
 import { StatutoryTelephonyAdapter } from '../src/backend/modules/providerAdapters';
+import { findExpressTrainsBetween } from '../src/backend/modules/services';
 import { getAuditLogs } from '../src/backend/modules/auditLog';
 
 let totalTests = 0;
@@ -985,6 +986,82 @@ console.log('\nTest Suite 22: Service-Oriented Backend Architecture, SQLite Pers
     health.status === 'healthy' && health.modulesCount === 20 && health.database.status === 'connected',
     '22.11: Health check validates all 20 modules and SQLite database operational'
   );
+
+  // 22.12: Authentic Express Search & Sleeper Class (SL) Booking
+  const expressTrains = findExpressTrainsBetween('CSMT', 'NDLS', 'SL');
+  const punjabMail = expressTrains.find(t => t.trainNumber === '12137');
+  assert(
+    !!punjabMail && punjabMail.availableClasses.includes('SL'),
+    '22.12: Express service finder returns authentic Punjab Mail 12137 with Sleeper class'
+  );
+
+  // 22.13: Books authentic Punjab Mail Sleeper (SL) ticket at statutory ₹976 distance fare
+  const punjabBooking = createBooking({
+    idempotencyKey: 'IDEMP-PUNJAB-12137',
+    trainNumber: '12137',
+    journeyDate: '2026-10-20',
+    fromStationCode: 'CSMT',
+    toStationCode: 'NDLS',
+    classBooked: 'SL',
+    passengers: [{ name: 'Deepak Sharma', age: 34, gender: 'M' }]
+  });
+  assert(
+    punjabBooking.bookingState === 'TICKET_ISSUED_DEMO' && punjabBooking.farePaid === 976 && punjabBooking.classBooked === 'SL',
+    '22.13: Books authentic Punjab Mail Sleeper (SL) ticket at statutory ₹976 distance fare'
+  );
+
+  // 22.14: RailSathi voice origin station correction
+  const sessionCorr = startVoiceSession({ language: 'en' });
+  await processVoiceTurn(sessionCorr.sessionId, 'Book ticket from Thane to CST');
+  const correctedTurn = await processVoiceTurn(sessionCorr.sessionId, 'Actually not Thane, from Borivali');
+  assert(
+    correctedTurn.activeDraft.originCode === 'BVI',
+    '22.14: RailSathi voice agent dynamically accepts origin station correction'
+  );
+
+  // 22.15: Server-side stop direction & unsupported class rejection
+  let caughtReverse = false;
+  try {
+    createBooking({
+      idempotencyKey: 'IDEMP-REV-FAIL',
+      trainNumber: '12951', // MMCT -> NDLS
+      journeyDate: '2026-10-20',
+      fromStationCode: 'NDLS',
+      toStationCode: 'MMCT',
+      classBooked: '3A',
+      passengers: [{ name: 'Test', age: 25, gender: 'M' }]
+    });
+  } catch (err: any) {
+    if (err.message.includes('does not occur after')) caughtReverse = true;
+  }
+
+  let caughtClass = false;
+  try {
+    createBooking({
+      idempotencyKey: 'IDEMP-CLS-FAIL',
+      trainNumber: '12951', // all-AC
+      journeyDate: '2026-10-20',
+      fromStationCode: 'MMCT',
+      toStationCode: 'NDLS',
+      classBooked: 'SL',
+      passengers: [{ name: 'Test', age: 25, gender: 'M' }]
+    });
+  } catch (err: any) {
+    if (err.message.includes('not available')) caughtClass = true;
+  }
+  assert(
+    caughtReverse && caughtClass,
+    '22.15: Server-side ticketing strictly rejects reverse stop directions and unoffered classes'
+  );
+
+  // 22.16: Station track distance calculation
+  const tnaToCcgDist = calculateStationDistance('TNA', 'CCG');
+  const bviToCcgDist = calculateStationDistance('BVI', 'CCG');
+  const sameDist = calculateStationDistance('CSMT', 'CSMT');
+  assert(
+    Math.round(tnaToCcgDist) === 35 && Math.round(bviToCcgDist) === 34 && sameDist === 0,
+    '22.16: Station distance engine accurately calculates track kilometers across lines'
+  );
 }
 
 console.log('\nTest Suite 23: Native Mobile Application (Expo / React Native), Offline Storage & Mobile Client Contracts');
@@ -1101,6 +1178,33 @@ console.log('\nTest Suite 23: Native Mobile Application (Expo / React Native), O
     typeof voiceService.sendUtterance === 'function' &&
     typeof voiceService.endCall === 'function',
     '23.9: NativeVoiceService implements audio state machine lifecycle methods'
+  );
+
+  // 23.10: Native voice service interruption
+  let interruptState = '';
+  voiceService.setCallbacks({
+    onStateChange: (state) => { interruptState = state; },
+    onTurn: () => {}
+  });
+  voiceService.interrupt();
+  assert(
+    interruptState === 'LISTENING',
+    '23.10: NativeVoiceService.interrupt() immediately transitions audio state to LISTENING'
+  );
+
+  // 23.11: Mobile offline storage saved journeys
+  OfflineStorage.saveSavedJourney({
+    id: 'SAVED-1',
+    fromStationCode: 'TNA',
+    fromStationName: 'Thane',
+    toStationCode: 'CCG',
+    toStationName: 'Churchgate',
+    preferredClass: 'AC_LOCAL'
+  });
+  const savedJourneys = OfflineStorage.getSavedJourneys();
+  assert(
+    savedJourneys.length > 0 && savedJourneys[0].fromStationCode === 'TNA' && savedJourneys[0].toStationCode === 'CCG',
+    '23.11: OfflineStorage persists and retrieves commuter saved journeys'
   );
 }
 

@@ -1,6 +1,6 @@
 import { TRAIN_TRIPS } from '../../fixtures/railwayData';
 import { PAN_INDIA_TRAINS } from '../../fixtures/panIndiaTrainsData';
-import { TrainTrip, TrainServiceType } from '../../types/railway';
+import { TrainTrip, TrainServiceType, TravelClass } from '../../types/railway';
 
 const allTripsMap = new Map<string, TrainTrip>();
 
@@ -56,4 +56,47 @@ export function searchTrainServices(
   });
 
   return filtered.slice(0, limit);
+}
+
+const MUMBAI_TERMINALS = new Set(['CSMT', 'MMCT', 'BDTS', 'DR', 'LTT', 'KYN', 'TNA', 'BVI']);
+const DELHI_TERMINALS = new Set(['NDLS', 'DLI', 'NZM', 'ANVT']);
+
+export function findExpressTrainsBetween(
+  originCode: string,
+  destCode: string,
+  travelClass?: TravelClass,
+  dateStr?: string
+): TrainTrip[] {
+  const orig = originCode.trim().toUpperCase();
+  const dest = destCode.trim().toUpperCase();
+
+  const isOriginMumbai = MUMBAI_TERMINALS.has(orig) || orig === 'MUMBAI';
+  const isDestDelhi = DELHI_TERMINALS.has(dest) || dest === 'DELHI';
+  const isOriginDelhi = DELHI_TERMINALS.has(orig) || orig === 'DELHI';
+  const isDestMumbai = MUMBAI_TERMINALS.has(dest) || dest === 'MUMBAI';
+
+  const all = getAllTrainTrips();
+  return all.filter(t => {
+    if (t.serviceType.startsWith('suburban_')) return false;
+    if (dateStr && !isTrainOperatingOnDate(t, dateStr)) return false;
+    if (travelClass && !t.availableClasses.includes(travelClass)) return false;
+
+    const fromIdx = t.stops.findIndex(s => {
+      const code = s.stationCode.toUpperCase();
+      if (code === orig) return true;
+      if (isOriginMumbai && MUMBAI_TERMINALS.has(code)) return true;
+      if (isOriginDelhi && DELHI_TERMINALS.has(code)) return true;
+      return false;
+    });
+
+    const toIdx = t.stops.findIndex(s => {
+      const code = s.stationCode.toUpperCase();
+      if (code === dest) return true;
+      if (isDestDelhi && DELHI_TERMINALS.has(code)) return true;
+      if (isDestMumbai && MUMBAI_TERMINALS.has(code)) return true;
+      return false;
+    });
+
+    return fromIdx !== -1 && toIdx !== -1 && fromIdx < toIdx;
+  });
 }

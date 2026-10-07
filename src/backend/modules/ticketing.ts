@@ -3,7 +3,7 @@ import { getDatabase } from '../database/db';
 import { logAuditEvent } from './auditLog';
 import { getTrainTrip } from './services';
 import { getStationByCode } from './stations';
-import { calculateSuburbanFare, calculateMetroFare, calculateExpressFare } from './fares';
+import { calculateSuburbanFare, calculateMetroFare, calculateExpressFare, calculateStationDistance } from './fares';
 import { TravelClass, BookingState } from '../../types/railway';
 
 export interface CreateBookingRequest {
@@ -91,15 +91,33 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
     throw new Error('At least one passenger is required.');
   }
 
-  // 3. Fare computation
+  // 3. Stop sequence, direction, and fare computation
   const isSuburban = train.serviceType.startsWith('suburban_');
   const isMetro = train.serviceType === 'suburban_ac_slow' && fromStation.line === 'metro';
 
+  if (!isSuburban && !train.availableClasses.includes(req.classBooked)) {
+    throw new Error(`Class ${req.classBooked} is not available on train ${train.trainNumber} (${train.trainName}). Available classes: ${train.availableClasses.join(', ')}.`);
+  }
+
+  const fromStopIdx = train.stops.findIndex(s => s.stationCode.toUpperCase() === fromStation.code.toUpperCase());
+  const toStopIdx = train.stops.findIndex(s => s.stationCode.toUpperCase() === toStation.code.toUpperCase());
+
+  if (fromStopIdx === -1 || toStopIdx === -1) {
+    if (!isSuburban) {
+      throw new Error(`Train ${train.trainNumber} (${train.trainName}) does not call at ${fromStopIdx === -1 ? fromStation.name : toStation.name}.`);
+    }
+  } else if (fromStopIdx >= toStopIdx) {
+    if (!isSuburban) {
+      throw new Error(`Invalid travel direction: Train ${train.trainNumber} runs from ${train.originStation} to ${train.destinationStation}, and does not call at ${toStation.name} after ${fromStation.name}. Destination ${toStation.name} does not occur after origin ${fromStation.name}.`);
+    }
+  }
+
   let distanceKm = 34;
-  const fromStop = train.stops.find(s => s.stationCode.toUpperCase() === fromStation.code.toUpperCase());
-  const toStop = train.stops.find(s => s.stationCode.toUpperCase() === toStation.code.toUpperCase());
-  if (fromStop && toStop) {
-    distanceKm = Math.abs(toStop.distanceKm - fromStop.distanceKm) || 34;
+  if (fromStopIdx !== -1 && toStopIdx !== -1) {
+    distanceKm = Math.abs(train.stops[toStopIdx].distanceKm - train.stops[fromStopIdx].distanceKm) || 34;
+  } else {
+    // Cross-line suburban or transfer connection
+    distanceKm = calculateStationDistance(fromStation.code, toStation.code);
   }
 
   let unitFare = 10;

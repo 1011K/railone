@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { getDatabase } from '../database/db';
 import { searchStations, getStationByCode } from './stations';
 import { searchRoutes, RouteSearchParams } from './routePlanner';
+import { findExpressTrainsBetween, getTrainTrip } from './services';
 import { checkAvailability } from './availability';
 import { calculateSuburbanFare, calculateExpressFare } from './fares';
 import { createBooking, BookingRecord } from './ticketing';
@@ -287,28 +288,51 @@ export async function processVoiceTurn(
         draft.serviceCategory = 'express';
         if (!draft.preferredClass) draft.preferredClass = text.includes('3a') ? '3A' : 'SL';
 
-        // Check availability
-        const trainNo = draft.selectedTrainNumber || '12951';
-        const trainName = draft.selectedTrainName || 'Mumbai Rajdhani Express';
+        // Grounded express train selection using railway inventory
+        const expressCandidates = findExpressTrainsBetween(
+          draft.originCode || 'CSMT',
+          draft.destCode || 'NDLS',
+          draft.preferredClass,
+          draft.journeyDate
+        );
+
+        let chosenTrain: any = expressCandidates[0];
+        if (!chosenTrain) {
+          const anyClassTrains = findExpressTrainsBetween(
+            draft.originCode || 'CSMT',
+            draft.destCode || 'NDLS',
+            undefined,
+            draft.journeyDate
+          );
+          if (anyClassTrains.length > 0) chosenTrain = anyClassTrains[0];
+        }
+
+        const trainNo = chosenTrain ? chosenTrain.trainNumber : (draft.selectedTrainNumber || '12137');
+        const trainName = chosenTrain ? chosenTrain.trainName : (draft.selectedTrainName || 'Punjab Mail');
         draft.selectedTrainNumber = trainNo;
         draft.selectedTrainName = trainName;
+
         const count = draft.passengersCount || 1;
-        const unitFare = draft.preferredClass === 'SL' ? 385 : 1025;
+        const availRes = checkAvailability(trainNo, draft.journeyDate || new Date().toISOString().split('T')[0], 'GN');
+        const classAvail = availRes?.classes.find(c => c.travelClass === draft.preferredClass);
+        const unitFare = classAvail ? classAvail.fare : (draft.preferredClass === 'SL' ? 385 : 1025);
         draft.totalFare = unitFare * count;
+
+        const availStatus = classAvail ? classAvail.status : 'AVAILABLE-42';
 
         toolCalls.push({
           toolName: 'checkAvailability',
           params: { train: trainNo, date: draft.journeyDate, class: draft.preferredClass },
-          resultSummary: `Train ${trainNo} ${draft.preferredClass} AVAILABLE-42`
+          resultSummary: `Train ${trainNo} ${draft.preferredClass} ${availStatus}`
         });
 
         session.state = 'ITINERARY_OFFERED';
         if (session.language === 'hi') {
-          spokenResponse = `${draft.originName} से ${draft.destName} के लिए ${draft.selectedTrainName} में ${draft.preferredClass} क्लास में सीटें उपलब्ध हैं। ${count} यात्रियों के लिए कुल किराया ₹${draft.totalFare} है। क्या आप इसे बुक करना चाहते हैं?`;
+          spokenResponse = `${draft.originName} से ${draft.destName} के लिए ${draft.selectedTrainName} (${trainNo}) में ${draft.preferredClass} क्लास में सीटें उपलब्ध हैं (${availStatus})। ${count} यात्रियों के लिए कुल किराया ₹${draft.totalFare} है। क्या आप इसे बुक करना चाहते हैं?`;
         } else if (session.language === 'mr') {
-          spokenResponse = `${draft.originName} ते ${draft.destName} साठी ${draft.selectedTrainName} मध्ये ${draft.preferredClass} मध्ये जागा उपलब्ध आहेत. ${count} प्रवाशांसाठी एकूण भाडे ₹${draft.totalFare} आहे. मी हे बुक करू का?`;
+          spokenResponse = `${draft.originName} ते ${draft.destName} साठी ${draft.selectedTrainName} (${trainNo}) मध्ये ${draft.preferredClass} मध्ये जागा उपलब्ध आहेत (${availStatus})। ${count} प्रवाशांसाठी एकूण भाडे ₹${draft.totalFare} आहे. मी हे बुक करू का?`;
         } else {
-          spokenResponse = `Found ${draft.selectedTrainName} from ${draft.originName} to ${draft.destName} in ${draft.preferredClass}. Seats are available. Total fare for ${count} passenger(s) is ₹${draft.totalFare}. Say 'Book this one' to confirm.`;
+          spokenResponse = `Found ${draft.selectedTrainName} (${trainNo}) from ${draft.originName} to ${draft.destName} in ${draft.preferredClass}. Availability: ${availStatus}. Total fare for ${count} passenger(s) is ₹${draft.totalFare}. Say 'Book this one' to confirm.`;
         }
       } else {
         // Suburban routing
@@ -338,13 +362,16 @@ export async function processVoiceTurn(
           session.state = 'ITINERARY_OFFERED';
           const depTime = selected.predictedDeparture;
           const duration = selected.totalDurationMinutes;
+          const transferText = selected.transfers.length > 0
+            ? ` via ${selected.transfers[0].station.name} transfer (${selected.transfers[0].walkTimeMinutes} min walk)`
+            : '';
 
           if (session.language === 'hi') {
-            spokenResponse = `${draft.originName} से ${draft.destName} के लिए ${selected.legs[0].train.trainName} ${depTime} पर निकलेगी। यात्रा का समय ${duration} मिनट है और किराया ₹${draft.totalFare} है। बुक करने के लिए कहें 'Book this one' या 'Use AC if available' कहें।`;
+            spokenResponse = `${draft.originName} से ${draft.destName} के लिए ${selected.legs[0].train.trainName} ${depTime} पर निकलेगी${selected.transfers.length > 0 ? ` (${selected.transfers[0].station.name} पर ट्रांसफर)` : ''}। यात्रा का समय ${duration} मिनट है और किराया ₹${draft.totalFare} है। बुक करने के लिए कहें 'Book this one' या 'Use AC if available' कहें।`;
           } else if (session.language === 'mr') {
-            spokenResponse = `${draft.originName} ते ${draft.destName} साठी लोकल ${depTime} वाजता निघेल. प्रवासाचा वेळ ${duration} मिनिटे आणि भाडे ₹${draft.totalFare} आहे. बुक करण्यासाठी 'Book this one' म्हणा.`;
+            spokenResponse = `${draft.originName} ते ${draft.destName} साठी लोकल ${depTime} वाजता निघेल${selected.transfers.length > 0 ? ` (${selected.transfers[0].station.name} येथे बदल)` : ''}. प्रवासाचा वेळ ${duration} मिनिटे आणि भाडे ₹${draft.totalFare} आहे. बुक करण्यासाठी 'Book this one' म्हणा.`;
           } else {
-            spokenResponse = `Next connection from ${draft.originName} to ${draft.destName} departs at ${depTime} (${duration} mins travel). Fare in ${chosenClass} is ₹${draft.totalFare}. You can say 'Book this one' or 'Use AC if available'.`;
+            spokenResponse = `Next connection from ${draft.originName} to ${draft.destName}${transferText} departs at ${depTime} (${duration} mins travel). Fare in ${chosenClass} is ₹${draft.totalFare}. You can say 'Book this one' or 'Use AC if available'.`;
           }
         } else {
           spokenResponse = `No direct connection found between ${draft.originName} and ${draft.destName} right now.`;
@@ -421,37 +448,72 @@ function extractJourneyEntities(text: string, draft: VoiceBookingDraft): void {
     { name: 'new delhi', code: 'NDLS' }
   ];
 
+  const isCorrection =
+    text.includes('change') ||
+    text.includes('not ') ||
+    text.includes('actually') ||
+    text.includes('instead') ||
+    text.includes('बदला') ||
+    text.includes('नाही');
+
   for (const s of stationsToTest) {
-    if (text.includes(`from ${s.name}`) || text.includes(`${s.name} to`) || text.includes(`${s.name} से`)) {
-      if (!draft.originCode) {
-        draft.originCode = s.code;
-        draft.originName = s.name.toUpperCase();
-      }
+    if (text.includes(`from ${s.name}`) || text.includes(`${s.name} से`)) {
+      draft.originCode = s.code;
+      draft.originName = s.name.toUpperCase();
+      draft.selectedTrainNumber = undefined;
+      draft.selectedTrainName = undefined;
+      draft.selectedItinerary = undefined;
+    } else if (text.includes(`${s.name} to`) && (!draft.originCode || isCorrection)) {
+      draft.originCode = s.code;
+      draft.originName = s.name.toUpperCase();
+      draft.selectedTrainNumber = undefined;
+      draft.selectedTrainName = undefined;
+      draft.selectedItinerary = undefined;
     }
     if (text.includes(`to ${s.name}`) || text.includes(`तक ${s.name}`) || text.includes(`ते ${s.name}`)) {
-      if (!draft.destCode) {
-        draft.destCode = s.code;
-        draft.destName = s.name.toUpperCase();
-      }
+      draft.destCode = s.code;
+      draft.destName = s.name.toUpperCase();
+      draft.selectedTrainNumber = undefined;
+      draft.selectedTrainName = undefined;
+      draft.selectedItinerary = undefined;
     }
   }
 
-  // Fallback matching if "from X to Y" pattern
-  if (!draft.originCode || !draft.destCode) {
+  // Fallback matching if "from X to Y" pattern or correction
+  if (!draft.originCode || !draft.destCode || isCorrection) {
     const found: string[] = [];
     for (const s of stationsToTest) {
-      if (text.includes(s.name) && !found.includes(s.code)) {
+      // Exclude explicitly negated stations (e.g. "not Thane")
+      if (
+        text.includes(s.name) &&
+        !text.includes(`not ${s.name}`) &&
+        !text.includes(`नाही ${s.name}`) &&
+        !found.includes(s.code)
+      ) {
         found.push(s.code);
       }
     }
-    if (found.length >= 2) {
-      if (!draft.originCode) {
+    if (found.length >= 2 && (!draft.originCode || !draft.destCode)) {
+      draft.originCode = found[0];
+      draft.originName = getStationByCode(found[0])?.name || found[0];
+      draft.destCode = found[1];
+      draft.destName = getStationByCode(found[1])?.name || found[1];
+      draft.selectedTrainNumber = undefined;
+      draft.selectedTrainName = undefined;
+      draft.selectedItinerary = undefined;
+    } else if (found.length === 1 && isCorrection) {
+      if (text.includes('from') || text.includes('origin') || text.includes('not')) {
         draft.originCode = found[0];
         draft.originName = getStationByCode(found[0])?.name || found[0];
-      }
-      if (!draft.destCode) {
-        draft.destCode = found[1];
-        draft.destName = getStationByCode(found[1])?.name || found[1];
+        draft.selectedTrainNumber = undefined;
+        draft.selectedTrainName = undefined;
+        draft.selectedItinerary = undefined;
+      } else if (text.includes('to') || text.includes('dest')) {
+        draft.destCode = found[0];
+        draft.destName = getStationByCode(found[0])?.name || found[0];
+        draft.selectedTrainNumber = undefined;
+        draft.selectedTrainName = undefined;
+        draft.selectedItinerary = undefined;
       }
     }
   }

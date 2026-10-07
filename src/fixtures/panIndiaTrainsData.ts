@@ -222,6 +222,28 @@ export const PAN_INDIA_TRAINS: TrainTrip[] = [
       { stationCode: 'MAS', stationName: 'Chennai Central', scheduledArrival: '05:50', scheduledDeparture: '05:50', platform: '2', distanceKm: 0, isHalt: true },
       { stationCode: 'SBC', stationName: 'KSR Bengaluru', scheduledArrival: '10:20', scheduledDeparture: '10:25', platform: '7', distanceKm: 362, isHalt: true }
     ]
+  },
+
+  // 12. Punjab Mail (CSMT -> NDLS via Dadar, Kalyan, Bhopal, Gwalior, Agra)
+  {
+    trainNumber: '12137',
+    trainName: 'Punjab Mail',
+    hindiName: 'पंजाब मेल',
+    originStation: 'CSMT',
+    destinationStation: 'NDLS',
+    serviceType: 'superfast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: 'lhb_express',
+    availableClasses: ['2S', 'SL', '3A', '2A', '1A'],
+    stops: [
+      { stationCode: 'CSMT', stationName: 'Mumbai CSMT', scheduledArrival: '19:35', scheduledDeparture: '19:35', platform: '18', distanceKm: 0, isHalt: true },
+      { stationCode: 'DR', stationName: 'Dadar (Central)', scheduledArrival: '19:47', scheduledDeparture: '19:50', platform: '5', distanceKm: 9, isHalt: true },
+      { stationCode: 'KYN', stationName: 'Kalyan Jn', scheduledArrival: '20:32', scheduledDeparture: '20:35', platform: '4', distanceKm: 54, isHalt: true },
+      { stationCode: 'BPL', stationName: 'Bhopal Jn', scheduledArrival: '09:25', scheduledDeparture: '09:30', platform: '2', distanceKm: 837, isHalt: true, dayOffset: 1 },
+      { stationCode: 'GWL', stationName: 'Gwalior Jn', scheduledArrival: '14:00', scheduledDeparture: '14:02', platform: '4', distanceKm: 1226, isHalt: true, dayOffset: 1 },
+      { stationCode: 'AGC', stationName: 'Agra Cantt', scheduledArrival: '17:40', scheduledDeparture: '17:45', platform: '1', distanceKm: 1344, isHalt: true, dayOffset: 1 },
+      { stationCode: 'NDLS', stationName: 'New Delhi', scheduledArrival: '21:30', scheduledDeparture: '21:30', platform: '3', distanceKm: 1543, isHalt: true, dayOffset: 1 }
+    ]
   }
 ];
 
@@ -420,5 +442,23 @@ export const PAN_INDIA_OBSERVATIONS: Record<string, TrainRunningObservation> = {
     dataSource: 'SR High-Speed Telemetry',
     dataRetrievedAt: '10:21',
     uncertaintyMarginMinutes: 0
+  },
+
+  // Punjab Mail 12137: Running with +5 min minor headway delay in Kalyan section
+  '12137': {
+    trainNumber: '12137',
+    serviceDate: '2026-10-06',
+    currentStationCode: 'KYN',
+    lastReportedStationCode: 'DR',
+    lastReportedTimestamp: '20:30',
+    hasDepartedOrigin: true,
+    actualOriginDeparture: '19:35',
+    delayMinutesAtCurrent: 5,
+    isCanceled: false,
+    disruptionReason: 'Routine suburban corridor headway caution',
+    dataStatus: 'DEMO',
+    dataSource: 'CR Operations Control',
+    dataRetrievedAt: '20:32',
+    uncertaintyMarginMinutes: 1
   }
 };

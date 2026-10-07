@@ -76,37 +76,45 @@ export default function LocalBookingScreen() {
 
     async function updateFare() {
       setCalculatingFare(true);
-      // Rough distance heuristic based on station pairs
-      let estDist = 34;
-      if (fromStation.code === 'TNA' && toStation.code === 'CSMT') estDist = 34;
-      else if (fromStation.code === 'CCG' && toStation.code === 'BVI') estDist = 34;
-      else if (fromStation.code === 'DR' && toStation.code === 'KYN') estDist = 43;
-      else if (fromStation.code === 'ADH' && toStation.code === 'CCG') estDist = 22;
-      else if (fromStation.code === 'TNA' && toStation.code === 'KYN') estDist = 20;
-      else if (fromStation.code === toStation.code) estDist = 5;
-      else estDist = 25;
-
-      setDistanceKm(estDist);
+      const isMetro = ticketKind === 'METRO_TOKEN';
+      const serviceType = isMetro ? 'metro' : 'suburban';
 
       try {
-        const isMetro = ticketKind === 'METRO_TOKEN';
-        const serviceType = isMetro ? 'metro' : 'suburban';
         const quote = await MobileApiClient.getFareQuote(
           serviceType,
-          estDist,
-          suburbanClass
+          undefined,
+          suburbanClass,
+          false,
+          fromStation.code,
+          toStation.code
         );
         if (active && quote) {
+          const dist = quote.calculatedDistance || quote.distanceKm || 34;
+          setDistanceKm(dist);
           let base = quote.totalFare || 10;
           if (ticketKind === 'RETURN') base = Math.round(base * 1.9);
           if (ticketKind === 'SEASON_MST') {
-            // Monthly Season Ticket is ~15-20x single fare
             base = suburbanClass === 'AC_LOCAL' ? 1450 : suburbanClass === 'I' ? 670 : 185;
           }
           setUnitFare(base);
         }
       } catch {
-        // Deterministic tariff table fallback
+        // Deterministic station distance calculation fallback
+        const fc = fromStation.code.toUpperCase();
+        const tc = toStation.code.toUpperCase();
+        let estDist = 34;
+        if (fc === tc) estDist = 5;
+        else if ((fc === 'TNA' && tc === 'CCG') || (fc === 'CCG' && tc === 'TNA')) estDist = 35;
+        else if ((fc === 'TNA' && tc === 'CSMT') || (fc === 'CSMT' && tc === 'TNA')) estDist = 34;
+        else if ((fc === 'CCG' && tc === 'BVI') || (fc === 'BVI' && tc === 'CCG')) estDist = 34;
+        else if ((fc === 'DR' && tc === 'KYN') || (fc === 'KYN' && tc === 'DR')) estDist = 44;
+        else if ((fc === 'ADH' && tc === 'CCG') || (fc === 'CCG' && tc === 'ADH')) estDist = 22;
+        else if ((fc === 'TNA' && tc === 'KYN') || (fc === 'KYN' && tc === 'TNA')) estDist = 20;
+        else if ((fc === 'DR' && tc === 'CCG') || (fc === 'CCG' && tc === 'DR')) estDist = 10;
+        else estDist = 28;
+
+        setDistanceKm(estDist);
+
         let fallback = 10;
         if (ticketKind === 'METRO_TOKEN') {
           fallback = estDist <= 12 ? 20 : estDist <= 18 ? 30 : 40;
