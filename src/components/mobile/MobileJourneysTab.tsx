@@ -35,7 +35,10 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
 }) => {
   const [originInput, setOriginInput] = useState(initialOrigin);
   const [destInput, setDestInput] = useState(initialDest);
-  const [departureTime, setDepartureTime] = useState('10:35');
+  const [departureTime, setDepartureTime] = useState(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
   const [isArriveBy, setIsArriveBy] = useState(false);
   const [arriveByDeadline, setArriveByDeadline] = useState('12:30');
   

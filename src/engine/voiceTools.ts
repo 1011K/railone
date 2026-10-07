@@ -1,5 +1,5 @@
 import { STATIONS, TRAIN_TRIPS, INITIAL_OBSERVATIONS, calculateSuburbanFare } from '../fixtures/railwayData';
-import { planJourneys, PlanJourneyParams } from './journeyEngine';
+import { planJourneys, PlanJourneyParams, getCurrentTimeString } from './journeyEngine';
 import { evaluateJourneyEligibility } from './eligibilityEngine';
 import { computePredictedStops } from './delayModel';
 import { MockBookingStore } from './mockBookingStore';
@@ -160,7 +160,7 @@ export const RailBackendTools = {
   searchTrains(
     originQuery: string, 
     destQuery: string, 
-    time: string = '10:35', 
+    time?: string, 
     classPref: PassengerPreferences['classPreference'] = 'any',
     options?: {
       arriveByDeadline?: string;
@@ -170,6 +170,7 @@ export const RailBackendTools = {
       hasSeasonPass?: boolean;
     }
   ): SearchTrainsResult {
+    const effectiveTime = time || getCurrentTimeString();
     const fromNorm = normalizeStation(originQuery);
     const toNorm = normalizeStation(destQuery);
 
@@ -194,7 +195,7 @@ export const RailBackendTools = {
     const itineraries = planJourneys({
       originCode: fromStation.code,
       destCode: toStation.code,
-      departureTime: time,
+      departureTime: effectiveTime,
       arriveByDeadline: options?.arriveByDeadline,
       userContext: options?.userContext || 'pre_departure',
       onboardTrainNumber: options?.onboardTrainNumber,
@@ -341,8 +342,8 @@ export const RailBackendTools = {
   /**
    * 7. Compare Itineraries
    */
-  compareItineraries(originCode: string, destCode: string, priority: 'fastest' | 'least_crowded' | 'lowest_fare' = 'fastest') {
-    const res = this.searchTrains(originCode, destCode, '10:35');
+  compareItineraries(originCode: string, destCode: string, priority: 'fastest' | 'least_crowded' | 'lowest_fare' = 'fastest', time?: string) {
+    const res = this.searchTrains(originCode, destCode, time || getCurrentTimeString());
     if (res.status === 'error') return res;
 
     return {

@@ -79,6 +79,7 @@ export const MobileApiClient = {
     to: string;
     departureTime?: string;
     arriveBy?: string;
+    timeWindowMinutes?: number;
     acOnly?: boolean;
     classPreference?: string;
     transitModeFilter?: string;
@@ -89,6 +90,7 @@ export const MobileApiClient = {
     });
     if (params.departureTime) q.append('departureTime', params.departureTime);
     if (params.arriveBy) q.append('arriveBy', params.arriveBy);
+    if (params.timeWindowMinutes) q.append('timeWindowMinutes', String(params.timeWindowMinutes));
     if (params.acOnly) q.append('acOnly', 'true');
     if (params.classPreference) q.append('classPreference', params.classPreference);
     if (params.transitModeFilter) q.append('transitModeFilter', params.transitModeFilter);

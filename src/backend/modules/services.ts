@@ -20,7 +20,33 @@ export function getAllTrainTrips(): TrainTrip[] {
 
 export function getTrainTrip(trainNumber: string): TrainTrip | undefined {
   if (!trainNumber) return undefined;
-  return allTripsMap.get(trainNumber.trim());
+  const trimmed = trainNumber.trim();
+  if (allTripsMap.has(trimmed)) {
+    return allTripsMap.get(trimmed);
+  }
+
+  // Dynamic suburban cadence train resolution (e.g. CR-AC-95302, CR-95200, WR-90000, HR-98000)
+  if (trimmed.startsWith('CR-') || trimmed.startsWith('WR-') || trimmed.startsWith('HR-') || trimmed.startsWith('TR-')) {
+    const isAc = trimmed.includes('-AC-');
+    const isFast = trimmed.includes('FAST') || (!trimmed.includes('SLOW') && !trimmed.includes('slow'));
+    const isCentral = trimmed.startsWith('CR-');
+    const line = isCentral ? 'Central' : trimmed.startsWith('WR-') ? 'Western' : 'Harbour';
+    return {
+      trainNumber: trimmed,
+      trainName: `${line} Suburban ${isAc ? 'AC ' : ''}${isFast ? 'Fast' : 'Slow'} Local`,
+      hindiName: `${line} उपनगरीय लोकल`,
+      marathiName: `${line} उपनगरीय लोकल`,
+      originStation: isCentral ? 'KYN' : 'CCG',
+      destinationStation: isCentral ? 'CSMT' : 'BVI',
+      serviceType: isAc ? (isFast ? 'suburban_ac_fast' : 'suburban_ac_slow') : (isFast ? 'suburban_fast' : 'suburban_slow'),
+      runningDays: [0, 1, 2, 3, 4, 5, 6],
+      rakeType: '12_car',
+      availableClasses: isAc ? ['AC_LOCAL'] : ['II', 'I'],
+      stops: []
+    };
+  }
+
+  return undefined;
 }
 
 export function isTrainOperatingOnDate(train: TrainTrip, dateStr: string): boolean {

@@ -23,6 +23,62 @@ export interface CachedTicketRecord {
   cachedAt: string;
 }
 
+export interface CachedMapNode {
+  id: string;
+  code: string;
+  name: string;
+  hindiName?: string;
+  marathiName?: string;
+  line: string;
+  city?: string;
+  x: number;
+  y: number;
+  z?: number;
+  platforms?: number[];
+  isInterchange?: boolean;
+  isMajorHub?: boolean;
+}
+
+export interface CachedTrackSegment {
+  id: string;
+  fromCode: string;
+  toCode: string;
+  line: string;
+  trackType?: string;
+  distanceKm?: number;
+  coordinates?: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  };
+}
+
+export interface StationGeometry {
+  code: string;
+  name?: string;
+  line?: string;
+  x?: number;
+  y?: number;
+  z?: number;
+  latitude?: number;
+  longitude?: number;
+  platformCount?: number;
+  isTunnelPortal?: boolean;
+  platforms?: number[];
+  adjacentCodes?: string[];
+}
+
+export interface CachedVectorMap {
+  scope: string;
+  nodes: CachedMapNode[];
+  segments: CachedTrackSegment[];
+  geometries: Record<string, StationGeometry>;
+  corridorChains?: Record<string, string[]>;
+  cachedAt: string;
+  version?: string;
+}
+
 // In-memory persistent cache for native runtime environment
 const memoryCache = new Map<string, any>();
 
@@ -116,5 +172,150 @@ export const OfflineStorage = {
 
   setHasCompletedOnboarding(completed: boolean): void {
     memoryCache.set('has_completed_onboarding', completed);
+  },
+
+  // 6. Offline Vector Map & Geometry Caching (Zero-connectivity tunnel navigation)
+  saveVectorMap(
+    scopeOrMap: string | {
+      scope?: string;
+      nodes: CachedMapNode[];
+      segments?: CachedTrackSegment[];
+      geometries?: Record<string, StationGeometry>;
+      corridorChains?: Record<string, string[]>;
+    },
+    nodesArg?: CachedMapNode[],
+    segmentsArg?: CachedTrackSegment[],
+    corridorChainsArg?: Record<string, string[]>
+  ): void {
+    let scope = 'mumbai_suburban';
+    let nodes: CachedMapNode[] = [];
+    let segments: CachedTrackSegment[] = [];
+    let corridorChains: Record<string, string[]> | undefined;
+    let customGeometries: Record<string, StationGeometry> | undefined;
+
+    if (typeof scopeOrMap === 'string') {
+      scope = scopeOrMap;
+      nodes = nodesArg || [];
+      segments = segmentsArg || [];
+      corridorChains = corridorChainsArg;
+    } else if (scopeOrMap && typeof scopeOrMap === 'object') {
+      scope = scopeOrMap.scope || 'mumbai_suburban';
+      nodes = scopeOrMap.nodes || [];
+      segments = scopeOrMap.segments || [];
+      corridorChains = scopeOrMap.corridorChains;
+      customGeometries = scopeOrMap.geometries;
+    }
+
+    // Index station geometries for instant tunnel coordinate lookups
+    const geoMap: Record<string, StationGeometry> = customGeometries ? { ...customGeometries } : {};
+    for (const node of nodes) {
+      if (!geoMap[node.code]) {
+        geoMap[node.code] = {
+          code: node.code,
+          name: node.name,
+          line: node.line,
+          x: node.x,
+          y: node.y,
+          z: node.z,
+          platforms: node.platforms
+        };
+      }
+    }
+    // Populate adjacent codes from segments and corridor chains
+    for (const seg of segments) {
+      if (geoMap[seg.fromCode]) {
+        const adj = geoMap[seg.fromCode].adjacentCodes || [];
+        if (!adj.includes(seg.toCode)) adj.push(seg.toCode);
+        geoMap[seg.fromCode].adjacentCodes = adj;
+      }
+      if (geoMap[seg.toCode]) {
+        const adj = geoMap[seg.toCode].adjacentCodes || [];
+        if (!adj.includes(seg.fromCode)) adj.push(seg.fromCode);
+        geoMap[seg.toCode].adjacentCodes = adj;
+      }
+    }
+    if (corridorChains) {
+      for (const chain of Object.values(corridorChains)) {
+        for (let i = 0; i < chain.length; i++) {
+          const code = chain[i];
+          if (geoMap[code]) {
+            const adj = geoMap[code].adjacentCodes || [];
+            if (i > 0 && !adj.includes(chain[i - 1])) adj.push(chain[i - 1]);
+            if (i < chain.length - 1 && !adj.includes(chain[i + 1])) adj.push(chain[i + 1]);
+            geoMap[code].adjacentCodes = adj;
+          }
+        }
+      }
+    }
+
+    const vectorMap: CachedVectorMap = {
+      scope,
+      nodes,
+      segments,
+      geometries: geoMap,
+      corridorChains,
+      cachedAt: new Date().toISOString(),
+      version: '1.0.0'
+    };
+    memoryCache.set(`offline_vector_map_${scope}`, vectorMap);
+    memoryCache.set('offline_map_nodes', nodes);
+    memoryCache.set('offline_track_segments', segments);
+    memoryCache.set('offline_station_geometries', geoMap);
+  },
+
+  getVectorMap(scope = 'mumbai_suburban'): CachedVectorMap | null {
+    const map = memoryCache.get(`offline_vector_map_${scope}`);
+    if (!map) return null;
+    const geoMap = memoryCache.get('offline_station_geometries') || {};
+    return { ...map, geometries: map.geometries || geoMap };
+  },
+
+  saveMapNodes(nodes: CachedMapNode[]): void {
+    memoryCache.set('offline_map_nodes', nodes);
+  },
+
+  getMapNodes(): CachedMapNode[] {
+    return memoryCache.get('offline_map_nodes') || [];
+  },
+
+  saveTrackSegments(segments: CachedTrackSegment[]): void {
+    memoryCache.set('offline_track_segments', segments);
+  },
+
+  getTrackSegments(): CachedTrackSegment[] {
+    return memoryCache.get('offline_track_segments') || [];
+  },
+
+  saveStationGeometries(geometries: Record<string, StationGeometry>): void {
+    memoryCache.set('offline_station_geometries', geometries);
+  },
+
+  getStationGeometry(stationCode: string): StationGeometry | null {
+    const geoMap: Record<string, StationGeometry> = memoryCache.get('offline_station_geometries') || {};
+    return geoMap[stationCode] || null;
+  },
+
+  getTunnelAdjacentStations(stationCode: string): string[] {
+    const geo = this.getStationGeometry(stationCode);
+    return geo?.adjacentCodes || [];
+  },
+
+  hasCachedVectorMap(scope = 'mumbai_suburban'): boolean {
+    return Boolean(memoryCache.get(`offline_vector_map_${scope}`));
+  },
+
+  clearVectorMapCache(scope?: string): void {
+    if (scope) {
+      memoryCache.delete(`offline_vector_map_${scope}`);
+    } else {
+      memoryCache.delete('offline_map_nodes');
+      memoryCache.delete('offline_track_segments');
+      memoryCache.delete('offline_station_geometries');
+      for (const key of Array.from(memoryCache.keys())) {
+        if (key.startsWith('offline_vector_map_')) {
+          memoryCache.delete(key);
+        }
+      }
+    }
   }
 };

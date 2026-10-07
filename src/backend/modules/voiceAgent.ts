@@ -8,6 +8,7 @@ import { calculateSuburbanFare, calculateExpressFare } from './fares';
 import { createBooking, BookingRecord } from './ticketing';
 import { logAuditEvent } from './auditLog';
 import { TravelClass, JourneyItinerary } from '../../types/railway';
+import { getCurrentTimeString } from '../../engine/journeyEngine';
 
 export interface VoiceTurnMessage {
   role: 'user' | 'assistant' | 'system';
@@ -235,6 +236,7 @@ export async function processVoiceTurn(
       const itineraries = searchRoutes({
         from: draft.originCode,
         to: draft.destCode,
+        departureTime: draft.timeContext,
         acOnly: true,
         priority: 'fastest'
       });
@@ -340,7 +342,7 @@ export async function processVoiceTurn(
         const itineraries = searchRoutes({
           from: draft.originCode,
           to: draft.destCode,
-          departureTime: draft.timeContext || '10:35',
+          departureTime: draft.timeContext || getCurrentTimeString(),
           classPreference: draft.preferredClass === 'AC_LOCAL' ? 'ac_mandatory' : 'any'
         });
 

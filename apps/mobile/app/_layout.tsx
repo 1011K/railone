@@ -61,6 +61,20 @@ function RootNavigationLayout() {
             headerBackTitle: 'Back'
           }}
         />
+        <Stack.Screen
+          name="tte"
+          options={{
+            title: 'TTE Ticket Examiner (Demo)',
+            headerBackTitle: 'Back'
+          }}
+        />
+        <Stack.Screen
+          name="guide"
+          options={{
+            title: 'Guide Me From Here',
+            headerBackTitle: 'Back'
+          }}
+        />
       </Stack>
     </>
   );

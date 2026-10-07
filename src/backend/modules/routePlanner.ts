@@ -1,4 +1,4 @@
-import { planJourneys, PlanJourneyParams } from '../../engine/journeyEngine';
+import { planJourneys, PlanJourneyParams, getCurrentTimeString } from '../../engine/journeyEngine';
 import { JourneyItinerary, PassengerPreferences, UserTravelContext } from '../../types/railway';
 import { normalizeStationCode } from '../../engine/stationNormalizer';
 
@@ -7,6 +7,7 @@ export interface RouteSearchParams {
   to: string;
   departureTime?: string;
   arriveByDeadline?: string;
+  timeWindowMinutes?: number;
   date?: string;
   classPreference?: 'any' | 'second' | 'first' | 'ac_preferred' | 'ac_mandatory';
   acOnly?: boolean;
@@ -32,11 +33,14 @@ export function searchRoutes(params: RouteSearchParams): JourneyItinerary[] {
     maxTransfers: 2
   };
 
+  const effectiveDepTime = params.departureTime || getCurrentTimeString();
+
   const planParams: PlanJourneyParams = {
     originCode,
     destCode,
-    departureTime: params.departureTime || '10:35',
+    departureTime: effectiveDepTime,
     arriveByDeadline: params.arriveByDeadline,
+    timeWindowMinutes: params.timeWindowMinutes,
     userContext: params.onboardTrainNumber ? 'onboard' : 'pre_departure',
     onboardTrainNumber: params.onboardTrainNumber,
     onboardCurrentStation: params.onboardCurrentStation,
@@ -48,14 +52,14 @@ export function searchRoutes(params: RouteSearchParams): JourneyItinerary[] {
 
   // If no routes found at requested departure time and user explicitly requested wider window:
   if (routes.length === 0 && (params as any).searchWiderWindow) {
-    const [h, m] = (params.departureTime || '10:35').split(':').map(Number);
+    const [h, m] = effectiveDepTime.split(':').map(Number);
     if (!isNaN(h) && !isNaN(m)) {
       const nextHour = (h + 2) % 24;
       const widerTime = `${String(nextHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       const widerRoutes = planJourneys({ ...planParams, departureTime: widerTime });
       routes = widerRoutes.map(r => ({
         ...r,
-        transfersNote: `[WIDER WINDOW: Next service after ${params.departureTime} departs at ${r.predictedDeparture}] ${r.transfersNote || ''}`.trim()
+        transfersNote: `[WIDER WINDOW: Next service after ${effectiveDepTime} departs at ${r.predictedDeparture}] ${r.transfersNote || ''}`.trim()
       }));
     }
   }

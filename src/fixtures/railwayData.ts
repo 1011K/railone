@@ -664,6 +664,102 @@ export const STATIONS: Record<string, Station> = {
     isInterchange: false,
     aliases: ['kolkata', 'koaa', 'chitpur']
   },
+  DDJ: {
+    id: 'DDJ',
+    code: 'DDJ',
+    name: 'Dum Dum Junction',
+    hindiName: 'दमदम जंक्शन',
+    marathiName: 'दमदम जंक्शन',
+    line: 'national',
+    city: 'Kolkata',
+    platforms: [1, 2, 3, 4, 5],
+    isInterchange: true,
+    aliases: ['dum dum', 'dumdum', 'ddj', 'दमदम']
+  },
+  BT: {
+    id: 'BT',
+    code: 'BT',
+    name: 'Barasat Junction',
+    hindiName: 'बारासात जंक्शन',
+    marathiName: 'बारासात जंक्शन',
+    line: 'national',
+    city: 'Kolkata',
+    platforms: [1, 2, 3, 4, 5],
+    isInterchange: true,
+    aliases: ['barasat', 'bt', 'बारासात']
+  },
+  HB: {
+    id: 'HB',
+    code: 'HB',
+    name: 'Habra',
+    hindiName: 'हाबरा',
+    marathiName: 'हाबरा',
+    line: 'national',
+    city: 'Kolkata',
+    platforms: [1, 2],
+    isInterchange: false,
+    aliases: ['habra', 'hb', 'हाबरा']
+  },
+  BWN: {
+    id: 'BWN',
+    code: 'BWN',
+    name: 'Barddhaman Junction',
+    hindiName: 'बर्दवान जंक्शन',
+    marathiName: 'बर्धमान जंक्शन',
+    line: 'national',
+    city: 'Bardhaman',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8],
+    isInterchange: true,
+    aliases: ['bardhaman', 'barddhaman', 'burdwan', 'bwn', 'बर्दवान']
+  },
+  BDC: {
+    id: 'BDC',
+    code: 'BDC',
+    name: 'Bandel Junction',
+    hindiName: 'बंडेल जंक्शन',
+    marathiName: 'बंडेल जंक्शन',
+    line: 'national',
+    city: 'Hooghly',
+    platforms: [1, 2, 3, 4, 5, 6],
+    isInterchange: true,
+    aliases: ['bandel', 'bdc', 'बंडेल']
+  },
+  DKAE: {
+    id: 'DKAE',
+    code: 'DKAE',
+    name: 'Dankuni Junction',
+    hindiName: 'दनकुनी जंक्शन',
+    marathiName: 'दनकुनी जंक्शन',
+    line: 'national',
+    city: 'Hooghly',
+    platforms: [1, 2, 3, 4],
+    isInterchange: true,
+    aliases: ['dankuni', 'dkae', 'दनकुनी']
+  },
+  SRP: {
+    id: 'SRP',
+    code: 'SRP',
+    name: 'Shrirampur (Serampore)',
+    hindiName: 'श्रीरामपुर',
+    marathiName: 'श्रीरामपूर',
+    line: 'national',
+    city: 'Hooghly',
+    platforms: [1, 2, 3, 4],
+    isInterchange: false,
+    aliases: ['serampore', 'shrirampur', 'srp']
+  },
+  LLH: {
+    id: 'LLH',
+    code: 'LLH',
+    name: 'Liluah',
+    hindiName: 'लिलुआ',
+    marathiName: 'लिलुआ',
+    line: 'national',
+    city: 'Howrah',
+    platforms: [1, 2, 3, 4],
+    isInterchange: false,
+    aliases: ['liluah', 'llh']
+  },
 
   // --- Chennai Suburban Hubs ---
   MS: {
@@ -701,6 +797,66 @@ export const STATIONS: Record<string, Station> = {
     platforms: [1, 2, 3, 4, 5, 6, 7, 8],
     isInterchange: true,
     aliases: ['tambaram', 'tbm', 'तांबरम']
+  },
+  CGL: {
+    id: 'CGL',
+    code: 'CGL',
+    name: 'Chengalpattu Junction',
+    hindiName: 'चेंगलपट्टू जंक्शन',
+    marathiName: 'चेंगलपट्टू जंक्शन',
+    line: 'national',
+    city: 'Chengalpattu',
+    platforms: [1, 2, 3, 4, 5, 6, 7, 8],
+    isInterchange: true,
+    aliases: ['chengalpattu', 'cgl', 'चेंगलपट्टू']
+  },
+  MSF: {
+    id: 'MSF',
+    code: 'MSF',
+    name: 'Chennai Fort',
+    hindiName: 'चेन्नई फोर्ट',
+    marathiName: 'चेन्नई फोर्ट',
+    line: 'national',
+    city: 'Chennai',
+    platforms: [1, 2],
+    isInterchange: false,
+    aliases: ['chennai fort', 'fort', 'msf']
+  },
+  MPK: {
+    id: 'MPK',
+    code: 'MPK',
+    name: 'Chennai Park',
+    hindiName: 'चेन्नई पार्क',
+    marathiName: 'चेन्नई पार्क',
+    line: 'national',
+    city: 'Chennai',
+    platforms: [1, 2],
+    isInterchange: true,
+    aliases: ['chennai park', 'park', 'mpk']
+  },
+  MBM: {
+    id: 'MBM',
+    code: 'MBM',
+    name: 'Mambalam',
+    hindiName: 'मांबलम',
+    marathiName: 'मांबलम',
+    line: 'national',
+    city: 'Chennai',
+    platforms: [1, 2, 3, 4],
+    isInterchange: true,
+    aliases: ['mambalam', 'mbm']
+  },
+  GDY: {
+    id: 'GDY',
+    code: 'GDY',
+    name: 'Guindy',
+    hindiName: 'गिंडी',
+    marathiName: 'गिंडी',
+    line: 'national',
+    city: 'Chennai',
+    platforms: [1, 2, 3, 4],
+    isInterchange: true,
+    aliases: ['guindy', 'gdy']
   },
 
   // --- Hyderabad MMTS Hubs ---
@@ -1737,6 +1893,694 @@ export const TRAIN_TRIPS: TrainTrip[] = [
     ]
   },
 
+  // --- Kolkata Suburban Densified Services ---
+  // 1. Sealdah - Bangaon EMU (Sealdah North Main)
+  {
+    trainNumber: '33811',
+    trainName: 'Sealdah - Bangaon Local EMU',
+    hindiName: 'सियालदह - बनगांव लोकल',
+    marathiName: 'सियालदह - बनगाव लोकल',
+    originStation: 'SDAH',
+    destinationStation: 'BNGA',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '08:15', scheduledDeparture: '08:15', platform: '9', distanceKm: 0, isHalt: true },
+      { stationCode: 'DDJ', stationName: 'Dum Dum Junction', scheduledArrival: '08:26', scheduledDeparture: '08:27', platform: '2', distanceKm: 7.0, isHalt: true },
+      { stationCode: 'BT', stationName: 'Barasat Junction', scheduledArrival: '08:48', scheduledDeparture: '08:49', platform: '3', distanceKm: 22.0, isHalt: true },
+      { stationCode: 'HB', stationName: 'Habra', scheduledArrival: '09:18', scheduledDeparture: '09:19', platform: '1', distanceKm: 45.0, isHalt: true },
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '09:55', scheduledDeparture: '09:55', platform: '1', distanceKm: 76.5, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '33813',
+    trainName: 'Sealdah - Bangaon Local EMU',
+    hindiName: 'सियालदह - बनगांव लोकल',
+    marathiName: 'सियालदह - बनगाव लोकल',
+    originStation: 'SDAH',
+    destinationStation: 'BNGA',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '9', distanceKm: 0, isHalt: true },
+      { stationCode: 'DDJ', stationName: 'Dum Dum Junction', scheduledArrival: '10:41', scheduledDeparture: '10:42', platform: '2', distanceKm: 7.0, isHalt: true },
+      { stationCode: 'BT', stationName: 'Barasat Junction', scheduledArrival: '11:03', scheduledDeparture: '11:04', platform: '3', distanceKm: 22.0, isHalt: true },
+      { stationCode: 'HB', stationName: 'Habra', scheduledArrival: '11:33', scheduledDeparture: '11:34', platform: '1', distanceKm: 45.0, isHalt: true },
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '12:10', scheduledDeparture: '12:10', platform: '1', distanceKm: 76.5, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '33815',
+    trainName: 'Sealdah - Bangaon Local EMU',
+    hindiName: 'सियालदह - बनगांव लोकल',
+    marathiName: 'सियालदह - बनगाव लोकल',
+    originStation: 'SDAH',
+    destinationStation: 'BNGA',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '14:20', scheduledDeparture: '14:20', platform: '8', distanceKm: 0, isHalt: true },
+      { stationCode: 'DDJ', stationName: 'Dum Dum Junction', scheduledArrival: '14:31', scheduledDeparture: '14:32', platform: '2', distanceKm: 7.0, isHalt: true },
+      { stationCode: 'BT', stationName: 'Barasat Junction', scheduledArrival: '14:53', scheduledDeparture: '14:54', platform: '3', distanceKm: 22.0, isHalt: true },
+      { stationCode: 'HB', stationName: 'Habra', scheduledArrival: '15:23', scheduledDeparture: '15:24', platform: '1', distanceKm: 45.0, isHalt: true },
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '16:00', scheduledDeparture: '16:00', platform: '1', distanceKm: 76.5, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '33817',
+    trainName: 'Sealdah - Bangaon Local EMU',
+    hindiName: 'सियालदह - बनगांव लोकल',
+    marathiName: 'सियालदह - बनगाव लोकल',
+    originStation: 'SDAH',
+    destinationStation: 'BNGA',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '18:10', scheduledDeparture: '18:10', platform: '9', distanceKm: 0, isHalt: true },
+      { stationCode: 'DDJ', stationName: 'Dum Dum Junction', scheduledArrival: '18:21', scheduledDeparture: '18:22', platform: '2', distanceKm: 7.0, isHalt: true },
+      { stationCode: 'BT', stationName: 'Barasat Junction', scheduledArrival: '18:43', scheduledDeparture: '18:44', platform: '3', distanceKm: 22.0, isHalt: true },
+      { stationCode: 'HB', stationName: 'Habra', scheduledArrival: '19:13', scheduledDeparture: '19:14', platform: '1', distanceKm: 45.0, isHalt: true },
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '19:50', scheduledDeparture: '19:50', platform: '2', distanceKm: 76.5, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '33812',
+    trainName: 'Bangaon - Sealdah Local EMU',
+    hindiName: 'बनगांव - सियालदह लोकल',
+    marathiName: 'बनगाव - सियालदह लोकल',
+    originStation: 'BNGA',
+    destinationStation: 'SDAH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '07:30', scheduledDeparture: '07:30', platform: '1', distanceKm: 0, isHalt: true },
+      { stationCode: 'HB', stationName: 'Habra', scheduledArrival: '08:05', scheduledDeparture: '08:06', platform: '1', distanceKm: 31.5, isHalt: true },
+      { stationCode: 'BT', stationName: 'Barasat Junction', scheduledArrival: '08:35', scheduledDeparture: '08:36', platform: '2', distanceKm: 54.5, isHalt: true },
+      { stationCode: 'DDJ', stationName: 'Dum Dum Junction', scheduledArrival: '08:58', scheduledDeparture: '08:59', platform: '3', distanceKm: 69.5, isHalt: true },
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '09:15', scheduledDeparture: '09:15', platform: '8', distanceKm: 76.5, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '33814',
+    trainName: 'Bangaon - Sealdah Local EMU',
+    hindiName: 'बनगांव - सियालदह लोकल',
+    marathiName: 'बनगाव - सियालदह लोकल',
+    originStation: 'BNGA',
+    destinationStation: 'SDAH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '10:15', scheduledDeparture: '10:15', platform: '1', distanceKm: 0, isHalt: true },
+      { stationCode: 'HB', stationName: 'Habra', scheduledArrival: '10:50', scheduledDeparture: '10:51', platform: '1', distanceKm: 31.5, isHalt: true },
+      { stationCode: 'BT', stationName: 'Barasat Junction', scheduledArrival: '11:20', scheduledDeparture: '11:21', platform: '2', distanceKm: 54.5, isHalt: true },
+      { stationCode: 'DDJ', stationName: 'Dum Dum Junction', scheduledArrival: '11:43', scheduledDeparture: '11:44', platform: '3', distanceKm: 69.5, isHalt: true },
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '12:00', scheduledDeparture: '12:00', platform: '9', distanceKm: 76.5, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '33816',
+    trainName: 'Bangaon - Sealdah Local EMU',
+    hindiName: 'बनगांव - सियालदह लोकल',
+    marathiName: 'बनगाव - सियालदह लोकल',
+    originStation: 'BNGA',
+    destinationStation: 'SDAH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '14:00', scheduledDeparture: '14:00', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'HB', stationName: 'Habra', scheduledArrival: '14:35', scheduledDeparture: '14:36', platform: '1', distanceKm: 31.5, isHalt: true },
+      { stationCode: 'BT', stationName: 'Barasat Junction', scheduledArrival: '15:05', scheduledDeparture: '15:06', platform: '2', distanceKm: 54.5, isHalt: true },
+      { stationCode: 'DDJ', stationName: 'Dum Dum Junction', scheduledArrival: '15:28', scheduledDeparture: '15:29', platform: '3', distanceKm: 69.5, isHalt: true },
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '15:45', scheduledDeparture: '15:45', platform: '8', distanceKm: 76.5, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '33818',
+    trainName: 'Bangaon - Sealdah Local EMU',
+    hindiName: 'बनगांव - सियालदह लोकल',
+    marathiName: 'बनगाव - सियालदह लोकल',
+    originStation: 'BNGA',
+    destinationStation: 'SDAH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BNGA', stationName: 'Bangaon Junction', scheduledArrival: '17:45', scheduledDeparture: '17:45', platform: '1', distanceKm: 0, isHalt: true },
+      { stationCode: 'HB', stationName: 'Habra', scheduledArrival: '18:20', scheduledDeparture: '18:21', platform: '1', distanceKm: 31.5, isHalt: true },
+      { stationCode: 'BT', stationName: 'Barasat Junction', scheduledArrival: '18:50', scheduledDeparture: '18:51', platform: '2', distanceKm: 54.5, isHalt: true },
+      { stationCode: 'DDJ', stationName: 'Dum Dum Junction', scheduledArrival: '19:13', scheduledDeparture: '19:14', platform: '3', distanceKm: 69.5, isHalt: true },
+      { stationCode: 'SDAH', stationName: 'Sealdah', scheduledArrival: '19:30', scheduledDeparture: '19:30', platform: '9', distanceKm: 76.5, isHalt: true }
+    ]
+  },
+
+  // 2. Howrah - Bardhaman Main EMU (via Bandel)
+  {
+    trainNumber: '37811',
+    trainName: 'Howrah - Bardhaman Main Line Local EMU',
+    hindiName: 'हावड़ा - बर्दवान मेन लाइन लोकल',
+    marathiName: 'हावडा - बर्धमान मेन लाईन लोकल',
+    originStation: 'HWH',
+    destinationStation: 'BWN',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '08:30', scheduledDeparture: '08:30', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '08:38', scheduledDeparture: '08:39', platform: '1', distanceKm: 5.0, isHalt: true },
+      { stationCode: 'SRP', stationName: 'Shrirampur (Serampore)', scheduledArrival: '08:56', scheduledDeparture: '08:57', platform: '2', distanceKm: 20.0, isHalt: true },
+      { stationCode: 'BDC', stationName: 'Bandel Junction', scheduledArrival: '09:25', scheduledDeparture: '09:27', platform: '3', distanceKm: 40.0, isHalt: true },
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '10:45', scheduledDeparture: '10:45', platform: '4', distanceKm: 107.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '37813',
+    trainName: 'Howrah - Bardhaman Main Line Local EMU',
+    hindiName: 'हावड़ा - बर्दवान मेन लाइन लोकल',
+    marathiName: 'हावडा - बर्धमान मेन लाईन लोकल',
+    originStation: 'HWH',
+    destinationStation: 'BWN',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '10:35', scheduledDeparture: '10:35', platform: '5', distanceKm: 0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '10:43', scheduledDeparture: '10:44', platform: '1', distanceKm: 5.0, isHalt: true },
+      { stationCode: 'SRP', stationName: 'Shrirampur (Serampore)', scheduledArrival: '11:01', scheduledDeparture: '11:02', platform: '2', distanceKm: 20.0, isHalt: true },
+      { stationCode: 'BDC', stationName: 'Bandel Junction', scheduledArrival: '11:30', scheduledDeparture: '11:32', platform: '3', distanceKm: 40.0, isHalt: true },
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '12:50', scheduledDeparture: '12:50', platform: '5', distanceKm: 107.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '37815',
+    trainName: 'Howrah - Bardhaman Main Line Local EMU',
+    hindiName: 'हावड़ा - बर्दवान मेन लाइन लोकल',
+    marathiName: 'हावडा - बर्धमान मेन लाईन लोकल',
+    originStation: 'HWH',
+    destinationStation: 'BWN',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '17:15', scheduledDeparture: '17:15', platform: '6', distanceKm: 0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '17:23', scheduledDeparture: '17:24', platform: '1', distanceKm: 5.0, isHalt: true },
+      { stationCode: 'SRP', stationName: 'Shrirampur (Serampore)', scheduledArrival: '17:41', scheduledDeparture: '17:42', platform: '2', distanceKm: 20.0, isHalt: true },
+      { stationCode: 'BDC', stationName: 'Bandel Junction', scheduledArrival: '18:10', scheduledDeparture: '18:12', platform: '3', distanceKm: 40.0, isHalt: true },
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '19:30', scheduledDeparture: '19:30', platform: '4', distanceKm: 107.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '37812',
+    trainName: 'Bardhaman - Howrah Main Line Local EMU',
+    hindiName: 'बर्दवान - हावड़ा मेन लाइन लोकल',
+    marathiName: 'बर्धमान - हावडा मेन लाईन लोकल',
+    originStation: 'BWN',
+    destinationStation: 'HWH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '07:10', scheduledDeparture: '07:10', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'BDC', stationName: 'Bandel Junction', scheduledArrival: '08:25', scheduledDeparture: '08:27', platform: '2', distanceKm: 67.0, isHalt: true },
+      { stationCode: 'SRP', stationName: 'Shrirampur (Serampore)', scheduledArrival: '08:52', scheduledDeparture: '08:53', platform: '1', distanceKm: 87.0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '09:10', scheduledDeparture: '09:11', platform: '2', distanceKm: 102.0, isHalt: true },
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '09:25', scheduledDeparture: '09:25', platform: '5', distanceKm: 107.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '37814',
+    trainName: 'Bardhaman - Howrah Main Line Local EMU',
+    hindiName: 'बर्दवान - हावड़ा मेन लाइन लोकल',
+    marathiName: 'बर्धमान - हावडा मेन लाईन लोकल',
+    originStation: 'BWN',
+    destinationStation: 'HWH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '10:20', scheduledDeparture: '10:20', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'BDC', stationName: 'Bandel Junction', scheduledArrival: '11:35', scheduledDeparture: '11:37', platform: '2', distanceKm: 67.0, isHalt: true },
+      { stationCode: 'SRP', stationName: 'Shrirampur (Serampore)', scheduledArrival: '12:02', scheduledDeparture: '12:03', platform: '1', distanceKm: 87.0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '12:20', scheduledDeparture: '12:21', platform: '2', distanceKm: 102.0, isHalt: true },
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '12:35', scheduledDeparture: '12:35', platform: '6', distanceKm: 107.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '37816',
+    trainName: 'Bardhaman - Howrah Main Line Local EMU',
+    hindiName: 'बर्दवान - हावड़ा मेन लाइन लोकल',
+    marathiName: 'बर्धमान - हावडा मेन लाईन लोकल',
+    originStation: 'BWN',
+    destinationStation: 'HWH',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '16:30', scheduledDeparture: '16:30', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'BDC', stationName: 'Bandel Junction', scheduledArrival: '17:45', scheduledDeparture: '17:47', platform: '2', distanceKm: 67.0, isHalt: true },
+      { stationCode: 'SRP', stationName: 'Shrirampur (Serampore)', scheduledArrival: '18:12', scheduledDeparture: '18:13', platform: '1', distanceKm: 87.0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '18:30', scheduledDeparture: '18:31', platform: '2', distanceKm: 102.0, isHalt: true },
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '18:45', scheduledDeparture: '18:45', platform: '4', distanceKm: 107.0, isHalt: true }
+    ]
+  },
+
+  // 3. Howrah - Bardhaman Chord EMU (via Dankuni)
+  {
+    trainNumber: '36811',
+    trainName: 'Howrah - Bardhaman Chord Line Local EMU',
+    hindiName: 'हावड़ा - बर्दवान कॉर्ड लाइन लोकल',
+    marathiName: 'हावडा - बर्धमान कॉर्ड लाईन लोकल',
+    originStation: 'HWH',
+    destinationStation: 'BWN',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '09:15', scheduledDeparture: '09:15', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '09:23', scheduledDeparture: '09:24', platform: '1', distanceKm: 5.0, isHalt: true },
+      { stationCode: 'DKAE', stationName: 'Dankuni Junction', scheduledArrival: '09:40', scheduledDeparture: '09:42', platform: '2', distanceKm: 15.0, isHalt: true },
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '11:05', scheduledDeparture: '11:05', platform: '6', distanceKm: 95.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '36813',
+    trainName: 'Howrah - Bardhaman Chord Line Local EMU',
+    hindiName: 'हावड़ा - बर्दवान कॉर्ड लाइन लोकल',
+    marathiName: 'हावडा - बर्धमान कॉर्ड लाईन लोकल',
+    originStation: 'HWH',
+    destinationStation: 'BWN',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '10:40', scheduledDeparture: '10:40', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '10:48', scheduledDeparture: '10:49', platform: '1', distanceKm: 5.0, isHalt: true },
+      { stationCode: 'DKAE', stationName: 'Dankuni Junction', scheduledArrival: '11:05', scheduledDeparture: '11:07', platform: '2', distanceKm: 15.0, isHalt: true },
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '12:30', scheduledDeparture: '12:30', platform: '6', distanceKm: 95.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '36815',
+    trainName: 'Howrah - Bardhaman Chord Line Local EMU',
+    hindiName: 'हावड़ा - बर्दवान कॉर्ड लाइन लोकल',
+    marathiName: 'हावडा - बर्धमान कॉर्ड लाईन लोकल',
+    originStation: 'HWH',
+    destinationStation: 'BWN',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '18:20', scheduledDeparture: '18:20', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '18:28', scheduledDeparture: '18:29', platform: '1', distanceKm: 5.0, isHalt: true },
+      { stationCode: 'DKAE', stationName: 'Dankuni Junction', scheduledArrival: '18:45', scheduledDeparture: '18:47', platform: '2', distanceKm: 15.0, isHalt: true },
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '20:10', scheduledDeparture: '20:10', platform: '5', distanceKm: 95.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '36812',
+    trainName: 'Bardhaman - Howrah Chord Line Local EMU',
+    hindiName: 'बर्दवान - हावड़ा कॉर्ड लाइन लोकल',
+    marathiName: 'बर्धमान - हावडा कॉर्ड लाईन लोकल',
+    originStation: 'BWN',
+    destinationStation: 'HWH',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '08:00', scheduledDeparture: '08:00', platform: '6', distanceKm: 0, isHalt: true },
+      { stationCode: 'DKAE', stationName: 'Dankuni Junction', scheduledArrival: '09:20', scheduledDeparture: '09:22', platform: '1', distanceKm: 80.0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '09:37', scheduledDeparture: '09:38', platform: '2', distanceKm: 90.0, isHalt: true },
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '09:50', scheduledDeparture: '09:50', platform: '2', distanceKm: 95.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '36814',
+    trainName: 'Bardhaman - Howrah Chord Line Local EMU',
+    hindiName: 'बर्दवान - हावड़ा कॉर्ड लाइन लोकल',
+    marathiName: 'बर्धमान - हावडा कॉर्ड लाईन लोकल',
+    originStation: 'BWN',
+    destinationStation: 'HWH',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '10:30', scheduledDeparture: '10:30', platform: '5', distanceKm: 0, isHalt: true },
+      { stationCode: 'DKAE', stationName: 'Dankuni Junction', scheduledArrival: '11:50', scheduledDeparture: '11:52', platform: '1', distanceKm: 80.0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '12:07', scheduledDeparture: '12:08', platform: '2', distanceKm: 90.0, isHalt: true },
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '12:20', scheduledDeparture: '12:20', platform: '3', distanceKm: 95.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '36816',
+    trainName: 'Bardhaman - Howrah Chord Line Local EMU',
+    hindiName: 'बर्दवान - हावड़ा कॉर्ड लाइन लोकल',
+    marathiName: 'बर्धमान - हावडा कॉर्ड लाईन लोकल',
+    originStation: 'BWN',
+    destinationStation: 'HWH',
+    serviceType: 'suburban_fast',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'BWN', stationName: 'Barddhaman Junction', scheduledArrival: '17:10', scheduledDeparture: '17:10', platform: '6', distanceKm: 0, isHalt: true },
+      { stationCode: 'DKAE', stationName: 'Dankuni Junction', scheduledArrival: '18:30', scheduledDeparture: '18:32', platform: '1', distanceKm: 80.0, isHalt: true },
+      { stationCode: 'LLH', stationName: 'Liluah', scheduledArrival: '18:47', scheduledDeparture: '18:48', platform: '2', distanceKm: 90.0, isHalt: true },
+      { stationCode: 'HWH', stationName: 'Howrah Junction', scheduledArrival: '19:00', scheduledDeparture: '19:00', platform: '2', distanceKm: 95.0, isHalt: true }
+    ]
+  },
+
+  // --- Chennai Suburban Densified Services ---
+  // 1. Chennai Beach - Tambaram - Chengalpattu EMU
+  {
+    trainNumber: '40501',
+    trainName: 'Chennai Beach - Chengalpattu Suburban EMU',
+    hindiName: 'चेन्नई बीच - चेंगलपट्टू लोकल',
+    marathiName: 'चेन्नई बीच - चेंगलपट्टू लोकल',
+    originStation: 'MSB',
+    destinationStation: 'CGL',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '08:10', scheduledDeparture: '08:10', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '08:14', scheduledDeparture: '08:15', platform: '1', distanceKm: 2.0, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '08:17', scheduledDeparture: '08:18', platform: '1', distanceKm: 3.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '08:22', scheduledDeparture: '08:23', platform: '3', distanceKm: 4.5, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '08:33', scheduledDeparture: '08:34', platform: '2', distanceKm: 11.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '08:39', scheduledDeparture: '08:40', platform: '2', distanceKm: 14.0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '09:05', scheduledDeparture: '09:07', platform: '4', distanceKm: 29.0, isHalt: true },
+      { stationCode: 'CGL', stationName: 'Chengalpattu Junction', scheduledArrival: '09:50', scheduledDeparture: '09:50', platform: '2', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40503',
+    trainName: 'Chennai Beach - Chengalpattu Suburban EMU',
+    hindiName: 'चेन्नई बीच - चेंगलपट्टू लोकल',
+    marathiName: 'चेन्नई बीच - चेंगलपट्टू लोकल',
+    originStation: 'MSB',
+    destinationStation: 'CGL',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '10:35', scheduledDeparture: '10:35', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '10:39', scheduledDeparture: '10:40', platform: '1', distanceKm: 2.0, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '10:42', scheduledDeparture: '10:43', platform: '1', distanceKm: 3.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '10:47', scheduledDeparture: '10:48', platform: '3', distanceKm: 4.5, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '10:58', scheduledDeparture: '10:59', platform: '2', distanceKm: 11.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '11:04', scheduledDeparture: '11:05', platform: '2', distanceKm: 14.0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '11:30', scheduledDeparture: '11:32', platform: '4', distanceKm: 29.0, isHalt: true },
+      { stationCode: 'CGL', stationName: 'Chengalpattu Junction', scheduledArrival: '12:15', scheduledDeparture: '12:15', platform: '3', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40505',
+    trainName: 'Chennai Beach - Chengalpattu Suburban EMU',
+    hindiName: 'चेन्नई बीच - चेंगलपट्टू लोकल',
+    marathiName: 'चेन्नई बीच - चेंगलपट्टू लोकल',
+    originStation: 'MSB',
+    destinationStation: 'CGL',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '14:15', scheduledDeparture: '14:15', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '14:19', scheduledDeparture: '14:20', platform: '1', distanceKm: 2.0, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '14:22', scheduledDeparture: '14:23', platform: '1', distanceKm: 3.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '14:27', scheduledDeparture: '14:28', platform: '3', distanceKm: 4.5, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '14:38', scheduledDeparture: '14:39', platform: '2', distanceKm: 11.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '14:44', scheduledDeparture: '14:45', platform: '2', distanceKm: 14.0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '15:10', scheduledDeparture: '15:12', platform: '4', distanceKm: 29.0, isHalt: true },
+      { stationCode: 'CGL', stationName: 'Chengalpattu Junction', scheduledArrival: '15:55', scheduledDeparture: '15:55', platform: '2', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40507',
+    trainName: 'Chennai Beach - Chengalpattu Suburban EMU',
+    hindiName: 'चेन्नई बीच - चेंगलपट्टू लोकल',
+    marathiName: 'चेन्नई बीच - चेंगलपट्टू लोकल',
+    originStation: 'MSB',
+    destinationStation: 'CGL',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '18:20', scheduledDeparture: '18:20', platform: '4', distanceKm: 0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '18:24', scheduledDeparture: '18:25', platform: '1', distanceKm: 2.0, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '18:27', scheduledDeparture: '18:28', platform: '1', distanceKm: 3.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '18:32', scheduledDeparture: '18:33', platform: '4', distanceKm: 4.5, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '18:43', scheduledDeparture: '18:44', platform: '2', distanceKm: 11.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '18:49', scheduledDeparture: '18:50', platform: '2', distanceKm: 14.0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '19:15', scheduledDeparture: '19:17', platform: '5', distanceKm: 29.0, isHalt: true },
+      { stationCode: 'CGL', stationName: 'Chengalpattu Junction', scheduledArrival: '20:00', scheduledDeparture: '20:00', platform: '3', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40502',
+    trainName: 'Chengalpattu - Chennai Beach Suburban EMU',
+    hindiName: 'चेंगलपट्टू - चेन्नई बीच लोकल',
+    marathiName: 'चेंगलपट्टू - चेन्नई बीच लोकल',
+    originStation: 'CGL',
+    destinationStation: 'MSB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CGL', stationName: 'Chengalpattu Junction', scheduledArrival: '07:15', scheduledDeparture: '07:15', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '08:00', scheduledDeparture: '08:02', platform: '3', distanceKm: 31.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '08:24', scheduledDeparture: '08:25', platform: '1', distanceKm: 46.0, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '08:30', scheduledDeparture: '08:31', platform: '1', distanceKm: 49.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '08:42', scheduledDeparture: '08:43', platform: '2', distanceKm: 55.5, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '08:47', scheduledDeparture: '08:48', platform: '2', distanceKm: 57.0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '08:50', scheduledDeparture: '08:51', platform: '2', distanceKm: 58.0, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '08:58', scheduledDeparture: '08:58', platform: '3', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40504',
+    trainName: 'Chengalpattu - Chennai Beach Suburban EMU',
+    hindiName: 'चेंगलपट्टू - चेन्नई बीच लोकल',
+    marathiName: 'चेंगलपट्टू - चेन्नई बीच लोकल',
+    originStation: 'CGL',
+    destinationStation: 'MSB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CGL', stationName: 'Chengalpattu Junction', scheduledArrival: '10:20', scheduledDeparture: '10:20', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '11:05', scheduledDeparture: '11:07', platform: '3', distanceKm: 31.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '11:29', scheduledDeparture: '11:30', platform: '1', distanceKm: 46.0, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '11:35', scheduledDeparture: '11:36', platform: '1', distanceKm: 49.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '11:47', scheduledDeparture: '11:48', platform: '2', distanceKm: 55.5, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '11:52', scheduledDeparture: '11:53', platform: '2', distanceKm: 57.0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '11:55', scheduledDeparture: '11:56', platform: '2', distanceKm: 58.0, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '12:03', scheduledDeparture: '12:03', platform: '2', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40506',
+    trainName: 'Chengalpattu - Chennai Beach Suburban EMU',
+    hindiName: 'चेंगलपट्टू - चेन्नई बीच लोकल',
+    marathiName: 'चेंगलपट्टू - चेन्नई बीच लोकल',
+    originStation: 'CGL',
+    destinationStation: 'MSB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CGL', stationName: 'Chengalpattu Junction', scheduledArrival: '14:00', scheduledDeparture: '14:00', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '14:45', scheduledDeparture: '14:47', platform: '3', distanceKm: 31.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '15:09', scheduledDeparture: '15:10', platform: '1', distanceKm: 46.0, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '15:15', scheduledDeparture: '15:16', platform: '1', distanceKm: 49.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '15:27', scheduledDeparture: '15:28', platform: '2', distanceKm: 55.5, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '15:32', scheduledDeparture: '15:33', platform: '2', distanceKm: 57.0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '15:35', scheduledDeparture: '15:36', platform: '2', distanceKm: 58.0, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '15:43', scheduledDeparture: '15:43', platform: '3', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40508',
+    trainName: 'Chengalpattu - Chennai Beach Suburban EMU',
+    hindiName: 'चेंगलपट्टू - चेन्नई बीच लोकल',
+    marathiName: 'चेंगलपट्टू - चेन्नई बीच लोकल',
+    originStation: 'CGL',
+    destinationStation: 'MSB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'CGL', stationName: 'Chengalpattu Junction', scheduledArrival: '17:30', scheduledDeparture: '17:30', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '18:15', scheduledDeparture: '18:17', platform: '3', distanceKm: 31.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '18:39', scheduledDeparture: '18:40', platform: '1', distanceKm: 46.0, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '18:45', scheduledDeparture: '18:46', platform: '1', distanceKm: 49.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '18:57', scheduledDeparture: '18:58', platform: '2', distanceKm: 55.5, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '19:02', scheduledDeparture: '19:03', platform: '2', distanceKm: 57.0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '19:05', scheduledDeparture: '19:06', platform: '2', distanceKm: 58.0, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '19:13', scheduledDeparture: '19:13', platform: '4', distanceKm: 60.0, isHalt: true }
+    ]
+  },
+
+  // 2. Chennai Beach - Tambaram Local EMU
+  {
+    trainNumber: '40001',
+    trainName: 'Chennai Beach - Tambaram Local EMU',
+    hindiName: 'चेन्नई बीच - तांबरम लोकल',
+    marathiName: 'चेन्नई बीच - तांबरम लोकल',
+    originStation: 'MSB',
+    destinationStation: 'TBM',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '09:00', scheduledDeparture: '09:00', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '09:04', scheduledDeparture: '09:05', platform: '1', distanceKm: 2.0, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '09:07', scheduledDeparture: '09:08', platform: '1', distanceKm: 3.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '09:12', scheduledDeparture: '09:13', platform: '3', distanceKm: 4.5, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '09:23', scheduledDeparture: '09:24', platform: '2', distanceKm: 11.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '09:29', scheduledDeparture: '09:30', platform: '2', distanceKm: 14.0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '09:55', scheduledDeparture: '09:55', platform: '3', distanceKm: 29.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40003',
+    trainName: 'Chennai Beach - Tambaram Local EMU',
+    hindiName: 'चेन्नई बीच - तांबरम लोकल',
+    marathiName: 'चेन्नई बीच - तांबरम लोकल',
+    originStation: 'MSB',
+    destinationStation: 'TBM',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '10:45', scheduledDeparture: '10:45', platform: '1', distanceKm: 0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '10:49', scheduledDeparture: '10:50', platform: '1', distanceKm: 2.0, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '10:52', scheduledDeparture: '10:53', platform: '1', distanceKm: 3.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '10:57', scheduledDeparture: '10:58', platform: '3', distanceKm: 4.5, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '11:08', scheduledDeparture: '11:09', platform: '2', distanceKm: 11.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '11:14', scheduledDeparture: '11:15', platform: '2', distanceKm: 14.0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '11:40', scheduledDeparture: '11:40', platform: '5', distanceKm: 29.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40005',
+    trainName: 'Chennai Beach - Tambaram Local EMU',
+    hindiName: 'चेन्नई बीच - तांबरम लोकल',
+    marathiName: 'चेन्नई बीच - तांबरम लोकल',
+    originStation: 'MSB',
+    destinationStation: 'TBM',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '17:40', scheduledDeparture: '17:40', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '17:44', scheduledDeparture: '17:45', platform: '1', distanceKm: 2.0, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '17:47', scheduledDeparture: '17:48', platform: '1', distanceKm: 3.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '17:52', scheduledDeparture: '17:53', platform: '3', distanceKm: 4.5, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '18:03', scheduledDeparture: '18:04', platform: '2', distanceKm: 11.0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '18:09', scheduledDeparture: '18:10', platform: '2', distanceKm: 14.0, isHalt: true },
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '18:35', scheduledDeparture: '18:35', platform: '4', distanceKm: 29.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40002',
+    trainName: 'Tambaram - Chennai Beach Local EMU',
+    hindiName: 'तांबरम - चेन्नई बीच लोकल',
+    marathiName: 'तांबरम - चेन्नई बीच लोकल',
+    originStation: 'TBM',
+    destinationStation: 'MSB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '08:45', scheduledDeparture: '08:45', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '09:09', scheduledDeparture: '09:10', platform: '1', distanceKm: 15.0, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '09:15', scheduledDeparture: '09:16', platform: '1', distanceKm: 18.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '09:27', scheduledDeparture: '09:28', platform: '2', distanceKm: 24.5, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '09:32', scheduledDeparture: '09:33', platform: '2', distanceKm: 26.0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '09:35', scheduledDeparture: '09:36', platform: '2', distanceKm: 27.0, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '09:43', scheduledDeparture: '09:43', platform: '2', distanceKm: 29.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40004',
+    trainName: 'Tambaram - Chennai Beach Local EMU',
+    hindiName: 'तांबरम - चेन्नई बीच लोकल',
+    marathiName: 'तांबरम - चेन्नई बीच लोकल',
+    originStation: 'TBM',
+    destinationStation: 'MSB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '10:35', scheduledDeparture: '10:35', platform: '3', distanceKm: 0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '10:59', scheduledDeparture: '11:00', platform: '1', distanceKm: 15.0, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '11:05', scheduledDeparture: '11:06', platform: '1', distanceKm: 18.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '11:17', scheduledDeparture: '11:18', platform: '2', distanceKm: 24.5, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '11:22', scheduledDeparture: '11:23', platform: '2', distanceKm: 26.0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '11:25', scheduledDeparture: '11:26', platform: '2', distanceKm: 27.0, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '11:33', scheduledDeparture: '11:33', platform: '1', distanceKm: 29.0, isHalt: true }
+    ]
+  },
+  {
+    trainNumber: '40006',
+    trainName: 'Tambaram - Chennai Beach Local EMU',
+    hindiName: 'तांबरम - चेन्नई बीच लोकल',
+    marathiName: 'तांबरम - चेन्नई बीच लोकल',
+    originStation: 'TBM',
+    destinationStation: 'MSB',
+    serviceType: 'suburban_slow',
+    runningDays: [0, 1, 2, 3, 4, 5, 6],
+    rakeType: '12_car',
+    availableClasses: ['II', 'I'],
+    stops: [
+      { stationCode: 'TBM', stationName: 'Tambaram', scheduledArrival: '18:00', scheduledDeparture: '18:00', platform: '2', distanceKm: 0, isHalt: true },
+      { stationCode: 'GDY', stationName: 'Guindy', scheduledArrival: '18:24', scheduledDeparture: '18:25', platform: '1', distanceKm: 15.0, isHalt: true },
+      { stationCode: 'MBM', stationName: 'Mambalam', scheduledArrival: '18:30', scheduledDeparture: '18:31', platform: '1', distanceKm: 18.0, isHalt: true },
+      { stationCode: 'MS', stationName: 'Chennai Egmore', scheduledArrival: '18:42', scheduledDeparture: '18:43', platform: '2', distanceKm: 24.5, isHalt: true },
+      { stationCode: 'MPK', stationName: 'Chennai Park', scheduledArrival: '18:47', scheduledDeparture: '18:48', platform: '2', distanceKm: 26.0, isHalt: true },
+      { stationCode: 'MSF', stationName: 'Chennai Fort', scheduledArrival: '18:50', scheduledDeparture: '18:51', platform: '2', distanceKm: 27.0, isHalt: true },
+      { stationCode: 'MSB', stationName: 'Chennai Beach', scheduledArrival: '18:58', scheduledDeparture: '18:58', platform: '3', distanceKm: 29.0, isHalt: true }
+    ]
+  },
+
   // --- Hyderabad Representative Journeys ---
   {
     trainNumber: 'HYD-101',
@@ -1775,6 +2619,13 @@ export const TRAIN_TRIPS: TrainTrip[] = [
     ]
   }
 ];
+
+// Normalize TrainTrip with id, fromStationCode and toStationCode for ubiquitous consumer compatibility
+for (const trip of TRAIN_TRIPS) {
+  if (!trip.id) trip.id = trip.trainNumber;
+  if (!trip.fromStationCode) trip.fromStationCode = trip.originStation;
+  if (!trip.toStationCode) trip.toStationCode = trip.destinationStation;
+}
 
 /**
  * Baseline Scenario Observations [SCENARIO / SIMULATED MODEL]

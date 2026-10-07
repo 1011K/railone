@@ -9,10 +9,12 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useMobileTheme } from '../../src/theme/ThemeContext';
 import { MobileApiClient } from '../../src/api/client';
 
 export default function MyTicketsScreen() {
+  const router = useRouter();
   const { colors } = useMobileTheme();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'cancelled' | 'season_passes'>('upcoming');
   const [tickets, setTickets] = useState<any[]>([]);
@@ -62,6 +64,21 @@ export default function MyTicketsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* TTE Examiner Demo Access Banner */}
+      <TouchableOpacity
+        onPress={() => router.push('/tte')}
+        style={[styles.tteBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+      >
+        <View style={styles.tteBannerContent}>
+          <Text style={[styles.tteBannerTitle, { color: colors.primary }]}>
+            TTE Ticket Examiner (Demo Mode) ➔
+          </Text>
+          <Text style={[styles.tteBannerSubtitle, { color: colors.textMuted }]}>
+            Verify QR signatures, travel classes & Section 137/138 compliance
+          </Text>
+        </View>
+      </TouchableOpacity>
+
       {/* Category Filter Tabs */}
       <View style={[styles.tabsRow, { backgroundColor: colors.card, borderBottomColor: colors.cardBorder }]}>
         {(['upcoming', 'past', 'cancelled', 'season_passes'] as const).map(tab => (
@@ -505,5 +522,24 @@ const styles = StyleSheet.create({
   timelineText: {
     fontSize: 11,
     textAlign: 'center'
+  },
+  tteBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1
+  },
+  tteBannerContent: {
+    gap: 4
+  },
+  tteBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  tteBannerSubtitle: {
+    fontSize: 11,
+    lineHeight: 15
   }
 });

@@ -81,7 +81,7 @@ export default function HelpScreen() {
           Statutory Telephony & 139 Hotline Boundary
         </Text>
         <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-          Indian Railways national helpline <strong>139</strong> is an official emergency and passenger grievance hotline under statutory CRIS control. RailOne Next does NOT co-opt, hijack, or route AI voice interactions through 139.
+          Indian Railways national helpline <strong>139</strong> is an official emergency and passenger grievance hotline under statutory Indian Railways control. RailOne Next does NOT co-opt, hijack, or route AI voice interactions through 139.
         </Text>
         <Text style={[styles.bodyText, { color: colors.textSecondary, marginTop: 8 }]}>
           Direct PSTN telephony dialing is disabled without explicit DoT/TRAI enterprise SIP trunk authorization. Use the in-app <strong>Call RailSathi</strong> feature for natural voice journey planning.
@@ -107,7 +107,7 @@ export default function HelpScreen() {
           Railways Act 1989 Section 138 Notice
         </Text>
         <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-          Travel without a valid ticket or travelling on Mail/Express trains with unendorsed suburban tickets constitutes an offense under Section 138 of the Railways Act, punishable by excess charge and statutory fines.
+          Travel without a valid ticket or travelling on Mail/Express trains with unendorsed suburban tickets constitutes an offense under Section 138 of the Railways Act, punishable by excess charge and statutory minimum penalty of ₹500 (effective 20 June 2026).
         </Text>
       </View>
     </ScrollView>

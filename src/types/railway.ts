@@ -69,12 +69,15 @@ export interface StopEntry {
 }
 
 export interface TrainTrip {
+  id?: string;
   trainNumber: string;
   trainName: string;
   hindiName?: string;
   marathiName?: string;
   originStation: string;
   destinationStation: string;
+  fromStationCode?: string;
+  toStationCode?: string;
   serviceType: TrainServiceType;
   runningDays: number[]; // 0=Sunday, 1=Monday...
   stops: StopEntry[];
@@ -186,6 +189,9 @@ export interface JourneyItinerary {
   originDelayWarning?: string;
   transfersNote?: string;
   isAcService: boolean;
+  recommendationBadges?: string[];
+  serviceCategory?: 'slow' | 'fast' | 'ac' | 'express' | 'metro';
+  expressPromotionBlockedReason?: string;
 }
 
 export type UserTravelContext = 

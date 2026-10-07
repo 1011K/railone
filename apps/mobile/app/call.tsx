@@ -8,7 +8,8 @@ import {
   TextInput,
   SafeAreaView,
   Alert,
-  Platform
+  Platform,
+  Linking
 } from 'react-native';
 import { router } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
@@ -100,7 +101,33 @@ export default function VoiceCallScreen() {
   const voiceServiceRef = useRef<NativeVoiceService | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
 
-  // 1. Request microphone permission on mount
+  // 1. Request microphone permission on mount & provide recovery
+  const recoverMicrophonePermission = async () => {
+    try {
+      const { status, canAskAgain } = await Audio.requestPermissionsAsync();
+      const granted = status === 'granted';
+      setMicPermissionGranted(granted);
+      if (granted) {
+        Alert.alert('Microphone Access Granted', 'RailSathi speech engine is ready for voice input.');
+      } else {
+        if (!canAskAgain && Platform.OS !== 'web') {
+          Alert.alert(
+            'Microphone Permission Blocked',
+            'Microphone access is disabled in system settings. Tap "Open Settings" to enable.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() }
+            ]
+          );
+        } else {
+          Alert.alert('Permission Denied', 'Microphone access is required for real-time speech input.');
+        }
+      }
+    } catch (err: any) {
+      console.warn('Microphone permission recovery error:', err);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -110,13 +137,27 @@ export default function VoiceCallScreen() {
         if (!granted) {
           Alert.alert(
             'Microphone Permission Denied',
-            'RailOne needs microphone access for speech input. You can use the text keypad or quick phrases below.'
+            'RailOne needs microphone access for speech input. You can use the text keypad, quick phrases below, or tap "Grant Access" in the header.',
+            [
+              { text: 'Use Keypad', onPress: () => setShowTextInput(true) },
+              { text: 'Grant Access', onPress: recoverMicrophonePermission }
+            ]
           );
         }
       } catch {
         // Fallback in web or simulator
       }
     })();
+  }, []);
+
+  // Register resilient on-device speech fallback
+  useEffect(() => {
+    if (speechEngine.registerFallbackHandler) {
+      speechEngine.registerFallbackHandler((_text, options) => {
+        // Fallback gracefully completes speech when native TTS encounters errors
+        options.onDone();
+      });
+    }
   }, []);
 
   // 2. Initialize voice session
@@ -167,7 +208,11 @@ export default function VoiceCallScreen() {
     if (!micPermissionGranted) {
       Alert.alert(
         'Microphone Permission Required',
-        'Please grant microphone permission to record voice, or use the keypad below.'
+        'Please grant microphone permission to record voice, or use the keypad below.',
+        [
+          { text: 'Use Keypad', onPress: () => setShowTextInput(true) },
+          { text: 'Grant Access', onPress: recoverMicrophonePermission }
+        ]
       );
       setShowTextInput(true);
       return;
@@ -336,6 +381,12 @@ export default function VoiceCallScreen() {
         {!micPermissionGranted && (
           <View style={styles.permBanner}>
             <Text style={styles.permBannerText}>[MIC PERMISSION DENIED: USING KEYPAD MODE]</Text>
+            <TouchableOpacity
+              onPress={recoverMicrophonePermission}
+              style={styles.permRecoverBtn}
+            >
+              <Text style={styles.permRecoverBtnText}>Grant Access</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -577,13 +628,27 @@ const styles = StyleSheet.create({
   },
   permBanner: {
     marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     backgroundColor: '#ef444420',
-    borderRadius: 4
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
   },
   permBannerText: {
     color: '#ef4444',
+    fontSize: 10,
+    fontWeight: '800'
+  },
+  permRecoverBtn: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4
+  },
+  permRecoverBtnText: {
+    color: '#ffffff',
     fontSize: 10,
     fontWeight: '800'
   },

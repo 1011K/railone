@@ -753,3 +753,273 @@ export function calculateStationTransferRoute(
     steps
   };
 }
+
+export interface DestinationExit {
+  exitId: string;
+  gateName: string;
+  destinationLandmarks: string[];
+  onwardTransit: {
+    taxiStand?: string;
+    autoStand?: string;
+    busInterchange?: string;
+    metroInterchange?: string;
+  };
+  accessibility: {
+    isStepFree: boolean;
+    rampAvailable: boolean;
+    tactilePaving: boolean;
+  };
+  approxWalkMinutes: number;
+}
+
+export interface StationExitProfile {
+  stationCode: string;
+  stationName: string;
+  hasVerifiedExits: boolean;
+  exits: DestinationExit[];
+}
+
+export const VERIFIED_STATION_EXITS: Record<string, StationExitProfile> = {
+  CCG: {
+    stationCode: 'CCG',
+    stationName: 'Churchgate',
+    hasVerifiedExits: true,
+    exits: [
+      {
+        exitId: 'CCG-EXIT-1',
+        gateName: 'Exit 1 (West — Marine Drive & Promenade)',
+        destinationLandmarks: ['Marine Drive Promenade', 'Cricket Club of India (CCI)', 'Brabourne Stadium', 'Veer Nariman Road'],
+        onwardTransit: {
+          taxiStand: 'Churchgate West Dedicated Share-Taxi Stand (40m outside gate)',
+          busInterchange: 'BEST Bus Bay: Routes 123 (R.C. Church) and 137 (Navy Nagar)'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      },
+      {
+        exitId: 'CCG-EXIT-2',
+        gateName: 'Exit 2 (East — Subway / Metro / BEST Bus)',
+        destinationLandmarks: ['Churchgate Subway Underpass', 'Hutatma Chowk (Flora Fountain)', 'Metro Line 3 Vidhan Bhavan Link'],
+        onwardTransit: {
+          metroInterchange: 'Mumbai Metro Line 3 (Aqua Line) Vidhan Bhavan Underground Station (250m pedestrian link)',
+          busInterchange: 'BEST Churchgate Bus Station: Routes 83, 100, 132, 138'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 4
+      },
+      {
+        exitId: 'CCG-EXIT-3',
+        gateName: 'Exit 3 (South-East — Oval Maidan & High Court)',
+        destinationLandmarks: ['Oval Maidan', 'Bombay High Court', 'Mumbai University Fort Campus'],
+        onwardTransit: {},
+        accessibility: { isStepFree: false, rampAvailable: false, tactilePaving: true },
+        approxWalkMinutes: 5
+      }
+    ]
+  },
+  DR: {
+    stationCode: 'DR',
+    stationName: 'Dadar Junction',
+    hasVerifiedExits: true,
+    exits: [
+      {
+        exitId: 'DR-EXIT-WEST',
+        gateName: 'West Exit (Senapati Bapat Marg / Plaza)',
+        destinationLandmarks: ['Ranade Road Market', 'Dadar Flower Market (Phool Galli)', 'Plaza Cinema', 'Shivaji Park Promenade'],
+        onwardTransit: {
+          taxiStand: 'Dadar West Share-Taxi Hub (direct cabs to Worli, Lower Parel, Nariman Point)',
+          busInterchange: 'Dadar West BEST Depot (Senapati Bapat Marg)'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 2
+      },
+      {
+        exitId: 'DR-EXIT-EAST',
+        gateName: 'East Exit (Dadar TT / Khodadad Circle)',
+        destinationLandmarks: ['Swami Vivekananda Road', 'Dadar T.T. Circle (Khodadad Circle)', 'Dr. Babasaheb Ambedkar Road', 'Chitra Cinema'],
+        onwardTransit: {
+          taxiStand: 'Dadar TT Circle Taxi Stand (cabs to Chembur, Thane, Navi Mumbai)',
+          busInterchange: 'Dadar TT Central Bus Interchange (BEST Routes 1, 4, 11, 22)'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      }
+    ]
+  },
+  CSMT: {
+    stationCode: 'CSMT',
+    stationName: 'Chhatrapati Shivaji Maharaj Terminus',
+    hasVerifiedExits: true,
+    exits: [
+      {
+        exitId: 'CSMT-EXIT-SUBWAY',
+        gateName: 'South Exit (Subway to BMC HQ & D.N. Road)',
+        destinationLandmarks: ['BMC Headquarters', 'D.N. Road Heritage Mile', 'Crawford Market', 'Metro Line 3 CSMT Station'],
+        onwardTransit: {
+          metroInterchange: 'Mumbai Metro Line 3 CSMT Underground Station underpass connection',
+          taxiStand: 'D.N. Road Share-Taxi Point'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 4
+      },
+      {
+        exitId: 'CSMT-EXIT-CONCOURSE',
+        gateName: 'East Exit (P. D’Mello Road / Taxi Stand)',
+        destinationLandmarks: ['P. D’Mello Road', 'Eastern Freeway Ramp', 'Bhaucha Dhakka (Ferry Wharf) Link'],
+        onwardTransit: {
+          taxiStand: 'Prepaid & Metered Black-and-Yellow Taxi Bay (Main concourse exit)'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      }
+    ]
+  },
+  TNA: {
+    stationCode: 'TNA',
+    stationName: 'Thane Junction',
+    hasVerifiedExits: true,
+    exits: [
+      {
+        exitId: 'TNA-EXIT-SATIS',
+        gateName: 'West Exit (SATIS Elevated Bus Terminal Deck)',
+        destinationLandmarks: ['SATIS Elevated Bus Deck', 'Station Road Commercial Market', 'Talao Pali (Lake)'],
+        onwardTransit: {
+          busInterchange: 'TMT Municipal Elevated Deck Bus Station (AC & Non-AC routes to Borivali, Mira Road, Ghodbunder)',
+          autoStand: 'West Station Road Metered Auto-Rickshaw Stand'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 2
+      },
+      {
+        exitId: 'TNA-EXIT-EAST',
+        gateName: 'East Exit (Kopri Colony & Highway Link)',
+        destinationLandmarks: ['Kopri Colony', 'Eastern Express Highway Toll Link'],
+        onwardTransit: {
+          autoStand: 'Thane East Share-Auto Stand (direct to Airoli, Vashi, Kopar Khairane)'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      }
+    ]
+  },
+  KYN: {
+    stationCode: 'KYN',
+    stationName: 'Kalyan Junction',
+    hasVerifiedExits: true,
+    exits: [
+      {
+        exitId: 'KYN-EXIT-WEST',
+        gateName: 'West Exit (Kalyan ST Bus Depot & Market)',
+        destinationLandmarks: ['Shivaji Chowk', 'KDMT Municipal Bus Terminal', 'MSRTC Kalyan Central Bus Stand'],
+        onwardTransit: {
+          busInterchange: 'KDMT and MSRTC Intercity Bus Terminus (direct to Bhiwandi, Dombivli, Panvel, Nashik)',
+          autoStand: 'Kalyan West Pre-Paid Auto-Rickshaw Bay'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 2
+      },
+      {
+        exitId: 'KYN-EXIT-EAST',
+        gateName: 'East Exit (Katemanivali & APMC)',
+        destinationLandmarks: ['Katemanivali Road', 'Kalyan APMC Agriculture Market', 'Waldhuni'],
+        onwardTransit: {
+          autoStand: 'Kalyan East Auto Stand'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      }
+    ]
+  },
+  ADH: {
+    stationCode: 'ADH',
+    stationName: 'Andheri',
+    hasVerifiedExits: true,
+    exits: [
+      {
+        exitId: 'ADH-EXIT-METRO',
+        gateName: 'East Skywalk Exit (Direct Metro 1 Interchange)',
+        destinationLandmarks: ['Mumbai Metro Line 1 Andheri Elevated Station', 'MV Road Commercial Hub'],
+        onwardTransit: {
+          metroInterchange: 'Direct elevated skywalk transfer to Metro Line 1 (Versova-Ghatkopar corridor)'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 2
+      },
+      {
+        exitId: 'ADH-EXIT-WEST',
+        gateName: 'West Exit (SV Road & Shoppers Stop)',
+        destinationLandmarks: ['SV Road', 'Shoppers Stop Andheri', 'Juhu Beach Link'],
+        onwardTransit: {
+          busInterchange: 'Andheri West BEST Bus Depot (Routes 202, 203, 241)',
+          autoStand: 'West Station Metered Auto Stand'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      }
+    ]
+  },
+  BVI: {
+    stationCode: 'BVI',
+    stationName: 'Borivali Terminus',
+    hasVerifiedExits: true,
+    exits: [
+      {
+        exitId: 'BVI-EXIT-WEST',
+        gateName: 'West Exit (SV Road & Gorai Jetty Link)',
+        destinationLandmarks: ['SV Road Borivali West', 'Gorai Creek / EsselWorld Ferry Link'],
+        onwardTransit: {
+          autoStand: 'Borivali West Metered Auto Stand'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      },
+      {
+        exitId: 'BVI-EXIT-EAST',
+        gateName: 'East Skywalk Exit (National Park & Highway Link)',
+        destinationLandmarks: ['Sanjay Gandhi National Park', 'Western Express Highway'],
+        onwardTransit: {
+          busInterchange: 'Borivali East Bus Station (Direct BEST & TMT buses)',
+          autoStand: 'Borivali East Auto Stand'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 4
+      }
+    ]
+  },
+  CLA: {
+    stationCode: 'CLA',
+    stationName: 'Kurla Junction',
+    hasVerifiedExits: true,
+    exits: [
+      {
+        exitId: 'CLA-EXIT-EAST',
+        gateName: 'East Exit (Nehru Nagar / LTT Link)',
+        destinationLandmarks: ['Nehru Nagar Bus Depot', 'Lokmanya Tilak Terminus (LTT) Link'],
+        onwardTransit: {
+          autoStand: 'Share-Auto to LTT National Terminus (3 min ride / 800m)',
+          busInterchange: 'Nehru Nagar BEST & MSRTC Intercity Bus Station'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      },
+      {
+        exitId: 'CLA-EXIT-WEST',
+        gateName: 'West Exit (BKC Link & CST Road)',
+        destinationLandmarks: ['Bandra-Kurla Complex (BKC) Commercial Center', 'CST Road Market'],
+        onwardTransit: {
+          autoStand: 'BKC Share-Auto Stand (Direct frequent service to Diamond Bourse, MCA, US Consulate)'
+        },
+        accessibility: { isStepFree: true, rampAvailable: true, tactilePaving: true },
+        approxWalkMinutes: 3
+      }
+    ]
+  }
+};
+
+export function getStationExitGuidance(stationCode: string): StationExitProfile | null {
+  const code = (stationCode || '').trim().toUpperCase();
+  if (VERIFIED_STATION_EXITS[code]) {
+    return VERIFIED_STATION_EXITS[code];
+  }
+  return null;
+}

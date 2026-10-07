@@ -1098,10 +1098,12 @@ console.log('\nTest Suite 23: Native Mobile Application (Expo / React Native), O
     'app/booking/express.tsx',
     'app/booking/local.tsx',
     'app/map.tsx',
-    'app/wayfinding.tsx'
+    'app/wayfinding.tsx',
+    'app/tte.tsx',
+    'app/guide.tsx'
   ];
   const allScreensExist = mobileScreens.every(sc => fs.existsSync(path.resolve(process.cwd(), 'apps/mobile', sc)));
-  assert(allScreensExist, '23.3: All 13 native Expo Router mobile screens and layouts exist');
+  assert(allScreensExist, '23.3: All 15 native Expo Router mobile screens and layouts exist');
 
   // 23.4: Authentic Railway Theme Palettes (8 Livery Themes)
   const themeKeys = Object.keys(THEME_PALETTES);
@@ -1207,6 +1209,251 @@ console.log('\nTest Suite 23: Native Mobile Application (Expo / React Native), O
   assert(
     savedJourneys.length > 0 && savedJourneys[0].fromStationCode === 'TNA' && savedJourneys[0].toStationCode === 'CCG',
     '23.11: OfflineStorage persists and retrieves commuter saved journeys'
+  );
+}
+
+console.log('\nTest Suite 24: All-Trains Departure Board, Express 15-Minute Rule, Guided Navigation & Station Exits');
+{
+  const { getStationExitGuidance } = await import('../src/fixtures/stationLayoutsData');
+  const { calculateStationTransferRoute } = await import('../src/fixtures/stationLayoutsData');
+
+  // 24.1: All-Trains Departure Board time windowing (30m vs 60m)
+  const drToKyn30 = planJourneys({
+    originCode: 'DR',
+    destCode: 'KYN',
+    departureTime: '18:30',
+    timeWindowMinutes: 30,
+    userContext: 'pre_departure',
+    preferences: {
+      classPreference: 'any',
+      priority: 'fastest',
+      hasSeasonPass: false,
+      walkToStationMinutes: 5,
+      maxTransfers: 1
+    }
+  });
+  const drToKyn60 = planJourneys({
+    originCode: 'DR',
+    destCode: 'KYN',
+    departureTime: '18:30',
+    timeWindowMinutes: 60,
+    userContext: 'pre_departure',
+    preferences: {
+      classPreference: 'any',
+      priority: 'fastest',
+      hasSeasonPass: false,
+      walkToStationMinutes: 5,
+      maxTransfers: 1
+    }
+  });
+  assert(
+    drToKyn30.length > 0 && drToKyn60.length >= drToKyn30.length,
+    '24.1: All-Trains Departure Board respects time window filters (30m vs 60m)'
+  );
+
+  // 24.2: Dadar 18:30 evening rush departure cadence
+  const fast1835 = drToKyn60.find(r => r.predictedDeparture === '18:35');
+  const exp1851 = drToKyn60.find(r => r.predictedDeparture === '18:51');
+  assert(
+    !!fast1835 && !!exp1851 && fast1835.predictedArrival === '19:20' && exp1851.predictedArrival === '19:28',
+    '24.2: Dadar 18:30 evening rush includes 18:35 Fast Local (arr 19:20) and 18:51 Express (arr 19:28)'
+  );
+
+  // 24.3: Express 15-Minute Promotion Rule (Condition 12 Failure)
+  assert(
+    Boolean(fast1835?.isRecommended === true && fast1835?.recommendationBadges?.some(b => b.includes('BEST'))),
+    '24.3: 18:35 Fast Local retains ⭐ BEST recommendation over 18:51 Express'
+  );
+  assert(
+    exp1851?.isRecommended === false &&
+    exp1851?.serviceCategory === 'express' &&
+    !!exp1851?.expressPromotionBlockedReason &&
+    exp1851?.expressPromotionBlockedReason.includes('saves 0 min'),
+    '24.4: 18:51 Express is not promoted as ⭐ BEST and displays honest blocked reason'
+  );
+
+  // 24.5: Recommendation Badges Generation
+  const hasBestBadge = drToKyn60.some(r => r.recommendationBadges?.some(b => b.includes('BEST')));
+  const hasFastestBadge = drToKyn60.some(r => r.recommendationBadges?.some(b => b.includes('FASTEST')));
+  const hasCheapestBadge = drToKyn60.some(r => r.recommendationBadges?.some(b => b.includes('CHEAPEST')));
+  assert(
+    hasBestBadge && hasFastestBadge && hasCheapestBadge,
+    '24.5: Recommendation badging generates ⭐ BEST, FASTEST, and CHEAPEST badges'
+  );
+
+  // 24.6: Verified Destination Exit Guidance
+  const ccgExits = getStationExitGuidance('CCG');
+  const drExits = getStationExitGuidance('DR');
+  const csmtExits = getStationExitGuidance('CSMT');
+  const tnaExits = getStationExitGuidance('TNA');
+  const adhExits = getStationExitGuidance('ADH');
+  assert(
+    ccgExits !== null && ccgExits.exits.length === 3 &&
+    drExits !== null && drExits.exits.length === 2 &&
+    csmtExits !== null && csmtExits.exits.length === 2 &&
+    tnaExits !== null && tnaExits.exits.length === 2 &&
+    adhExits !== null && adhExits.exits.some(e => e.onwardTransit.metroInterchange !== undefined),
+    '24.6: Verified Destination Exit Guidance indexes Churchgate, Dadar, CSMT, Thane, and Andheri with transit links'
+  );
+
+  // 24.7: Station Walk and Platform Change Transfer
+  const dadarWalk = calculateStationTransferRoute('DR', 'DR_WR_1', 'DR_CR_4', false);
+  const dadarStepFree = calculateStationTransferRoute('DR', 'DR_WR_6', 'DR_CR_8', true);
+  assert(
+    dadarWalk.success && dadarWalk.walkMinutes >= 6 && dadarWalk.walkMinutes <= 8 &&
+    dadarStepFree.success && dadarStepFree.stepFreeAvailable === true,
+    '24.7: Platform transfer calculates realistic walk times and resolves step-free elevator bridges'
+  );
+}
+
+console.log('\nTest Suite 25: Native Mobile Rebuild Architecture, EAS Cloud Build, Offline Vector Geometries, Timetable Densification, TTE Statutory Validator & Speech Resilience');
+{
+  // 25.1: EAS Cloud Build Profiles & Hermes Engine
+  const easPath = path.resolve(process.cwd(), 'apps/mobile/eas.json');
+  const appJsonPath = path.resolve(process.cwd(), 'apps/mobile/app.json');
+  assert(fs.existsSync(easPath), '25.1: apps/mobile/eas.json configuration exists');
+  const easJson = JSON.parse(fs.readFileSync(easPath, 'utf8'));
+  const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'));
+  assert(
+    easJson.build?.preview?.android?.buildType === 'apk' &&
+    easJson.build?.preview?.ios?.simulator === true &&
+    !!easJson.build?.production,
+    '25.2: eas.json defines Android APK preview, iOS simulator, and production profiles'
+  );
+  assert(
+    appJson.expo?.jsEngine === 'hermes',
+    '25.3: app.json configures Hermes high-performance JavaScript engine'
+  );
+
+  // 25.4: Offline Vector Map & Geometry Caching
+  const { OfflineStorage } = await import('../apps/mobile/src/storage/offlineStorage');
+  OfflineStorage.saveVectorMap({
+    nodes: [
+      { id: 'node-cst', code: 'CST', name: 'CSMT', line: 'central', x: 100, y: 200, isMajorHub: true },
+      { id: 'node-dr', code: 'DR', name: 'Dadar', line: 'central', x: 100, y: 350, isInterchange: true }
+    ],
+    segments: [
+      { id: 'seg-cst-dr', fromCode: 'CST', toCode: 'DR', line: 'central', trackType: 'fast' }
+    ],
+    geometries: {
+      'CST': { code: 'CST', latitude: 18.940, longitude: 72.835, platformCount: 18, isTunnelPortal: true }
+    }
+  });
+  const cachedMap = OfflineStorage.getVectorMap();
+  const tunnelAdj = OfflineStorage.getTunnelAdjacentStations('CST');
+  assert(
+    OfflineStorage.hasCachedVectorMap() &&
+    cachedMap?.nodes.length === 2 &&
+    cachedMap?.segments.length === 1 &&
+    tunnelAdj.includes('DR') &&
+    cachedMap?.geometries['CST']?.isTunnelPortal === true,
+    '25.4: OfflineStorage persists topological map nodes, track segments, and tunnel geometries'
+  );
+
+  // 25.5: Timetable Densification for Tier 2 Metros (Kolkata & Chennai Suburban)
+  const bngaService = TRAIN_TRIPS.find(t => t.id === '33811' || t.trainNumber === '33811');
+  const bwnMainService = TRAIN_TRIPS.find(t => t.id === '37811' || t.trainNumber === '37811');
+  const bwnChordService = TRAIN_TRIPS.find(t => t.id === '36811' || t.trainNumber === '36811');
+  const cglService = TRAIN_TRIPS.find(t => t.id === '40501' || t.trainNumber === '40501');
+  assert(
+    !!bngaService && bngaService.fromStationCode === 'SDAH' && bngaService.toStationCode === 'BNGA' &&
+    !!bwnMainService && bwnMainService.fromStationCode === 'HWH' && bwnMainService.toStationCode === 'BWN' &&
+    !!bwnChordService && bwnChordService.fromStationCode === 'HWH' && bwnChordService.toStationCode === 'BWN' &&
+    !!cglService && cglService.fromStationCode === 'MSB' && cglService.toStationCode === 'CGL',
+    '25.5: Timetable includes densified Eastern Railway (SDAH-BNGA, HWH-BWN Main/Chord) and Southern Railway (MSB-CGL) EMU corridors'
+  );
+
+  // 25.6: Verified Tier 2 Metro Stations
+  const tier2StationCodes = ['DDJ', 'BT', 'HB', 'BWN', 'BDC', 'DKAE', 'SRP', 'LLH', 'CGL', 'MSF', 'MPK', 'MBM', 'GDY'];
+  const allStationsExist = tier2StationCodes.every(c => !!STATIONS[c]);
+  assert(
+    allStationsExist,
+    '25.6: Station catalog indexes all 13 densified stations across Kolkata & Chennai suburban networks'
+  );
+
+  // 25.7: TTE Validator Mode - Valid Specimen Ticket Verification
+  const { validateTicketPayload, SPECIMEN_TEST_PAYLOADS, TTE_DEMO_DISCLAIMER } = await import('../src/engine/tteTicketValidator');
+  const validRes = validateTicketPayload(SPECIMEN_TEST_PAYLOADS.validSuburban);
+  assert(
+    validRes.status === 'VALID' &&
+    validRes.regulatoryCompliance.section137Violation === false &&
+    validRes.regulatoryCompliance.totalAmountDue === 0 &&
+    validRes.isOfflineDemonstration === true &&
+    validRes.disclaimer === TTE_DEMO_DISCLAIMER,
+    '25.7: TTE validator confirms valid suburban ticket with zero penalties and statutory disclaimer'
+  );
+
+  // 25.8: TTE Validator Mode - Expired Ticket (Section 138 Statutory Penalty)
+  const expiredRes = validateTicketPayload(SPECIMEN_TEST_PAYLOADS.expiredTicket, { inspectionDate: '2026-10-07' });
+  assert(
+    expiredRes.status === 'EXPIRED' &&
+    expiredRes.regulatoryCompliance.section138Violation === true &&
+    expiredRes.regulatoryCompliance.penaltyCharge === 500 &&
+    expiredRes.regulatoryCompliance.totalAmountDue === expiredRes.passengerDetails!.farePaid + 500,
+    '25.8: TTE validator penalizes expired ticket with ₹500 Section 138 statutory excess fine'
+  );
+
+  // 25.9: TTE Validator Mode - Suburban MST on Express Rake (Section 138 Excess Fare)
+  const mstOnExpressRes = validateTicketPayload(
+    SPECIMEN_TEST_PAYLOADS.suburbanMstInExpress,
+    { isInspectingExpressTrain: true, inspectedTrainNumber: '12137 Punjab Mail' }
+  );
+  assert(
+    mstOnExpressRes.status === 'CLASS_MISMATCH' &&
+    mstOnExpressRes.regulatoryCompliance.section138Violation === true &&
+    mstOnExpressRes.regulatoryCompliance.excessFarePayable === 140 &&
+    mstOnExpressRes.regulatoryCompliance.penaltyCharge === 500 &&
+    mstOnExpressRes.regulatoryCompliance.totalAmountDue === 640,
+    '25.9: TTE validator enforces Section 138 tariff recovery (₹140 diff + ₹500 excess charge) for Suburban MST in Express'
+  );
+
+  // 25.10: TTE Validator Mode - Second Class Ticket in AC Local Coach
+  const classMismatchRes = validateTicketPayload(
+    SPECIMEN_TEST_PAYLOADS.validSuburban,
+    { inspectedCoachClass: 'AC_LOCAL' }
+  );
+  assert(
+    classMismatchRes.status === 'CLASS_MISMATCH' &&
+    classMismatchRes.regulatoryCompliance.excessFarePayable === 115 &&
+    classMismatchRes.regulatoryCompliance.penaltyCharge === 500 &&
+    classMismatchRes.regulatoryCompliance.totalAmountDue === 615,
+    '25.10: TTE validator detects 2nd Class ticket in AC Local coach and calculates ₹115 diff + ₹500 penalty'
+  );
+
+  // 25.11: TTE Validator Mode - Unregistered / Forged Ticket (Section 137 Violation)
+  const forgedRes = validateTicketPayload(SPECIMEN_TEST_PAYLOADS.forgedOrNotFound);
+  assert(
+    forgedRes.status === 'NOT_FOUND' &&
+    forgedRes.regulatoryCompliance.section137Violation === true &&
+    forgedRes.regulatoryCompliance.penaltyCharge === 500 &&
+    forgedRes.regulatoryCompliance.totalAmountDue === 500,
+    '25.11: TTE validator detects unregistered/forged ticket and levies ₹500 Section 137 fine'
+  );
+
+  // 25.12: Enhanced Speech Engine Fallback & Resilience
+  const { speechEngine } = await import('../apps/mobile/src/services/speechEngine');
+  let fallbackInvoked: boolean = false;
+  if (speechEngine.registerFallbackHandler) {
+    speechEngine.registerFallbackHandler((_text, opts) => {
+      fallbackInvoked = true;
+      opts.onDone();
+    });
+  }
+  const status = speechEngine.getEngineStatus ? speechEngine.getEngineStatus() : null;
+  assert(
+    !!status && typeof status.engineName === 'string' && status.hasFallbackHandler === true,
+    '25.12: SpeechEngine status reporting and fallback registration handler operational'
+  );
+
+  // 25.13: Speech Engine Fallback Execution in Headless Mode
+  let speechDone: boolean = false;
+  speechEngine.speak('Testing fallback trigger', {
+    language: 'en',
+    onDone: () => { speechDone = true; }
+  });
+  assert(
+    Boolean(fallbackInvoked) && Boolean(speechDone),
+    '25.13: SpeechEngine gracefully invokes fallback handler and completes audio cycle'
   );
 }
 

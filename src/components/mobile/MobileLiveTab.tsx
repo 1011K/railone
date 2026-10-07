@@ -391,11 +391,11 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
 
               {/* Verified Live Pill */}
               <div className="shrink-0 flex flex-col items-end gap-1">
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  [VERIFIED LIVE]
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  [TIMETABLE SCHEDULE]
                 </span>
                 <span className="text-[9px] text-slate-400 font-mono">
-                  {obs?.dataSource ? 'NTES Telemetry' : 'Timetable Active'}
+                  {obs?.dataSource ? 'Timetable Simulation' : 'Timetable Active'}
                 </span>
               </div>
             </div>

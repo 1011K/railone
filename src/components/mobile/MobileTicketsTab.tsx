@@ -19,6 +19,12 @@ import {
   ChevronRight,
   FileText
 } from 'lucide-react';
+import {
+  validateTicketPayload,
+  SPECIMEN_TEST_PAYLOADS,
+  TTE_DEMO_DISCLAIMER,
+  TteVerificationResult
+} from '../../engine/tteTicketValidator';
 
 interface MobileTicketsTabProps {
   onNavigateToJourney: () => void;
@@ -37,11 +43,9 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
 
   // TTE Mode state
   const [tteScanQuery, setTteScanQuery] = useState('');
-  const [tteValidationResult, setTteValidationResult] = useState<{
-    status: 'VALID' | 'INVALID' | 'EXPIRED' | 'UNVERIFIED';
-    message: string;
-    ticket?: SpecimenTicket;
-  } | null>(null);
+  const [isExpressInspection, setIsExpressInspection] = useState(false);
+  const [inspectedCoachClass, setInspectedCoachClass] = useState('II');
+  const [tteValidationResult, setTteValidationResult] = useState<TteVerificationResult | null>(null);
 
   const refreshTickets = () => {
     const list = MockBookingStore.listBookings();
@@ -70,32 +74,20 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
   };
 
   const handleTteVerify = (query: string) => {
-    const clean = query.trim().toUpperCase();
+    const clean = query.trim();
     if (!clean) return;
 
-    const matched = tickets.find(t => t.id === clean || t.pnrMock === clean);
-    if (!matched) {
-      setTteValidationResult({
-        status: 'INVALID',
-        message: `Ticket / Reference "${clean}" not found in current passenger manifest. Statutory Railways Act Section 138 applies.`
-      });
-      return;
-    }
-
-    if (matched.paymentStatus === 'CANCELLED_REFUNDED' || matched.bookingState === 'CANCELLED_DEMO' || matched.bookingState === 'REFUNDED_DEMO') {
-      setTteValidationResult({
-        status: 'EXPIRED',
-        message: `Ticket ${matched.id} was CANCELLED. Refund was processed. Not valid for boarding.`,
-        ticket: matched
-      });
-      return;
-    }
-
-    setTteValidationResult({
-      status: 'VALID',
-      message: `Verified Authentic Specimen Ticket: ${matched.classBooked} Class from ${matched.fromStation.name} to ${matched.toStation.name}. Fare ₹${matched.farePaid} Paid.`,
-      ticket: matched
-    });
+    const result = validateTicketPayload(
+      clean,
+      {
+        isInspectingExpressTrain: isExpressInspection,
+        inspectedCoachClass,
+        inspectedTrainNumber: isExpressInspection ? '12137 Punjab Mail' : '95112 KYN Slow',
+        inspectionDate: '2026-10-07'
+      },
+      tickets
+    );
+    setTteValidationResult(result);
   };
 
   const activeTickets = tickets.filter(t => t.paymentStatus === 'PAID_MOCK' && t.bookingState !== 'CANCELLED_DEMO' && t.bookingState !== 'REFUNDED_DEMO');
@@ -357,7 +349,7 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
                 <UserCheck className="w-5 h-5 text-amber-400" />
                 <div>
                   <div className="text-xs font-black">Traveling Ticket Examiner (TTE) Mode</div>
-                  <div className="text-[10px] text-slate-400">Statutory Manifest Verification</div>
+                  <div className="text-[10px] text-slate-400">Statutory Manifest Verification · Specimen Inspection</div>
                 </div>
               </div>
               <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -365,21 +357,64 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
               </span>
             </div>
             <p className="text-[10px] text-slate-400 leading-relaxed">
-              Voluntary inspection mode. Under statutory Indian privacy rules, location is never used for automated passenger profiling or suspicion generation.
+              {TTE_DEMO_DISCLAIMER}
             </p>
+          </div>
+
+          {/* Inspection Context Selector */}
+          <div className="p-3.5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
+            <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+              Inspection Conditions
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-600 dark:text-slate-400">Inspecting Mail/Express Rake:</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isExpressInspection}
+                  onChange={(e) => setIsExpressInspection(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-theme-primary"></div>
+              </label>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] text-slate-500 font-bold">Coach Class Inspected:</span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { id: 'II', label: '2nd Class' },
+                  { id: 'I', label: '1st Class' },
+                  { id: 'AC_LOCAL', label: 'AC Local' },
+                  { id: '3A', label: '3-Tier AC' }
+                ].map(cls => (
+                  <button
+                    key={cls.id}
+                    onClick={() => setInspectedCoachClass(cls.id)}
+                    className={`py-1.5 px-1 rounded-xl text-center text-[10px] font-bold transition-all border ${
+                      inspectedCoachClass === cls.id
+                        ? 'bg-theme-primary text-white border-theme-primary shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {cls.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Verification Search Bar */}
           <div className="p-3.5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
             <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-              Verify Ticket ID or PNR Reference
+              Verify Ticket ID, PNR or Scanned QR Payload
             </label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={tteScanQuery}
-                onChange={(e) => setTteScanQuery(e.target.value.toUpperCase())}
-                placeholder="Enter ID (e.g. TKT- or PNR)"
+                onChange={(e) => setTteScanQuery(e.target.value)}
+                placeholder="Enter PNR (e.g. 842-1948201) or specimen payload"
                 className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-hidden"
               />
               <button
@@ -390,47 +425,147 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
               </button>
             </div>
 
-            {/* Quick Inspect Chips from Active Tickets */}
-            {activeTickets.length > 0 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto pt-1 no-scrollbar text-[10px]">
-                <span className="text-slate-400">Quick Test:</span>
-                {activeTickets.slice(0, 3).map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      setTteScanQuery(t.id);
-                      handleTteVerify(t.id);
-                    }}
-                    className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold hover:bg-slate-200"
-                  >
-                    {t.id}
-                  </button>
-                ))}
+            {/* Specimen Buttons */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] text-slate-400 font-bold">Quick Specimen Scenarios:</span>
+              <div className="flex flex-wrap gap-1 text-[10px]">
+                <button
+                  onClick={() => {
+                    const p = SPECIMEN_TEST_PAYLOADS.validSuburban;
+                    setTteScanQuery(p);
+                    handleTteVerify(p);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold hover:bg-emerald-500/20"
+                >
+                  Valid 2nd Class
+                </button>
+                <button
+                  onClick={() => {
+                    const p = SPECIMEN_TEST_PAYLOADS.validAcLocal;
+                    setTteScanQuery(p);
+                    handleTteVerify(p);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold hover:bg-emerald-500/20"
+                >
+                  Valid AC Local
+                </button>
+                <button
+                  onClick={() => {
+                    const p = SPECIMEN_TEST_PAYLOADS.expiredTicket;
+                    setTteScanQuery(p);
+                    handleTteVerify(p);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold hover:bg-amber-500/20"
+                >
+                  Expired Ticket
+                </button>
+                <button
+                  onClick={() => {
+                    setIsExpressInspection(true);
+                    const p = SPECIMEN_TEST_PAYLOADS.suburbanMstInExpress;
+                    setTteScanQuery(p);
+                    handleTteVerify(p);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-700 dark:text-orange-300 font-bold hover:bg-orange-500/20"
+                >
+                  MST on Express (Sec 138)
+                </button>
+                <button
+                  onClick={() => {
+                    const p = SPECIMEN_TEST_PAYLOADS.forgedOrNotFound;
+                    setTteScanQuery(p);
+                    handleTteVerify(p);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 font-bold hover:bg-rose-500/20"
+                >
+                  Invalid QR
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Validation Inspection Result Card */}
           {tteValidationResult && (
-            <div className={`p-4 rounded-3xl border space-y-2 animate-fadeIn ${
+            <div className={`p-4 rounded-3xl border space-y-3 animate-fadeIn ${
               tteValidationResult.status === 'VALID'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100'
                 : tteValidationResult.status === 'EXPIRED'
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-100'
+                : tteValidationResult.status === 'CLASS_MISMATCH'
+                ? 'bg-orange-500/10 border-orange-500/30 text-orange-950 dark:text-orange-100'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-950 dark:text-rose-100'
             }`}>
               <div className="flex items-center justify-between font-bold text-xs">
                 <span className="flex items-center gap-1.5">
                   {tteValidationResult.status === 'VALID' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                   {tteValidationResult.status === 'EXPIRED' && <AlertTriangle className="w-4 h-4 text-amber-500" />}
-                  {tteValidationResult.status === 'INVALID' && <XCircle className="w-4 h-4 text-rose-500" />}
-                  <span>Inspection Result: {tteValidationResult.status}</span>
+                  {tteValidationResult.status === 'CLASS_MISMATCH' && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                  {tteValidationResult.status === 'NOT_FOUND' && <XCircle className="w-4 h-4 text-rose-500" />}
+                  <span className="font-black">Result: {tteValidationResult.status}</span>
                 </span>
-                <span className="text-[10px] font-mono font-bold">Examiner Check #91</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/20">
+                  {tteValidationResult.statusCode}
+                </span>
               </div>
-              <p className="text-xs leading-relaxed">
-                {tteValidationResult.message}
+
+              <p className="text-xs leading-relaxed font-medium">
+                {tteValidationResult.summary}
               </p>
+
+              {/* Passenger & Trip Details */}
+              {tteValidationResult.passengerDetails && (
+                <div className="p-2.5 rounded-2xl bg-white/60 dark:bg-black/30 border border-black/5 dark:border-white/10 text-[11px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">PNR:</span>
+                    <span className="font-mono font-bold">{tteValidationResult.passengerDetails.pnr}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Route:</span>
+                    <span className="font-bold">{tteValidationResult.passengerDetails.originStationName} ➔ {tteValidationResult.passengerDetails.destinationStationName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Class / Quota:</span>
+                    <span className="font-bold">{tteValidationResult.passengerDetails.travelClass} ({tteValidationResult.passengerDetails.quota})</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Fare Paid:</span>
+                    <span className="font-bold">₹{tteValidationResult.passengerDetails.farePaid}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Date:</span>
+                    <span className="font-bold">{tteValidationResult.passengerDetails.journeyDate}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Statutory Railways Act Details */}
+              <div className="p-2.5 rounded-2xl bg-white/60 dark:bg-black/30 border border-black/5 dark:border-white/10 text-[11px] space-y-1.5">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                  Statutory Compliance Citation
+                </div>
+                <div className="font-semibold text-xs">
+                  {tteValidationResult.regulatoryCompliance.statutoryCitation}
+                </div>
+                {tteValidationResult.regulatoryCompliance.totalAmountDue > 0 && (
+                  <div className="pt-1 border-t border-black/10 dark:border-white/10 space-y-1 font-mono text-[11px]">
+                    <div className="flex justify-between">
+                      <span>Excess Fare:</span>
+                      <span>₹{tteValidationResult.regulatoryCompliance.excessFarePayable}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Statutory Penalty:</span>
+                      <span>₹{tteValidationResult.regulatoryCompliance.penaltyCharge}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-rose-600 dark:text-rose-400 text-xs">
+                      <span>Total Due:</span>
+                      <span>₹{tteValidationResult.regulatoryCompliance.totalAmountDue}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 pt-1">
+                  Action: {tteValidationResult.regulatoryCompliance.actionRequired}
+                </div>
+              </div>
             </div>
           )}
         </div>

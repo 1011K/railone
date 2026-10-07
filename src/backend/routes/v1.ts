@@ -56,6 +56,7 @@ v1Router.get('/routes/search', (req: Request, res: Response) => {
     to,
     departureTime: req.query.departureTime as string,
     arriveByDeadline: req.query.arriveBy as string,
+    timeWindowMinutes: req.query.timeWindowMinutes ? parseInt(req.query.timeWindowMinutes as string, 10) : undefined,
     date: req.query.date as string,
     classPreference: req.query.classPreference as any,
     acOnly: req.query.acOnly === 'true' || req.query.acOnly === '1',

@@ -2,6 +2,11 @@ import { getDatabase } from '../database/db';
 import { searchStations } from './stations';
 import { TRAIN_TRIPS } from '../../fixtures/railwayData';
 import { MUMBAI_SUBURBAN_NODES } from '../../fixtures/networkMapData';
+import { calculateStationDistance, calculateSuburbanFare } from './fares';
+import { searchRoutes } from './routePlanner';
+import { evaluateJourneyEligibility } from '../../engine/eligibilityEngine';
+import { getAllLiveObservations, getPropagatedStopsForTrain } from './delays';
+import { getAllTrainTrips } from './services';
 
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -71,29 +76,95 @@ export function checkSystemHealth(geminiConfigured = false): HealthCheckResult {
   ];
 
   const modulesMap: Record<string, 'active' | 'degraded'> = {};
-  for (const m of moduleNames) {
-    modulesMap[m] = 'active';
-  }
 
-  // Real operational sanity assertions
+  // Individually verify each module
   try {
     const stns = searchStations('CSMT');
-    if (!stns || stns.length === 0) modulesMap['stationRegistry'] = 'degraded';
+    modulesMap['stationRegistry'] = (stns && stns.length > 0) ? 'active' : 'degraded';
   } catch {
     modulesMap['stationRegistry'] = 'degraded';
   }
 
-  if (!TRAIN_TRIPS || TRAIN_TRIPS.length === 0) {
-    modulesMap['datedServices'] = 'degraded';
-    modulesMap['stopPatternTimetable'] = 'degraded';
+  modulesMap['datedServices'] = (Array.isArray(TRAIN_TRIPS) && TRAIN_TRIPS.length > 0) ? 'active' : 'degraded';
+  modulesMap['stopPatternTimetable'] = (Array.isArray(TRAIN_TRIPS) && TRAIN_TRIPS.some(t => t.stops && t.stops.length > 0)) ? 'active' : 'degraded';
+
+  try {
+    const d = calculateStationDistance('TNA', 'CSMT');
+    modulesMap['interchangesAndWalking'] = (d !== null && d > 0) ? 'active' : 'degraded';
+    const f = calculateSuburbanFare(10, 'II');
+    modulesMap['fareCalculation'] = (f && f.totalFare === 5) ? 'active' : 'degraded';
+  } catch {
+    modulesMap['interchangesAndWalking'] = 'degraded';
+    modulesMap['fareCalculation'] = 'degraded';
   }
 
-  if (dbStatus !== 'connected') {
+  try {
+    const r = searchRoutes({ from: 'TNA', to: 'CSMT', departureTime: '10:35' });
+    modulesMap['generalizedRoutePlanner'] = (r && r.length > 0) ? 'active' : 'degraded';
+  } catch {
+    modulesMap['generalizedRoutePlanner'] = 'degraded';
+  }
+
+  try {
+    const el = evaluateJourneyEligibility({
+      train: TRAIN_TRIPS[0],
+      fromStationCode: TRAIN_TRIPS[0].stops[0].stationCode,
+      toStationCode: TRAIN_TRIPS[0].stops[1].stationCode,
+      userTicketType: 'suburban_single',
+      userClass: 'II',
+      hasMST: false
+    });
+    modulesMap['serviceEligibility'] = (el && el.status !== undefined) ? 'active' : 'degraded';
+  } catch {
+    modulesMap['serviceEligibility'] = 'degraded';
+  }
+
+  modulesMap['classAvailability'] = (TRAIN_TRIPS.some(t => t.availableClasses && t.availableClasses.length > 0)) ? 'active' : 'degraded';
+  modulesMap['metroIntegration'] = (Array.isArray(MUMBAI_SUBURBAN_NODES) && MUMBAI_SUBURBAN_NODES.length > 0) ? 'active' : 'degraded';
+
+  try {
+    const obs = getAllLiveObservations();
+    modulesMap['delayObservations'] = (obs && obs.length > 0) ? 'active' : 'degraded';
+    const prop = getPropagatedStopsForTrain('95112');
+    modulesMap['disruptionReplanning'] = (prop !== null) ? 'active' : 'degraded';
+  } catch {
+    modulesMap['delayObservations'] = 'degraded';
+    modulesMap['disruptionReplanning'] = 'degraded';
+  }
+
+  try {
+    const trips = getAllTrainTrips();
+    modulesMap['trainStatusAggregation'] = (trips && trips.length > 0) ? 'active' : 'degraded';
+  } catch {
+    modulesMap['trainStatusAggregation'] = 'degraded';
+  }
+
+  if (dbStatus === 'connected') {
+    try {
+      const db = getDatabase();
+      const tables: any[] = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+      const names = tables.map(t => t.name);
+      modulesMap['passengerProfiles'] = names.includes('passenger_profiles') ? 'active' : 'degraded';
+      modulesMap['reservationTicketing'] = names.includes('bookings') ? 'active' : 'degraded';
+      modulesMap['bookingHistoryRefunds'] = (names.includes('cancellations') || names.includes('refunds')) ? 'active' : 'degraded';
+      modulesMap['auditLogging'] = names.includes('audit_logs') ? 'active' : 'degraded';
+    } catch {
+      modulesMap['passengerProfiles'] = 'degraded';
+      modulesMap['reservationTicketing'] = 'degraded';
+      modulesMap['bookingHistoryRefunds'] = 'degraded';
+      modulesMap['auditLogging'] = 'degraded';
+    }
+  } else {
     modulesMap['passengerProfiles'] = 'degraded';
     modulesMap['reservationTicketing'] = 'degraded';
     modulesMap['bookingHistoryRefunds'] = 'degraded';
     modulesMap['auditLogging'] = 'degraded';
   }
+
+  modulesMap['voiceAgentOrchestrator'] = 'active';
+  modulesMap['notifications'] = 'active';
+  modulesMap['providerAdapters'] = 'active';
+  modulesMap['healthAndObservability'] = 'active';
 
   const hasDegraded = Object.values(modulesMap).some(s => s === 'degraded');
   const overallStatus = dbStatus === 'connected' && !hasDegraded ? 'healthy' : 'degraded';
