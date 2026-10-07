@@ -255,13 +255,13 @@ export const InstitutionalDossierModal: React.FC<InstitutionalDossierModalProps>
                   <span>Compounding Delay Propagation Mathematical Model</span>
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Naive journey planners assume static delays ($T_{arr} = T_{sched} + D_0$). In suburban rail operations with fixed 3-minute signaling headway, an initial delay $D_0$ at the origin shed expands downstream due to queue formation behind leading rakes:
+                  Naive journey planners assume static delays (T_arr = T_sched + D_0). In suburban rail operations with fixed 3-minute signaling headway, an initial delay D_0 at the origin shed expands downstream due to queue formation behind leading rakes:
                 </p>
                 <div className="p-3 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto">
-                  D(s) = D_0 + \sum_{i=1}^k \max(0, H_{min} - \Delta t_i) + \beta_{corridor} \cdot \text{CongestionFactor}
+                  {'D(s) = D_0 + \\sum_{i=1}^k \\max(0, H_{min} - \\Delta t_i) + \\beta_{corridor} \\cdot \\text{CongestionFactor}'}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  A $+20\text{m}$ delay at Kalyan shed propagates to $+40\text{m}$ at Kurla bottleneck, triggering the <strong>Delay Inversion Engine</strong> to recommend Slow Locals that reach the destination 14 minutes earlier.
+                  A +20m delay at Kalyan shed propagates to +40m at Kurla bottleneck, triggering the <strong>Delay Inversion Engine</strong> to recommend Slow Locals that reach the destination 14 minutes earlier.
                 </p>
               </div>
 

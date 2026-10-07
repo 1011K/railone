@@ -2,11 +2,20 @@ import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import { v1Router } from './src/backend/routes/v1';
+import { rateLimiter } from './src/backend/middleware/rateLimit';
+import { getDatabase } from './src/backend/database/db';
+import { checkSystemHealth } from './src/backend/modules/health';
 
 dotenv.config();
 
+// Initialize server-side SQLite persistence
+getDatabase();
+
 const app = express();
 app.use(express.json());
+app.use(rateLimiter);
+app.use('/api/v1', v1Router);
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -235,11 +244,15 @@ Immediate mechanical/electrical staff attendance at next major halt (Dadar / CSM
 
 // 4. System Health Check
 app.get('/api/health', (req, res) => {
+  const health = checkSystemHealth(!!aiClient);
   res.json({
-    status: 'ok',
+    status: health.status,
     geminiConfigured: !!aiClient,
     model: 'gemini-3.8-flash',
-    timestamp: new Date().toISOString()
+    uptimeSeconds: health.uptimeSeconds,
+    database: health.database,
+    modulesCount: health.modulesCount,
+    timestamp: health.timestamp
   });
 });
 

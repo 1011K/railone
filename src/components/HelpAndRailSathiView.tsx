@@ -147,8 +147,8 @@ export const HelpAndRailSathiView: React.FC<HelpAndRailSathiViewProps> = ({
             </span>
           </div>
           <ScenariosLab
-            onBookSpecimen={onBookSpecimen}
-            onInspectTrain={onInspectTrain}
+            onBookSpecimen={onBookSpecimen || (() => {})}
+            onInspectTrain={onInspectTrain || (() => {})}
           />
         </div>
       )}

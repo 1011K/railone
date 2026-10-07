@@ -323,7 +323,7 @@ export const MyTicketsView: React.FC<MyTicketsViewProps> = ({
                         {t.trainNumber} · {t.trainName}
                       </div>
                       <div className="text-xs text-slate-500">
-                        {t.fromStation.name} ➔ {t.toStation.name} · Booked at {new Date(t.bookedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {t.fromStation.name} ➔ {t.toStation.name} · Booked at {new Date(t.bookingTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>

@@ -216,3 +216,12 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
     explanation: `Station "${query}" not recognized in verified Mumbai Suburban or National railway index.`
   };
 }
+
+export function normalizeStationCode(query: string): string {
+  if (!query) return '';
+  const res = normalizeStation(query);
+  return res.matchedStation ? res.matchedStation.code : query.toUpperCase().trim();
+}
+
+export const normalizeStationInput = normalizeStation;
+

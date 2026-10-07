@@ -1060,7 +1060,7 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
       <section className="pt-2">
         <CoachPositionGuide
           initialRakeType={train.serviceType?.includes('ac') ? '12_car_ac_suburban' : train.serviceType === 'vande_bharat_tejas' ? '16_car_vande_bharat' : '12_car_suburban'}
-          stationCode={currentStop?.stationCode || 'DR'}
+          stationCode={train.stops[0]?.stationCode || 'DR'}
           platformNumber={train.stops[0]?.platform || '3'}
         />
       </section>

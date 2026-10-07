@@ -14,6 +14,16 @@ import { RailBackendTools } from '../src/engine/voiceTools';
 import { MockBookingStore } from '../src/engine/mockBookingStore';
 import { normalizeStation } from '../src/engine/stationNormalizer';
 import { THEME_CONFIG } from '../src/components/ThemeContext';
+import { resetDatabase, getDatabase } from '../src/backend/database/db';
+import { searchStations, getStationByCode } from '../src/backend/modules/stations';
+import { searchRoutes } from '../src/backend/modules/routePlanner';
+import { calculateSuburbanFare as calcSubFare, calculateMetroFare as calcMetroFare } from '../src/backend/modules/fares';
+import { createBooking, reconcileBooking, getBookingById } from '../src/backend/modules/ticketing';
+import { cancelBooking } from '../src/backend/modules/bookingHistory';
+import { startVoiceSession, processVoiceTurn } from '../src/backend/modules/voiceAgent';
+import { checkSystemHealth } from '../src/backend/modules/health';
+import { StatutoryTelephonyAdapter } from '../src/backend/modules/providerAdapters';
+import { getAuditLogs } from '../src/backend/modules/auditLog';
 
 let totalTests = 0;
 let passedTests = 0;
@@ -712,7 +722,7 @@ console.log('\nTest Suite 18: 3D Station Navigation, God\'s Eye Topological Layo
 
 console.log('\nTest Suite 19: Mumbai Metro Network, Strict AC Filtering, Pan-India Clickability & Multimodal Fare Engine');
 {
-  const { METRO_STATIONS, METRO_LINES, calculateMetroFare, METRO_INTERCHANGES } = await import('../src/fixtures/metroData');
+  const { METRO_STATIONS, METRO_LINES, calculateMetroFare } = await import('../src/fixtures/metroData');
   const { PAN_INDIA_NODES, MUMBAI_METRO_NODES } = await import('../src/fixtures/networkMapData');
   const { searchNetworkMap } = await import('../src/engine/networkMapEngine');
 
@@ -811,7 +821,7 @@ console.log('\nTest Suite 20: Institutional Passenger PWA, Offline Service Worke
 
   const themeKeys = Object.keys(THEME_CONFIG);
   assert(themeKeys.length === 8, '20.6: Exactly 8 authentic railway themes configured in THEME_CONFIG');
-  assert(themeKeys.every(k => THEME_CONFIG[k as any].primaryHex.startsWith('#')), '20.7: All 8 themes specify valid primaryHex color tokens');
+  assert(themeKeys.every(k => (THEME_CONFIG as any)[k].primaryHex.startsWith('#')), '20.7: All 8 themes specify valid primaryHex color tokens');
 }
 
 console.log('\nTest Suite 21: Global Benchmarks, Coach Alignment (Wagenstandsanzeiger) & Institutional Academic Dossier');
@@ -839,6 +849,142 @@ console.log('\nTest Suite 21: Global Benchmarks, Coach Alignment (Wagenstandsanz
     assert(dossierContent.includes('Section 138') && dossierContent.includes('Compounding Delay'),
       '21.8: Documents statutory Railways Act Section 138 and compounding delay mathematical proofs');
   }
+}
+
+console.log('\nTest Suite 22: Service-Oriented Backend Architecture, SQLite Persistence & RailSathi Voice Engine');
+{
+  // 22.1: SQLite Database initialization
+  resetDatabase(true);
+  const db = getDatabase();
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+  const tableNames = tables.map((t: any) => t.name);
+  assert(
+    tableNames.includes('bookings') &&
+    tableNames.includes('tickets') &&
+    tableNames.includes('cancellations') &&
+    tableNames.includes('audit_logs') &&
+    tableNames.includes('voice_sessions'),
+    '22.1: SQLite database initializes with all 7 persistence tables'
+  );
+
+  // 22.2: Station normalization & search
+  const cstStation = getStationByCode('CST');
+  const thaneResults = searchStations('Thane');
+  assert(
+    cstStation?.code === 'CSMT' && thaneResults.length > 0 && thaneResults[0].code === 'TNA',
+    '22.2: Station registry normalizes aliases (CST -> CSMT) and searches correctly'
+  );
+
+  // 22.3: Fares module
+  const sub2nd = calcSubFare(35, 'II');
+  const sub1st = calcSubFare(35, 'I');
+  const subAC = calcSubFare(35, 'AC_LOCAL');
+  const metroFare = calcMetroFare(8);
+  assert(
+    sub2nd.totalFare === 10 && sub1st.totalFare === 105 && subAC.totalFare === 95 && metroFare.totalFare === 20,
+    '22.3: Fare calculation matches official Suburban and Metro tariff slabs'
+  );
+
+  // 22.4: Route planner & AC filter
+  const acRoutes = searchRoutes({ from: 'TNA', to: 'CSMT', acOnly: true });
+  assert(
+    acRoutes.length > 0 && acRoutes.every(r => r.isAcService),
+    '22.4: Generalized route planner enforces strict AC filtering'
+  );
+
+  // 22.5: Server-side booking creation & idempotency
+  const booking1 = createBooking({
+    idempotencyKey: 'IDEMP-TEST-001',
+    trainNumber: '95114',
+    journeyDate: '2026-10-15',
+    fromStationCode: 'TNA',
+    toStationCode: 'CSMT',
+    classBooked: 'AC_LOCAL',
+    passengers: [{ name: 'Arjun Verma', age: 32, gender: 'M' }]
+  });
+  const bookingDuplicate = createBooking({
+    idempotencyKey: 'IDEMP-TEST-001',
+    trainNumber: '95114',
+    journeyDate: '2026-10-15',
+    fromStationCode: 'TNA',
+    toStationCode: 'CSMT',
+    classBooked: 'AC_LOCAL',
+    passengers: [{ name: 'Arjun Verma', age: 32, gender: 'M' }]
+  });
+  assert(
+    booking1.id === bookingDuplicate.id &&
+    booking1.bookingState === 'TICKET_ISSUED_DEMO' &&
+    booking1.qrPayload.includes('DEMO / NOT VALID FOR TRAVEL'),
+    '22.5: Server-side booking creation enforces idempotency and watermarking'
+  );
+
+  // 22.6: Payment timeout state machine and reconciliation
+  const pendingBooking = createBooking({
+    idempotencyKey: 'IDEMP-TEST-TIMEOUT',
+    trainNumber: '95114',
+    journeyDate: '2026-10-15',
+    fromStationCode: 'TNA',
+    toStationCode: 'CSMT',
+    classBooked: 'I',
+    passengers: [{ name: 'Sunil Rao', age: 45, gender: 'M' }],
+    simulateTimeout: true
+  });
+  const reconciled = reconcileBooking(pendingBooking.id);
+  assert(
+    pendingBooking.bookingState === 'PENDING_RECONCILIATION_DEMO' &&
+    reconciled.bookingState === 'TICKET_ISSUED_DEMO',
+    '22.6: Payment timeout state machine and deterministic reconciliation'
+  );
+
+  // 22.7: Cancellation & statutory clerical deductions
+  const cancelResult = cancelBooking(booking1.id, 'Change of travel plans');
+  const updatedBooking = getBookingById(booking1.id);
+  assert(
+    cancelResult.refundBreakdown.totalPaid === 95 &&
+    cancelResult.refundBreakdown.clericalDeduction === 30 &&
+    cancelResult.refundBreakdown.walletRefund === 65 &&
+    updatedBooking?.bookingState === 'CANCELLED_DEMO',
+    '22.7: Ticket cancellation computes statutory clerical deductions and RailWallet refund'
+  );
+
+  // 22.8: Audit logging
+  const auditLogs = getAuditLogs(10);
+  const eventTypes = auditLogs.map(l => l.eventType);
+  assert(
+    eventTypes.includes('BOOKING_CREATED') && eventTypes.includes('BOOKING_CANCELLED'),
+    '22.8: Server-side audit log records booking lifecycle transactions'
+  );
+
+  // 22.9: RailSathi voice multi-turn conversation
+  const session = startVoiceSession({ language: 'en' });
+  const turn1 = await processVoiceTurn(session.sessionId, 'Book me a first-class local from Thane to Churchgate around 12:30');
+  const turn2 = await processVoiceTurn(session.sessionId, 'Use AC if available, otherwise show first class');
+  const turn3 = await processVoiceTurn(session.sessionId, 'Book this one');
+  const turn4 = await processVoiceTurn(session.sessionId, 'Yes confirm');
+  assert(
+    turn1.state === 'ITINERARY_OFFERED' &&
+    turn2.activeDraft.preferredClass === 'AC_LOCAL' &&
+    turn3.state === 'AWAITING_CONFIRMATION' &&
+    turn4.state === 'BOOKING_EXECUTED' &&
+    !!turn4.issuedBooking,
+    '22.9: RailSathi voice agent executes complete 4-turn booking conversation with tool grounding'
+  );
+
+  // 22.10: Telephony provider adapter statutory blocker
+  const telephony = new StatutoryTelephonyAdapter();
+  const blocker = telephony.getBlockerDossier();
+  const callAttempt = await telephony.initiateCall('+919876543210', '+919999999999');
+  assert(
+    blocker.is139Repurposed === false && callAttempt.status === 'blocked',
+    '22.10: Telephony provider adapter enforces statutory DoT blocker and prohibits 139 co-opting'
+  );
+
+  // 22.11: Health check validates all 20 modules
+  const health = checkSystemHealth(false);
+  assert(
+    health.status === 'healthy' && health.modulesCount === 20 && health.database.status === 'connected',
+    '22.11: Health check validates all 20 modules and SQLite database operational'
+  );
 }
 
 console.log('\n====================================================');
