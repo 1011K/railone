@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PassengerMobileApp } from './PassengerMobileApp';
 import { VisualQRCode } from './VisualQRCode';
+import { useAuthority } from './AuthorityContext';
 import {
   Smartphone,
   Maximize2,
@@ -64,6 +65,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
 ];
 
 export const MobileDeviceSimulator: React.FC = () => {
+  const { authority } = useAuthority();
   // Device Selection & Scaling State
   const [selectedDevice, setSelectedDevice] = useState<DevicePreset>(DEVICE_PRESETS[0]);
   const [fitToScreen, setFitToScreen] = useState<boolean>(true);
@@ -75,8 +77,15 @@ export const MobileDeviceSimulator: React.FC = () => {
   const [copiedUrl, setCopiedUrl] = useState<boolean>(false);
 
   // Quick Scenario Preset to feed into Passenger Mobile App
-  const [presetOrigin, setPresetOrigin] = useState<string>('TNA');
-  const [presetDest, setPresetDest] = useState<string>('CSMT');
+  const [presetOrigin, setPresetOrigin] = useState<string>(authority?.defaultOriginCode || 'TNA');
+  const [presetDest, setPresetDest] = useState<string>(authority?.defaultDestCode || 'CSMT');
+
+  useEffect(() => {
+    if (authority) {
+      setPresetOrigin(authority.defaultOriginCode);
+      setPresetDest(authority.defaultDestCode);
+    }
+  }, [authority.id, authority.defaultOriginCode, authority.defaultDestCode]);
 
   // Network Host URL detection
   const [lanHostUrl, setLanHostUrl] = useState<string>('http://localhost:3000');
@@ -212,29 +221,37 @@ export const MobileDeviceSimulator: React.FC = () => {
               <span>{presetOrigin} ➔ {presetDest}</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
-            <div className="absolute right-0 top-full mt-1 w-64 bg-slate-900 border border-slate-700 rounded-2xl p-1.5 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            <div className="absolute right-0 top-full mt-1 w-72 bg-slate-900 border border-slate-700 rounded-2xl p-1.5 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
               <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">
-                Critical Commuter Routes (All Verified)
+                {authority.shortTitle} Corridors
               </div>
-              {[
-                { from: 'ADH', to: 'CSMT', label: 'Andheri ➔ CSMT' },
-                { from: 'TNA', to: 'DR', label: 'Thane ➔ Dadar' },
-                { from: 'TNA', to: 'CSMT', label: 'Thane ➔ CSMT' },
-                { from: 'TNA', to: 'CCG', label: 'Thane ➔ Churchgate (via Dadar)' },
-                { from: 'DR', to: 'KYN', label: 'Dadar ➔ Kalyan' },
-                { from: 'ADH', to: 'DR', label: 'Andheri ➔ Dadar' },
-                { from: 'PNVL', to: 'CSMT', label: 'Panvel ➔ CSMT' },
-                { from: 'CLA', to: 'TNA', label: 'Kurla ➔ Thane' }
-              ].map(r => (
-                <button
-                  key={`${r.from}-${r.to}`}
-                  onClick={() => handlePresetSelect(r.from, r.to)}
-                  className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs hover:bg-slate-800 text-slate-200 flex items-center justify-between"
-                >
-                  <span>{r.label}</span>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold">[PASSED]</span>
-                </button>
-              ))}
+              {authority.corridors && authority.corridors.length > 0 ? (
+                authority.corridors.map((c, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handlePresetSelect(c.from, c.to)}
+                    className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs hover:bg-slate-800 text-slate-200 flex items-center justify-between"
+                  >
+                    <span className="truncate pr-1.5">{c.name.split('(')[0].trim() || c.name}</span>
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0">[VERIFIED TRUNK]</span>
+                  </button>
+                ))
+              ) : (
+                [
+                  { from: 'ADH', to: 'CSMT', label: 'Andheri ➔ CSMT' },
+                  { from: 'TNA', to: 'DR', label: 'Thane ➔ Dadar' },
+                  { from: 'TNA', to: 'CSMT', label: 'Thane ➔ CSMT' }
+                ].map(r => (
+                  <button
+                    key={`${r.from}-${r.to}`}
+                    onClick={() => handlePresetSelect(r.from, r.to)}
+                    className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs hover:bg-slate-800 text-slate-200 flex items-center justify-between"
+                  >
+                    <span>{r.label}</span>
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold">[VERIFIED TRUNK]</span>
+                  </button>
+                ))
+              )}
             </div>
           </div>
 

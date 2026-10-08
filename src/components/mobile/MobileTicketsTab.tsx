@@ -48,8 +48,70 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
   // TTE Mode state
   const [tteScanQuery, setTteScanQuery] = useState('');
   const [isExpressInspection, setIsExpressInspection] = useState(false);
-  const [inspectedCoachClass, setInspectedCoachClass] = useState('II');
+  const [inspectedCoachClass, setInspectedCoachClass] = useState(authority?.classes[0]?.code || 'II');
   const [tteValidationResult, setTteValidationResult] = useState<TteVerificationResult | null>(null);
+
+  useEffect(() => {
+    if (authority && authority.classes && authority.classes.length > 0) {
+      setInspectedCoachClass(authority.classes[0].code);
+    }
+  }, [authority.id]);
+
+  const topUpAmounts = authority.currency.code === 'GBP' || authority.currency.code === 'EUR' || authority.currency.code === 'CHF'
+    ? [10, 25, 50]
+    : authority.currency.code === 'JPY'
+    ? [1000, 2500, 5000]
+    : [100, 250, 500];
+
+  const seasonPassDetails = {
+    india: {
+      title: 'Monthly Season Ticket (MST)',
+      subtitle: `${authority.operatingAgency} Suburban Pass`,
+      corridor: authority.corridors[0]?.name || 'Thane (TNA) ⇄ CSMT',
+      lines: 'Central Main Fast & Slow',
+      class: 'Second Class (II)',
+      rules: `Permitted for ordinary suburban services. Not valid on AC Locals without difference surcharge. Governed by ${authority.statutoryAct}.`
+    },
+    uk: {
+      title: 'National Rail Travelcard / Season Pass',
+      subtitle: `${authority.operatingAgency} Commuter Pass`,
+      corridor: authority.corridors[0]?.name || 'Waterloo (WAT) ⇄ Clapham Junction (CLJ)',
+      lines: 'South Western & Elizabeth Line Trunks',
+      class: 'Standard Class (STD)',
+      rules: `Valid for unlimited travel across designated National Rail zones. Governed by ${authority.statutoryAct}.`
+    },
+    japan: {
+      title: 'Teikiken (定期券) Commuter Smart Pass',
+      subtitle: `${authority.operatingAgency} Commuter Pass`,
+      corridor: authority.corridors[0]?.name || 'Tokyo (TYO) ⇄ Shinjuku (SJK)',
+      lines: 'Yamanote & Chūō Rapid Lines',
+      class: 'Ordinary Class (ORD)',
+      rules: `Valid for repeated travel between designated stations on JR East lines. Governed by ${authority.statutoryAct}.`
+    },
+    switzerland: {
+      title: 'General-Abonnement (GA) / Streckenabo',
+      subtitle: `${authority.operatingAgency} Integrated Travel Pass`,
+      corridor: authority.corridors[0]?.name || 'Zürich HB (ZRH) ⇄ Bern (BN)',
+      lines: 'SBB InterCity & Regional Networks',
+      class: '2nd Class (2CL)',
+      rules: `Unlimited travel on Swiss Federal Railways and partner transport networks. Governed by ${authority.statutoryAct}.`
+    },
+    germany: {
+      title: 'Deutschlandticket (D-Ticket) / Zeitkarte',
+      subtitle: `${authority.operatingAgency} Regional Mobility Pass`,
+      corridor: authority.corridors[0]?.name || 'Berlin Hbf (BER) ⇄ München (MUN)',
+      lines: 'Regionalbahn & S-Bahn Networks',
+      class: '2nd Class (2KL)',
+      rules: `Nationwide travel authorization on all regional and commuter public transit. Governed by ${authority.statutoryAct}.`
+    }
+  }[authority.id] || {
+    title: 'Statutory Commuter Pass',
+    subtitle: `${authority.operatingAgency} Pass`,
+    corridor: authority.corridors[0]?.name || 'Designated Trunk Corridor',
+    lines: 'Official Network Lines',
+    class: authority.classes[0]?.name || 'Standard',
+    rules: `Governed by ${authority.statutoryAct}.`
+  };
 
   const refreshTickets = () => {
     const list = MockBookingStore.listBookings();
@@ -257,8 +319,8 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
                   <FileText className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-black">Monthly Season Ticket (MST)</div>
-                  <div className="text-[10px] text-indigo-300">Central Railway Suburban Pass</div>
+                  <div className="text-xs font-black">{seasonPassDetails.title}</div>
+                  <div className="text-[10px] text-indigo-300">{seasonPassDetails.subtitle}</div>
                 </div>
               </div>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black">
@@ -269,15 +331,15 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
             <div className="p-3 rounded-2xl bg-black/30 border border-white/10 space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-400">Valid Corridor:</span>
-                <span className="font-bold text-white">Thane (TNA) ⇄ CSMT</span>
+                <span className="font-bold text-white">{seasonPassDetails.corridor}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Permitted Lines:</span>
-                <span className="font-bold text-white">Central Main Fast & Slow</span>
+                <span className="font-bold text-white">{seasonPassDetails.lines}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Class:</span>
-                <span className="font-bold text-white">Second Class (II)</span>
+                <span className="font-bold text-white">{seasonPassDetails.class}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Valid Through:</span>
@@ -286,7 +348,7 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
             </div>
 
             <div className="text-[10px] text-indigo-300/80 leading-relaxed">
-              Permitted for ordinary suburban services. Not valid on AC Locals without difference surcharge. Not valid on Mail/Express trains outside CR MST list.
+              {seasonPassDetails.rules}
             </div>
           </div>
         </div>
@@ -300,14 +362,13 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-theme-primary" />
-                <span className="text-xs font-bold text-slate-300">RailWallet Balance</span>
+                <span className="text-xs font-bold text-slate-300">{authority.shortTitle} Citizen Wallet</span>
               </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/10 font-mono">Demo Fixture</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/10 font-mono">Citizen Account</span>
             </div>
 
             <div className="text-3xl font-black font-mono text-white flex items-baseline gap-1">
-              <span>₹</span>
-              <span>{walletBalance}</span>
+              <span>{formatCurrency(walletBalance)}</span>
             </div>
 
             <div className="text-[11px] text-slate-300 leading-tight">
@@ -318,18 +379,18 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
           {/* Quick Recharge Buttons */}
           <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
             <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              Simulated Wallet Top-Up
+              Citizen Wallet Top-Up
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              {[100, 250, 500].map(amt => (
+              {topUpAmounts.map(amt => (
                 <button
                   key={amt}
                   onClick={() => handleRechargeWallet(amt)}
                   className="py-2.5 px-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-theme-primary hover:text-white font-bold text-xs text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 flex items-center justify-center gap-1 shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+₹{amt}</span>
+                  <span>+{formatCurrency(amt)}</span>
                 </button>
               ))}
             </div>
@@ -387,24 +448,28 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
             <div className="space-y-1">
               <span className="text-[10px] text-slate-500 font-bold">Coach Class Inspected:</span>
               <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { id: 'II', label: '2nd Class' },
-                  { id: 'I', label: '1st Class' },
-                  { id: 'AC_LOCAL', label: 'AC Local' },
-                  { id: '3A', label: '3-Tier AC' }
-                ].map(cls => (
-                  <button
-                    key={cls.id}
-                    onClick={() => setInspectedCoachClass(cls.id)}
-                    className={`py-1.5 px-1 rounded-xl text-center text-[10px] font-bold transition-all border ${
-                      inspectedCoachClass === cls.id
-                        ? 'bg-theme-primary text-white border-theme-primary shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                    }`}
-                  >
-                    {cls.label}
-                  </button>
-                ))}
+                {(authority.classes && authority.classes.length > 0 ? authority.classes.slice(0, 4) : [
+                  { code: 'II', name: '2nd Class' },
+                  { code: 'I', name: '1st Class' },
+                  { code: 'AC_LOCAL', name: 'AC Local' },
+                  { code: '3A', name: '3-Tier AC' }
+                ]).map(cls => {
+                  const cCode = (cls as any).code || (cls as any).id;
+                  const cLabel = (cls as any).name || (cls as any).label;
+                  return (
+                    <button
+                      key={cCode}
+                      onClick={() => setInspectedCoachClass(cCode)}
+                      className={`py-1.5 px-1 rounded-xl text-center text-[10px] font-bold transition-all border ${
+                        inspectedCoachClass === cCode
+                          ? 'bg-theme-primary text-white border-theme-primary shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {cLabel.split(' ')[0]} ({cCode})
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

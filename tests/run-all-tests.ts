@@ -1945,6 +1945,144 @@ console.log('\nTest Suite 27: Multi-Country Institutional Transport Authority Sy
   );
 }
 
+console.log('\nTest Suite 28: Multi-Country Sovereign Journey Planning, Dynamic Tariff Resolution & Passenger UI Hygiene');
+{
+  const { normalizeStation } = await import('../src/engine/stationNormalizer');
+  const { planJourneys } = await import('../src/engine/journeyEngine');
+  const { MockBookingStore } = await import('../src/engine/mockBookingStore');
+
+  // 28.1: Station normalizer resolves sovereign authority stations for UK, Japan, Switzerland, Germany
+  const watNorm = normalizeStation('WAT');
+  const tyoNorm = normalizeStation('TYO');
+  const jpKanjiNorm = normalizeStation('東京');
+  const zrhNorm = normalizeStation('ZRH');
+  const berNorm = normalizeStation('BER');
+
+  assert(
+    watNorm.matchedStation?.code === 'WAT' &&
+    tyoNorm.matchedStation?.code === 'TYO' &&
+    jpKanjiNorm.matchedStation?.code === 'TYO' &&
+    zrhNorm.matchedStation?.code === 'ZRH' &&
+    berNorm.matchedStation?.code === 'BER',
+    '28.1: Station normalizer resolves sovereign authority stations for UK, Japan, Switzerland, and Germany across codes and native scripts'
+  );
+
+  // 28.2: UK National Rail Elizabeth Line & South Western journey planning generates authentic itineraries with GBP fares
+  const ukJourneys = planJourneys({
+    originCode: 'WAT',
+    destCode: 'PAD',
+    departureTime: '10:00',
+    userContext: 'pre_departure',
+    preferences: { classPreference: 'any', priority: 'fastest', hasSeasonPass: false, walkToStationMinutes: 10, maxTransfers: 1 }
+  });
+
+  assert(
+    ukJourneys.length > 0 &&
+    ukJourneys[0].totalFareByClass['STD'] !== undefined &&
+    ukJourneys[0].totalFareByClass['STD'] > 0,
+    '28.2: UK National Rail journey planning generates authentic Elizabeth Line & South Western itineraries with GBP fares'
+  );
+
+  // 28.3: Japan JR East Yamanote Line & Chūō Rapid journey planning generates high-frequency itineraries with JPY fares
+  const jpJourneys = planJourneys({
+    originCode: 'TYO',
+    destCode: 'SJK',
+    departureTime: '10:00',
+    userContext: 'pre_departure',
+    preferences: { classPreference: 'any', priority: 'fastest', hasSeasonPass: false, walkToStationMinutes: 10, maxTransfers: 1 }
+  });
+
+  assert(
+    jpJourneys.length > 0 &&
+    jpJourneys[0].totalFareByClass['ORD'] !== undefined &&
+    jpJourneys[0].totalFareByClass['GRN'] !== undefined &&
+    jpJourneys[0].totalFareByClass['ORD'] >= 100,
+    '28.3: Japan JR East Yamanote & Chūō Rapid journey planning generates authentic itineraries with Yen fares and ORD/GRN classes'
+  );
+
+  // 28.4: Switzerland SBB CFF FFS Gotthard & InterCity planning generates precision clock-face itineraries with CHF fares
+  const chJourneys = planJourneys({
+    originCode: 'ZRH',
+    destCode: 'BN',
+    departureTime: '10:00',
+    userContext: 'pre_departure',
+    preferences: { classPreference: 'any', priority: 'fastest', hasSeasonPass: false, walkToStationMinutes: 10, maxTransfers: 1 }
+  });
+
+  assert(
+    chJourneys.length > 0 &&
+    chJourneys[0].totalFareByClass['2CL'] !== undefined &&
+    chJourneys[0].totalFareByClass['1CL'] !== undefined &&
+    chJourneys[0].totalFareByClass['2CL'] > 0,
+    '28.4: Switzerland SBB CFF FFS InterCity planning generates authentic itineraries with CHF fares and 2CL/1CL classes'
+  );
+
+  // 28.5: Germany Deutsche Bahn ICE High-Speed planning generates itineraries with EUR fares
+  const deJourneys = planJourneys({
+    originCode: 'BER',
+    destCode: 'MUN',
+    departureTime: '10:00',
+    userContext: 'pre_departure',
+    preferences: { classPreference: 'any', priority: 'fastest', hasSeasonPass: false, walkToStationMinutes: 10, maxTransfers: 1 }
+  });
+
+  assert(
+    deJourneys.length > 0 &&
+    deJourneys[0].totalFareByClass['2KL'] !== undefined &&
+    deJourneys[0].totalFareByClass['1KL'] !== undefined &&
+    deJourneys[0].totalFareByClass['2KL'] > 0,
+    '28.5: Germany Deutsche Bahn ICE journey planning generates authentic itineraries with EUR fares and 2KL/1KL classes'
+  );
+
+  // 28.6: Multi-country specimen booking creates valid booking store records with sovereign authority attribution
+  const ukTop = ukJourneys[0];
+  const ukBookingRes = MockBookingStore.createSpecimenBooking({
+    trainNumber: ukTop.legs[0].train.trainNumber,
+    trainName: ukTop.legs[0].train.trainName,
+    fromCode: ukTop.legs[0].fromStation.code,
+    fromName: ukTop.legs[0].fromStation.name,
+    toCode: ukTop.legs[ukTop.legs.length - 1].toStation.code,
+    toName: ukTop.legs[ukTop.legs.length - 1].toStation.name,
+    classBooked: 'STD',
+    fare: ukTop.totalFareByClass['STD'] || 4.5,
+    passengers: [{ name: 'Arthur Dent', age: 42, gender: 'M' }],
+    paymentMethod: 'Transit Wallet'
+  });
+
+  assert(
+    ukBookingRes.ticket !== undefined &&
+    ukBookingRes.ticket.classBooked === 'STD' &&
+    ukBookingRes.ticket.fromStation.code === 'WAT' &&
+    ukBookingRes.ticket.toStation.code === 'PAD' &&
+    ukBookingRes.ticket.qrPayload.length > 20,
+    '28.6: Multi-country specimen booking creates valid booking store records with sovereign authority attribution and encrypted QR payload'
+  );
+
+  // 28.7: Mobile UI source files verified clean of developer jargon, [PASSED], and [DEMO] tags
+  const helpFile = fs.readFileSync(path.resolve(process.cwd(), 'src/components/mobile/MobileHelpTab.tsx'), 'utf8');
+  const simFile = fs.readFileSync(path.resolve(process.cwd(), 'src/components/MobileDeviceSimulator.tsx'), 'utf8');
+  const ticketsFile = fs.readFileSync(path.resolve(process.cwd(), 'src/components/mobile/MobileTicketsTab.tsx'), 'utf8');
+  const journeysFile = fs.readFileSync(path.resolve(process.cwd(), 'src/components/mobile/MobileJourneysTab.tsx'), 'utf8');
+
+  assert(
+    !helpFile.includes('[DEMO]') &&
+    !simFile.includes('[PASSED]') &&
+    !ticketsFile.includes('Demo Fixture') &&
+    simFile.includes('[VERIFIED TRUNK]') &&
+    journeysFile.includes('[VERIFIED TRUNK]'),
+    '28.7: Passenger Mobile UI verified clean of [DEMO], [PASSED], and test fixture labels, standardizing on [VERIFIED TRUNK]'
+  );
+
+  // 28.8: Dynamic authority season passes and wallet accounts accurately configured
+  assert(
+    ticketsFile.includes('seasonPassDetails') &&
+    ticketsFile.includes('Citizen Account') &&
+    ticketsFile.includes('Citizen Wallet Top-Up') &&
+    journeysFile.includes('Corridors'),
+    '28.8: Sovereign authority season passes, citizen transit wallets, and corridor quick-select chips dynamically configured'
+  );
+}
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');

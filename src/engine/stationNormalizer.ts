@@ -162,7 +162,12 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
   if (exactMatches.length === 0) {
     for (const auth of Object.values(INSTITUTIONAL_AUTHORITIES)) {
       for (const s of auth.stations) {
-        if (cleanText(s.name) === cleaned || (s.nativeName && cleanText(s.nativeName) === cleaned)) {
+        if (
+          cleanText(s.name) === cleaned ||
+          (s.nativeName && cleanText(s.nativeName) === cleaned) ||
+          (s.nativeName && (cleanText(s.nativeName).includes(cleaned) || cleaned.includes(cleanText(s.nativeName)))) ||
+          s.name.includes(query)
+        ) {
           exactMatches.push(authorityStationToStation(s));
         }
       }
@@ -190,16 +195,22 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
     };
   }
 
-  // 5. Substring / Prefix Match in Aliases and Names (requires at least 3 chars)
-  let substringMatches = cleaned.length >= 3 ? Object.values(STATIONS).filter(s => 
+  // 5. Substring / Prefix Match in Aliases and Names (requires at least 3 chars for Latin, 1 for CJK)
+  const isCjk = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(query);
+  const minLen = isCjk ? 1 : 3;
+  let substringMatches = cleaned.length >= minLen ? Object.values(STATIONS).filter(s => 
     cleanText(s.name).includes(cleaned) ||
     s.aliases.some(a => cleanText(a).includes(cleaned) || (cleaned.length >= 4 && cleanText(a).length >= 4 && cleaned.includes(cleanText(a))))
   ) : [];
 
-  if (substringMatches.length === 0 && cleaned.length >= 3) {
+  if (substringMatches.length === 0 && cleaned.length >= minLen) {
     for (const auth of Object.values(INSTITUTIONAL_AUTHORITIES)) {
       for (const s of auth.stations) {
-        if (cleanText(s.name).includes(cleaned) || (s.nativeName && cleanText(s.nativeName).includes(cleaned))) {
+        if (
+          cleanText(s.name).includes(cleaned) ||
+          (s.nativeName && (cleanText(s.nativeName).includes(cleaned) || cleaned.includes(cleanText(s.nativeName)))) ||
+          s.name.includes(query)
+        ) {
           substringMatches.push(authorityStationToStation(s));
         }
       }

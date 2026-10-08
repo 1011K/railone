@@ -37,8 +37,8 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
   onInspectTrain
 }) => {
   const { authority, formatCurrency } = useAuthority();
-  const [originInput, setOriginInput] = useState(initialOrigin);
-  const [destInput, setDestInput] = useState(initialDest);
+  const [originInput, setOriginInput] = useState(authority?.defaultOriginCode || initialOrigin);
+  const [destInput, setDestInput] = useState(authority?.defaultDestCode || initialDest);
   const [departureTime, setDepartureTime] = useState(() => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -85,6 +85,15 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
     }
   };
 
+  // Sync inputs and execute search when sovereign transport authority changes
+  useEffect(() => {
+    if (authority) {
+      setOriginInput(authority.defaultOriginCode);
+      setDestInput(authority.defaultDestCode);
+      executeSearch(authority.defaultOriginCode, authority.defaultDestCode);
+    }
+  }, [authority.id, authority.defaultOriginCode, authority.defaultDestCode]);
+
   useEffect(() => {
     executeSearch(originInput, destInput);
   }, [departureTime, classPreference, priority, isArriveBy, arriveByDeadline]);
@@ -103,6 +112,44 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
 
   return (
     <div className="space-y-3.5 pb-20 px-3.5 pt-2">
+
+      {/* Sovereign Authority Corridor Quick Select Chips */}
+      {authority.corridors && authority.corridors.length > 0 && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              {authority.shortTitle} Corridors
+            </span>
+            <span className="text-[9px] font-mono text-emerald-500 font-bold">
+              [VERIFIED TRUNK]
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[10px]">
+            {authority.corridors.map((corridor, idx) => {
+              const isSelected = originInput === corridor.from && destInput === corridor.to;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setOriginInput(corridor.from);
+                    setDestInput(corridor.to);
+                    executeSearch(corridor.from, corridor.to);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl whitespace-nowrap font-bold transition-all border flex items-center gap-1.5 shrink-0 ${
+                    isSelected
+                      ? 'bg-theme-primary text-white border-theme-primary shadow-xs'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-theme-primary/40'
+                  }`}
+                >
+                  <span>{corridor.name.split('(')[0].trim() || corridor.name}</span>
+                  <span className="opacity-70 font-mono text-[9px]">({corridor.from}➔{corridor.to})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       
       {/* Search Header Form */}
       <form onSubmit={handleSearchSubmit} className="p-3.5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
@@ -114,7 +161,7 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
               type="text"
               value={originInput}
               onChange={(e) => setOriginInput(e.target.value.toUpperCase())}
-              placeholder="From Station (e.g. Thane, TNA, दादर)"
+              placeholder={`From Station (e.g. ${authority.stations[0]?.name || 'Origin'}, ${authority.defaultOriginCode})`}
               className="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
             />
           </div>
@@ -136,7 +183,7 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
               type="text"
               value={destInput}
               onChange={(e) => setDestInput(e.target.value.toUpperCase())}
-              placeholder="To Station (e.g. CSMT, CCG, कल्याण)"
+              placeholder={`To Station (e.g. ${authority.stations[1]?.name || 'Destination'}, ${authority.defaultDestCode})`}
               className="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
             />
           </div>
@@ -305,7 +352,7 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
                         {formatCurrency(it.totalFareByClass[it.recommendedClass] || it.totalFareByClass['II'] || 10)}
                       </div>
                       <div className="text-[9px] text-slate-400 font-bold uppercase">
-                        {it.recommendedClass === 'AC_LOCAL' ? 'AC Local' : it.recommendedClass === 'I' ? 'First Class' : 'Second Class'}
+                        {authority.classes.find(c => c.code === it.recommendedClass)?.name || (it.recommendedClass === 'AC_LOCAL' ? 'AC Local' : it.recommendedClass === 'I' ? 'First Class' : 'Second Class')}
                       </div>
                     </div>
                   </div>
@@ -366,22 +413,25 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
                     </div>
 
                     {/* Booking Buttons Bar */}
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1 text-[10px]">
-                        <span className="text-slate-400">Select Class:</span>
-                        {(['II', 'I', 'AC_LOCAL'] as TravelClass[]).map(cls => (
-                          <button
-                            key={cls}
-                            onClick={() => onBookSpecimen(it, cls)}
-                            className={`px-2 py-1 rounded-lg font-bold border transition-all ${
-                              it.recommendedClass === cls
-                                ? 'bg-theme-primary text-white border-theme-primary'
-                                : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                            }`}
-                          >
-                            {cls === 'AC_LOCAL' ? 'AC' : cls}: {formatCurrency(it.totalFareByClass[cls] || 10)}
-                          </button>
-                        ))}
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1 text-[10px] flex-wrap">
+                        <span className="text-slate-400">Class:</span>
+                        {(Object.keys(it.totalFareByClass) as TravelClass[]).map(cls => {
+                          const clsMeta = authority.classes.find(c => c.code === cls);
+                          return (
+                            <button
+                              key={cls}
+                              onClick={() => onBookSpecimen(it, cls)}
+                              className={`px-2 py-1 rounded-lg font-bold border transition-all ${
+                                it.recommendedClass === cls
+                                  ? 'bg-theme-primary text-white border-theme-primary'
+                                  : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
+                              {clsMeta ? clsMeta.name.split(' ')[0] : cls}: {formatCurrency(it.totalFareByClass[cls] || 10)}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       <button

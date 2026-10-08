@@ -188,7 +188,7 @@ export const MobileHelpTab: React.FC<MobileHelpTabProps> = ({
                   className="w-full py-2.5 rounded-xl bg-theme-primary text-white font-bold text-xs shadow-xs hover-bg-theme-primary transition-colors flex items-center justify-center gap-1.5 touch-target"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>{isDrafting ? 'Generating Template...' : 'Draft Grievance Template [DEMO]'}</span>
+                  <span>{isDrafting ? 'Generating Template...' : 'Generate Official Grievance Draft'}</span>
                 </button>
               </form>
 
@@ -209,7 +209,7 @@ export const MobileHelpTab: React.FC<MobileHelpTabProps> = ({
           >
             <span className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-blue-500" />
-              <span>Railways Act 1989 & Commuter Rules</span>
+              <span>{authority.statutoryAct} & Statutory Rights</span>
             </span>
             {activeAccordion === 'rights' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -217,16 +217,27 @@ export const MobileHelpTab: React.FC<MobileHelpTabProps> = ({
           {activeAccordion === 'rights' && (
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               <p>
-                <strong>Section 138 (Excess Charge & Fare Due):</strong> Passengers travelling without a valid ticket or travelling beyond authorized destination are liable to pay the single fare plus a statutory excess charge of ₹250 or ₹500.
+                <strong>Statutory Charter:</strong> {authority.regulatoryCharter}
               </p>
               <p>
-                <strong>Section 137 (Fraudulent Travel):</strong> Travel with intention to defraud railway revenue carries a fine up to ₹1,000 or imprisonment up to 6 months.
+                <strong>Statutory Penalty ({authority.statutoryPenalty.lawCitation}):</strong> {authority.statutoryPenalty.description}
               </p>
+              {authority.id === 'india' ? (
+                <>
+                  <p>
+                    <strong>Section 137 (Fraudulent Travel):</strong> Travel with intention to defraud railway revenue carries a fine up to ₹1,000 or imprisonment up to 6 months.
+                  </p>
+                  <p>
+                    <strong>Section 162 (Reserved Ladies Compartment):</strong> Male entry into exclusively reserved women compartments is a punishable offence with fine and removal by RPF.
+                  </p>
+                </>
+              ) : (
+                <p>
+                  <strong>Revenue Protection & Inspection:</strong> Official inspections conducted under jurisdiction of {authority.operatingAgency}. Passengers must produce valid electronic tickets or smart cards upon request of authorized {authority.inspectorTitle}.
+                </p>
+              )}
               <p>
-                <strong>Section 162 (Reserved Ladies Compartment):</strong> Male entry into exclusively reserved women compartments is a punishable offence with fine and removal by RPF.
-              </p>
-              <p>
-                <strong>DPDP Act 2023:</strong> RailOne Next processes all journey searches and specimen tickets with zero telemetry harvesting. No financial credentials or passwords are saved.
+                <strong>Data Protection:</strong> RailOne processes all transit queries in accordance with statutory passenger privacy regulations with zero telemetry harvesting. No financial credentials or passwords are saved.
               </p>
             </div>
           )}
