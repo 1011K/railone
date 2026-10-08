@@ -20,11 +20,11 @@ Before starting, ensure your local development workstation meets the engine requ
 Clone the repository and install dependencies with a single command:
 
 ```bash
-# 1. Install root workspace dependencies
-npm ci
+# One command installs both web and native dependencies from lockfiles
+npm run setup
 
-# 2. (Optional) Install native mobile dependencies
-npm --prefix apps/mobile ci
+# Web-only computers can omit optional mobile packages
+npm run setup:web
 ```
 
 > **Windows Note**: On systems where PowerShell execution policy restricts script execution, run scripts with `cmd /c npm install` or `cmd /c npm test`.
