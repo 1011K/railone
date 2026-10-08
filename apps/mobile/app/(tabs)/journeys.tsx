@@ -14,11 +14,13 @@ import { MobileApiClient } from '../../src/api/client';
 
 export default function JourneysScreen() {
   const { colors } = useMobileTheme();
-  const params = useLocalSearchParams<{ from?: string; to?: string; acOnly?: string }>();
+  const params = useLocalSearchParams<{ from?: string; to?: string; acOnly?: string; city?: string; dateLabel?: string }>();
 
   const fromCode = params.from || 'TNA';
   const toCode = params.to || 'CSMT';
   const isAcOnly = params.acOnly === 'true';
+  const cityId = params.city || 'mumbai';
+  const hasUnverifiedFutureDate = params.dateLabel === 'Tomorrow';
 
   const [loading, setLoading] = useState(true);
   const [itineraries, setItineraries] = useState<any[]>([]);
@@ -26,10 +28,33 @@ export default function JourneysScreen() {
   const [categoryTab, setCategoryTab] = useState<'NEXT' | 'SLOW' | 'FAST' | 'AC' | 'EXPRESS'>('NEXT');
   const [easyMode, setEasyMode] = useState<boolean>(false);
   const [preferLessCrowded, setPreferLessCrowded] = useState<boolean>(false);
+  const [multimodalRoutes, setMultimodalRoutes] = useState<any[]>([]);
+  const [multimodalLoading, setMultimodalLoading] = useState(false);
 
   useEffect(() => {
-    loadRoutes();
-  }, [fromCode, toCode, isAcOnly, timeWindow, categoryTab, preferLessCrowded]);
+    if (cityId !== 'mumbai' || hasUnverifiedFutureDate) {
+      // The legacy train engine cannot verify these city/date schedules.
+      setItineraries([]);
+      setLoading(false);
+    } else {
+      loadRoutes();
+    }
+  }, [fromCode, toCode, cityId, hasUnverifiedFutureDate, isAcOnly, timeWindow, categoryTab, preferLessCrowded]);
+
+  useEffect(() => {
+    let active = true;
+    setMultimodalLoading(true);
+    MobileApiClient.searchMultimodalRoutes({
+      city: cityId, origin: fromCode, destination: toCode
+    }).then(routes => {
+      if (active) setMultimodalRoutes(routes);
+    }).catch(() => {
+      if (active) setMultimodalRoutes([]);
+    }).finally(() => {
+      if (active) setMultimodalLoading(false);
+    });
+    return () => { active = false; };
+  }, [cityId, fromCode, toCode]);
 
   const loadRoutes = async () => {
     setLoading(true);
@@ -229,8 +254,65 @@ export default function JourneysScreen() {
         </ScrollView>
       </View>
 
-      {/* Results List */}
-      {loading ? (
+      {/* Multimodal options share one graph across rail, metro, buses and walking.
+          Estimates are informational, not confirmed departures or fares. */}
+      <View style={{ paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.cardBorder }}>
+        <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 5 }}>
+          Multimodal options · {cityId.toUpperCase()}
+        </Text>
+        <Text style={{ color: colors.textMuted, fontSize: 11, marginBottom: 8 }}>
+          Research estimates only. Not live departures, confirmed fares, accessibility guarantees or valid tickets.
+        </Text>
+        {multimodalLoading ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : multimodalRoutes.length === 0 ? (
+          <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+            No validated graph route found. This region's stop and timetable coverage is still incomplete.
+          </Text>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {multimodalRoutes.slice(0, 5).map((route: any, idx: number) => (
+              <View key={route.id || idx} style={{
+                width: 255, marginRight: 10, padding: 12, borderRadius: 12,
+                backgroundColor: colors.card, borderColor: colors.cardBorder, borderWidth: 1
+              }}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
+                  {route.totalDurationMinutes} min estimated · {route.transfers?.length || 0} transfers
+                </Text>
+                <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
+                  {route.legs?.map((leg: any) => leg.mode).join(' → ') || 'No leg details'}
+                </Text>
+                <Text style={{ color: colors.textSecondary, marginTop: 4 }}>
+                  Modeled fare ₹{route.totalFareInr ?? '?'} · {route.totalWalkMinutes ?? '?'} min walking
+                </Text>
+                {route.legs?.map((leg: any, legIndex: number) => (
+                  <Text key={legIndex} style={{ color: colors.textMuted, marginTop: 3, fontSize: 11 }}>
+                    {leg.fromNode?.name} → {leg.toNode?.name} · {leg.lineName}
+                  </Text>
+                ))}
+                <Text style={{ color: colors.textMuted, marginTop: 6, fontSize: 10 }}>
+                  Times modeled from static graph, not verified boarding schedules.
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+      {hasUnverifiedFutureDate && (
+        <Text style={{ color: colors.textMuted, paddingHorizontal: 12, paddingVertical: 8 }}>
+          Tomorrow's train departures are not verified. The route estimates above are illustrative only.
+        </Text>
+      )}
+
+      {/* Existing Mumbai suburban board. Keep separate until departure data is reconciled. */}
+      {cityId !== 'mumbai' || hasUnverifiedFutureDate ? (
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Verified train departures unavailable</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+            The current train schedule engine does not validate this city or future service date. Multimodal graph estimates are shown above.
+          </Text>
+        </View>
+      ) : loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textMuted }]}>
