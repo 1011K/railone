@@ -141,6 +141,15 @@ export const MobileApiClient = {
     return data.itineraries || [];
   },
 
+  // Retrieve the city-specific graph stops, including metro, bus and ferry hubs.
+  async getMultimodalCityStations(cityId: string): Promise<Array<{ code: string; name: string }>> {
+    if (!/^[a-z_]+$/.test(cityId)) return [];
+    const data = await fetchJson<{ cityPack: { nodes: any[] } }>(`/multimodal/city/${encodeURIComponent(cityId)}`);
+    return (data.cityPack?.nodes || [])
+      .filter(node => node?.code && node?.name)
+      .map(node => ({ code: String(node.code), name: String(node.name) }));
+  },
+
   // 3. Train Status
   async getTrainStatus(trainNumber: string): Promise<any> {
     const data = await fetchJson<{ status: any }>(`/trains/${encodeURIComponent(trainNumber)}/status`);
