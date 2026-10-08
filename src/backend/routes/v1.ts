@@ -576,7 +576,9 @@ v1Router.get('/multimodal/plan', (req: Request, res: Response) => {
       cityId: city,
       origin,
       destination,
-      departureTime: (req.query.departureTime as string) || '08:30',
+      departureTime: (req.query.departureTime as string) ||
+        new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()),
+      serviceDate: req.query.date as string,
       preferences: {
         priority: req.query.priority as any,
         accessibleStepFree,
@@ -591,6 +593,7 @@ v1Router.get('/multimodal/plan', (req: Request, res: Response) => {
       city,
       origin,
       destination,
+      note: 'Research demonstration: travel times and fares are modeled estimates, not guaranteed departures or live availability.',
       count: itineraries.length,
       itineraries
     });
