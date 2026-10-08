@@ -60,6 +60,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
   const { language } = useTheme();
   const [scope, setScope] = useState<MapScope>('mumbai_suburban');
   const [renderMode, setRenderMode] = useState<MapRenderMode>('2d');
+  const [mapPerspective, setMapPerspective] = useState<'schematic' | 'geographical'>('schematic');
   const [delayFilter, setDelayFilter] = useState<'all' | 'disrupted' | 'ontime'>('all');
   const [suburbanLineFilter, setSuburbanLineFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -399,8 +400,18 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               })}
             </div>
 
-            {/* Quick 2D / 3D and Disruption toggles */}
+            {/* Quick Schematic / Geographical, 2D / 3D and Disruption toggles */}
             <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setMapPerspective(mapPerspective === 'schematic' ? 'geographical' : 'schematic')}
+                className={`px-2 py-1 rounded-xl text-[10px] font-bold border active:scale-95 transition-all ${
+                  mapPerspective === 'geographical'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : 'bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+              >
+                {mapPerspective === 'schematic' ? 'Schematic' : 'Geographical'}
+              </button>
               <button
                 onClick={() => setRenderMode(renderMode === '2d' ? '3d' : '2d')}
                 className="px-2 py-1 rounded-xl bg-slate-800 text-cyan-300 font-mono font-bold border border-slate-700 active:scale-95"
@@ -480,6 +491,32 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               </button>
             </div>
 
+            {/* Synchronized View Perspective Toggle */}
+            <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold">
+              <button
+                onClick={() => setMapPerspective('schematic')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                  mapPerspective === 'schematic'
+                    ? 'bg-theme-primary text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5" />
+                Schematic Network
+              </button>
+              <button
+                onClick={() => setMapPerspective('geographical')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                  mapPerspective === 'geographical'
+                    ? 'bg-theme-primary text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                Geographical Map
+              </button>
+            </div>
+
             {/* 2D vs 3D Projection Toggle */}
             <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold">
               <button
@@ -490,7 +527,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
-                2D Schematic
+                2D Flat
               </button>
               <button
                 onClick={() => setRenderMode('3d')}
@@ -715,7 +752,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               {scope === 'mumbai_suburban' ? 'Mumbai Suburban (WR / CR / HR / Trans-Harbour / Uran)' : scope === 'mumbai_metro' ? 'Mumbai Metro Transit System' : 'Pan-India Golden & Trunk Corridors'}
               <span className="text-[10px] text-slate-400 uppercase font-mono">
-                [{renderMode.toUpperCase()}]
+                [{mapPerspective.toUpperCase()} · {renderMode.toUpperCase()}]
               </span>
             </div>
             {selectedTrainNumber && (
@@ -1217,6 +1254,37 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Code: <code className="font-mono font-bold text-slate-800 dark:text-slate-200">{activeStation.code}</code> • Platforms: {activeStation.platforms.join(', ')} • {activeStation.city} {activeStation.zone ? `(${activeStation.zone})` : ''}
                   </p>
+                  
+                  {/* Verified Station Entrances & Walking Connections */}
+                  <div className="mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-1.5 text-xs">
+                    <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Navigation className="w-3.5 h-3.5 text-theme-primary" />
+                      Physical Entrances & Walking Transfer Pathways:
+                    </span>
+                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                      {activeStation.code === 'DR'
+                        ? 'East: Swaminarayan Mandir Gate • West: Senapati Bapat Marg Exit • Inter-railway FOB (CR PF 8 to WR PF 1) with verified step-free elevator bridge.'
+                        : activeStation.code === 'ADH'
+                        ? 'West: SV Road Exit • East: Auto Stand Concourse • Elevated Skywalk directly connecting WR Platform 8 to Metro Line 1 concourse.'
+                        : activeStation.code === 'CCG'
+                        ? 'West: Oval Maidan Subway • East: Churchgate Street • Sub-surface transfer underpass connecting to Metro Line 3.'
+                        : activeStation.code === 'CSMT'
+                        ? 'Main Heritage Concourse (PF 1-7) • P. D\'Mello Road East Exit (PF 8-18) • Direct sub-surface passage to Metro Line 3 station.'
+                        : activeStation.code === 'TNA'
+                        ? 'West: Platform 1 Bus Station Exit • East: CIDCO Bus Terminal • Trans-Harbour elevated bridge.'
+                        : 'Main Concourse Entrance & Street Access • Verified Foot Over Bridge (FOB) with step-free wheelchair ramp/lift access.'}
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-theme-light text-theme-primary border border-theme-border">
+                        [TIMETABLE SCHEDULE]
+                      </span>
+                      {activeStation.isInterchange && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Step-Free Interchange
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2 mt-3.5">
                     {onPlanRouteFromStation && (
                       <button

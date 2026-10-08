@@ -12,11 +12,15 @@ export interface CancelBookingResult {
   voucherCode: string;
 }
 
-export function cancelBooking(bookingId: string, reason = 'Passenger requested cancellation'): CancelBookingResult {
+export function cancelBooking(bookingId: string, reason = 'Passenger requested cancellation', authenticatedPassengerId?: string): CancelBookingResult {
   const db = getDatabase();
   const booking = getBookingById(bookingId);
   if (!booking) {
     throw new Error(`Booking ${bookingId} not found.`);
+  }
+
+  if (authenticatedPassengerId && booking.passengerProfileId && booking.passengerProfileId !== authenticatedPassengerId) {
+    throw new Error(`Unauthorized: passenger does not own booking ${bookingId}.`);
   }
 
   if (booking.bookingState === 'CANCELLED_DEMO') {
@@ -47,44 +51,57 @@ export function cancelBooking(bookingId: string, reason = 'Passenger requested c
     termsNotice: 'Statutory cancellation rules applied under Railway Passengers (Cancellation of Ticket and Refund of Fare) Rules.'
   };
 
-  // Update booking record
-  const updateBookingStmt = db.prepare(`
-    UPDATE bookings SET
-      payment_status = 'CANCELLED_REFUNDED',
-      booking_state = 'CANCELLED_DEMO',
-      updated_at = ?
-    WHERE id = ?
-  `);
-  updateBookingStmt.run(now, bookingId);
+  try {
+    db.exec('BEGIN IMMEDIATE;');
 
-  // Update tickets
-  const updateTicketStmt = db.prepare(`
-    UPDATE tickets SET status = 'CANCELLED' WHERE booking_id = ?
-  `);
-  updateTicketStmt.run(bookingId);
+    // Update booking record
+    const updateBookingStmt = db.prepare(`
+      UPDATE bookings SET
+        payment_status = 'CANCELLED_REFUNDED',
+        booking_state = 'CANCELLED_DEMO',
+        updated_at = ?
+      WHERE id = ?
+    `);
+    updateBookingStmt.run(now, bookingId);
 
-  // Record cancellation
-  const cancelId = 'CANC-' + crypto.randomUUID();
-  const cancelStmt = db.prepare(`
-    INSERT INTO cancellations (
-      id, booking_id, cancelled_at, reason, fare_paid, cash_refund,
-      wallet_refund, voucher_credit, clerical_deduction, refund_status, refund_timeline
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+    // Update tickets
+    const updateTicketStmt = db.prepare(`
+      UPDATE tickets SET status = 'CANCELLED' WHERE booking_id = ?
+    `);
+    updateTicketStmt.run(bookingId);
 
-  cancelStmt.run(
-    cancelId,
-    bookingId,
-    now,
-    reason,
-    totalPaid,
-    refundAmount,
-    refundAmount,
-    refundAmount,
-    clericalDeduction,
-    'COMPLETED_SIMULATED',
-    refundBreakdown.refundTimeline
-  );
+    // Record cancellation
+    const cancelId = 'CANC-' + crypto.randomUUID();
+    const cancelStmt = db.prepare(`
+      INSERT INTO cancellations (
+        id, booking_id, cancelled_at, reason, fare_paid, cash_refund,
+        wallet_refund, voucher_credit, clerical_deduction, refund_status, refund_timeline
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    cancelStmt.run(
+      cancelId,
+      bookingId,
+      now,
+      reason,
+      totalPaid,
+      refundAmount,
+      refundAmount,
+      refundAmount,
+      clericalDeduction,
+      'COMPLETED_SIMULATED',
+      refundBreakdown.refundTimeline
+    );
+
+    db.exec('COMMIT;');
+  } catch (err: any) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // ignore
+    }
+    throw err;
+  }
 
   logAuditEvent({
     eventType: 'BOOKING_CANCELLED',

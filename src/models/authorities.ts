@@ -116,8 +116,8 @@ export const INSTITUTIONAL_AUTHORITIES: Record<AuthorityId, InstitutionalAuthori
     ],
     officialPortalUrl: 'https://indianrailways.gov.in',
     officialDomain: 'indianrailways.gov.in',
-    watermarkText: 'GOVERNMENT OF INDIA · MINISTRY OF RAILWAYS · CRIS AUTHENTICATED TICKET',
-    securityPillText: 'GOVT OF INDIA · CRIS SECURE',
+    watermarkText: 'DEMO – NOT VALID FOR TRAVEL · INDEPENDENT RESEARCH DEMONSTRATION',
+    securityPillText: 'INDEPENDENT RESEARCH · NOT OFFICIAL RAILONE',
     defaultOriginCode: 'TNA',
     defaultDestCode: 'CSMT',
     stations: [

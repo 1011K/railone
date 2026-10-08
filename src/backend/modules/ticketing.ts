@@ -252,42 +252,59 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
     )
   `);
 
-  stmt.run(
-    bookingId,
-    req.idempotencyKey || null,
-    req.passengerProfileId || null,
-    pnr,
-    now,
-    req.journeyDate,
-    serviceType,
-    trainNumber,
-    trainName,
-    fromStation.code,
-    fromStation.name,
-    toStation.code,
-    toStation.name,
-    req.classBooked,
-    req.quota || 'GN',
-    totalFare,
-    JSON.stringify(passengersWithBerths),
-    paymentStatus,
-    bookingState,
-    req.paymentMethod || 'UPI_SIMULATED',
-    qrPayload,
-    1,
-    now,
-    now
-  );
+  try {
+    db.exec('BEGIN IMMEDIATE;');
 
-  // If issued, create ticket record
-  if (bookingState === 'TICKET_ISSUED_DEMO') {
-    const ticketId = 'TCK-' + crypto.randomUUID();
-    const ticketNumber = generateTicketNumber();
-    const tstmt = db.prepare(`
-      INSERT INTO tickets (id, booking_id, ticket_number, issued_at, status, qr_payload, is_simulated)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    tstmt.run(ticketId, bookingId, ticketNumber, now, 'ACTIVE', qrPayload, 1);
+    stmt.run(
+      bookingId,
+      req.idempotencyKey || null,
+      req.passengerProfileId || null,
+      pnr,
+      now,
+      req.journeyDate,
+      serviceType,
+      trainNumber,
+      trainName,
+      fromStation.code,
+      fromStation.name,
+      toStation.code,
+      toStation.name,
+      req.classBooked,
+      req.quota || 'GN',
+      totalFare,
+      JSON.stringify(passengersWithBerths),
+      paymentStatus,
+      bookingState,
+      req.paymentMethod || 'UPI_SIMULATED',
+      qrPayload,
+      1,
+      now,
+      now
+    );
+
+    // If issued, create ticket record
+    if (bookingState === 'TICKET_ISSUED_DEMO') {
+      const ticketId = 'TCK-' + crypto.randomUUID();
+      const ticketNumber = generateTicketNumber();
+      const tstmt = db.prepare(`
+        INSERT INTO tickets (id, booking_id, ticket_number, issued_at, status, qr_payload, is_simulated)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      tstmt.run(ticketId, bookingId, ticketNumber, now, 'ACTIVE', qrPayload, 1);
+    }
+
+    db.exec('COMMIT;');
+  } catch (err: any) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // ignore
+    }
+    if (req.idempotencyKey) {
+      const existing = getBookingByIdempotencyKey(req.idempotencyKey);
+      if (existing) return existing;
+    }
+    throw err;
   }
 
   logAuditEvent({
@@ -325,11 +342,15 @@ export function getBookingByIdempotencyKey(key: string): BookingRecord | null {
   return mapBookingRow(row);
 }
 
-export function reconcileBooking(id: string): BookingRecord {
+export function reconcileBooking(id: string, authenticatedPassengerId?: string): BookingRecord {
   const db = getDatabase();
   const existing = getBookingById(id);
   if (!existing) {
     throw new Error(`Booking ${id} not found.`);
+  }
+
+  if (authenticatedPassengerId && existing.passengerProfileId && existing.passengerProfileId !== authenticatedPassengerId) {
+    throw new Error(`Unauthorized: passenger does not own booking ${id}.`);
   }
 
   if (existing.bookingState === 'TICKET_ISSUED_DEMO') {
@@ -337,25 +358,39 @@ export function reconcileBooking(id: string): BookingRecord {
   }
 
   const now = new Date().toISOString();
-  const stmt = db.prepare(`
-    UPDATE bookings SET
-      payment_status = 'PAID_MOCK',
-      booking_state = 'TICKET_ISSUED_DEMO',
-      updated_at = ?
-    WHERE id = ?
-  `);
-  stmt.run(now, id);
 
-  // Check if ticket already exists
-  const existingTicket: any = db.prepare('SELECT id FROM tickets WHERE booking_id = ?').get(id);
-  if (!existingTicket) {
-    const ticketId = 'TCK-' + crypto.randomUUID();
-    const ticketNumber = generateTicketNumber();
-    const tstmt = db.prepare(`
-      INSERT INTO tickets (id, booking_id, ticket_number, issued_at, status, qr_payload, is_simulated)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+  try {
+    db.exec('BEGIN IMMEDIATE;');
+
+    const stmt = db.prepare(`
+      UPDATE bookings SET
+        payment_status = 'PAID_MOCK',
+        booking_state = 'TICKET_ISSUED_DEMO',
+        updated_at = ?
+      WHERE id = ?
     `);
-    tstmt.run(ticketId, id, ticketNumber, now, 'ACTIVE', existing.qrPayload, 1);
+    stmt.run(now, id);
+
+    // Check if ticket already exists
+    const existingTicket: any = db.prepare('SELECT id FROM tickets WHERE booking_id = ?').get(id);
+    if (!existingTicket) {
+      const ticketId = 'TCK-' + crypto.randomUUID();
+      const ticketNumber = generateTicketNumber();
+      const tstmt = db.prepare(`
+        INSERT INTO tickets (id, booking_id, ticket_number, issued_at, status, qr_payload, is_simulated)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      tstmt.run(ticketId, id, ticketNumber, now, 'ACTIVE', existing.qrPayload, 1);
+    }
+
+    db.exec('COMMIT;');
+  } catch (err: any) {
+    try {
+      db.exec('ROLLBACK;');
+    } catch {
+      // ignore
+    }
+    throw err;
   }
 
   logAuditEvent({

@@ -327,12 +327,12 @@ export const SpecimenTicketModal: React.FC<SpecimenTicketModalProps> = ({
                   <InstitutionalInsignia authorityId={authority.id} size={16} />
                   <span>{authority.securityPillText}</span>
                 </span>
-                <span className="text-emerald-600 dark:text-emerald-400">● ACTIVE VALID</span>
+                <span className="text-amber-600 dark:text-amber-400 font-bold">● DEMO SPECIMEN · NOT VALID FOR TRAVEL</span>
               </div>
 
               {/* Watermark Diagonal */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5 rotate-[-22deg] text-2xl font-black text-slate-900 dark:text-white uppercase tracking-widest select-none">
-                {authority.watermarkText}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 rotate-[-22deg] text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest select-none text-center px-4">
+                DEMO – NOT VALID FOR TRAVEL · {authority.watermarkText}
               </div>
 
               <div className="flex items-center justify-between border-b pb-2 border-slate-200 dark:border-slate-800">

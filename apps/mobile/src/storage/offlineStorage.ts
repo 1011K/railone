@@ -79,66 +79,108 @@ export interface CachedVectorMap {
   version?: string;
 }
 
-// In-memory persistent cache for native runtime environment
+// Durable storage bridge: leverages device localStorage with resilient memory fallback
 const memoryCache = new Map<string, any>();
 
+function loadDurable<T>(key: string, defaultValue: T): T {
+  if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+    try {
+      const raw = globalThis.localStorage.getItem(`railone_${key}`);
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        memoryCache.set(key, parsed);
+        return parsed as T;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return memoryCache.has(key) ? memoryCache.get(key) : defaultValue;
+}
+
+function saveDurable<T>(key: string, value: T): void {
+  memoryCache.set(key, value);
+  if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+    try {
+      globalThis.localStorage.setItem(`railone_${key}`, JSON.stringify(value));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function deleteDurable(key: string): void {
+  memoryCache.delete(key);
+  if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+    try {
+      globalThis.localStorage.removeItem(`railone_${key}`);
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export const OfflineStorage = {
+  isStorageDurable(): boolean {
+    return typeof globalThis !== 'undefined' && Boolean(globalThis.localStorage);
+  },
+
   // 1. Station Index Cache
   saveStations(stations: CachedStation[]): void {
-    memoryCache.set('offline_stations', stations);
+    saveDurable('offline_stations', stations);
   },
 
   getStations(): CachedStation[] {
-    return memoryCache.get('offline_stations') || [];
+    return loadDurable('offline_stations', [] as CachedStation[]);
   },
 
   // 2. Recent Searches
   addRecentSearch(fromCode: string, toCode: string): void {
-    const list: Array<{ from: string; to: string; timestamp: string }> = memoryCache.get('recent_searches') || [];
+    const list: Array<{ from: string; to: string; timestamp: string }> = loadDurable('recent_searches', []);
     const filtered = list.filter(item => !(item.from === fromCode && item.to === toCode));
     filtered.unshift({ from: fromCode, to: toCode, timestamp: new Date().toISOString() });
-    memoryCache.set('recent_searches', filtered.slice(0, 10));
+    saveDurable('recent_searches', filtered.slice(0, 10));
   },
 
   getRecentSearches(): Array<{ from: string; to: string; timestamp: string }> {
-    return memoryCache.get('recent_searches') || [];
+    return loadDurable('recent_searches', []);
   },
 
   // 3. Offline Ticket Specimen Cache
   saveTickets(tickets: CachedTicketRecord[]): void {
-    memoryCache.set('offline_tickets', tickets);
+    saveDurable('offline_tickets', tickets);
   },
 
   getTickets(): CachedTicketRecord[] {
-    return memoryCache.get('offline_tickets') || [];
+    return loadDurable('offline_tickets', [] as CachedTicketRecord[]);
   },
 
   saveTicket(ticket: CachedTicketRecord): void {
-    const existing: CachedTicketRecord[] = memoryCache.get('offline_tickets') || [];
+    const existing: CachedTicketRecord[] = loadDurable('offline_tickets', []);
     const filtered = existing.filter(t => t.id !== ticket.id);
     filtered.unshift(ticket);
-    memoryCache.set('offline_tickets', filtered);
+    saveDurable('offline_tickets', filtered);
   },
 
   // 4. Saved Commuter Journeys
   saveSavedJourney(journey: { id: string; fromStationCode: string; fromStationName: string; toStationCode: string; toStationName: string; preferredClass?: string }): void {
-    const existing: any[] = memoryCache.get('saved_journeys') || [];
+    const existing: any[] = loadDurable('saved_journeys', []);
     const filtered = existing.filter(j => j.id !== journey.id);
     filtered.unshift(journey);
-    memoryCache.set('saved_journeys', filtered);
+    saveDurable('saved_journeys', filtered);
   },
 
   getSavedJourneys(): Array<{ id: string; fromStationCode: string; fromStationName: string; toStationCode: string; toStationName: string; preferredClass?: string }> {
-    return memoryCache.get('saved_journeys') || [];
+    return loadDurable('saved_journeys', []);
   },
 
   // 5. User Preferences & Onboarding
   getUserCity(): string {
-    return memoryCache.get('user_city') || 'mumbai';
+    return loadDurable('user_city', 'mumbai');
   },
 
   setUserCity(city: string): void {
-    memoryCache.set('user_city', city);
+    saveDurable('user_city', city);
   },
 
   getUserProfile(): { name?: string; phone?: string; isGuest: boolean } | null {
@@ -257,41 +299,41 @@ export const OfflineStorage = {
       cachedAt: new Date().toISOString(),
       version: '1.0.0'
     };
-    memoryCache.set(`offline_vector_map_${scope}`, vectorMap);
-    memoryCache.set('offline_map_nodes', nodes);
-    memoryCache.set('offline_track_segments', segments);
-    memoryCache.set('offline_station_geometries', geoMap);
+    saveDurable(`offline_vector_map_${scope}`, vectorMap);
+    saveDurable('offline_map_nodes', nodes);
+    saveDurable('offline_track_segments', segments);
+    saveDurable('offline_station_geometries', geoMap);
   },
 
   getVectorMap(scope = 'mumbai_suburban'): CachedVectorMap | null {
-    const map = memoryCache.get(`offline_vector_map_${scope}`);
+    const map = loadDurable<CachedVectorMap | null>(`offline_vector_map_${scope}`, null);
     if (!map) return null;
-    const geoMap = memoryCache.get('offline_station_geometries') || {};
+    const geoMap = loadDurable<Record<string, StationGeometry>>('offline_station_geometries', {});
     return { ...map, geometries: map.geometries || geoMap };
   },
 
   saveMapNodes(nodes: CachedMapNode[]): void {
-    memoryCache.set('offline_map_nodes', nodes);
+    saveDurable('offline_map_nodes', nodes);
   },
 
   getMapNodes(): CachedMapNode[] {
-    return memoryCache.get('offline_map_nodes') || [];
+    return loadDurable('offline_map_nodes', [] as CachedMapNode[]);
   },
 
   saveTrackSegments(segments: CachedTrackSegment[]): void {
-    memoryCache.set('offline_track_segments', segments);
+    saveDurable('offline_track_segments', segments);
   },
 
   getTrackSegments(): CachedTrackSegment[] {
-    return memoryCache.get('offline_track_segments') || [];
+    return loadDurable('offline_track_segments', [] as CachedTrackSegment[]);
   },
 
   saveStationGeometries(geometries: Record<string, StationGeometry>): void {
-    memoryCache.set('offline_station_geometries', geometries);
+    saveDurable('offline_station_geometries', geometries);
   },
 
   getStationGeometry(stationCode: string): StationGeometry | null {
-    const geoMap: Record<string, StationGeometry> = memoryCache.get('offline_station_geometries') || {};
+    const geoMap = loadDurable<Record<string, StationGeometry>>('offline_station_geometries', {});
     return geoMap[stationCode] || null;
   },
 

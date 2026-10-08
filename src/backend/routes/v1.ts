@@ -19,6 +19,15 @@ import { getProviderDossiers, StatutoryTelephonyAdapter } from '../modules/provi
 import { createPassengerProfile, getPassengerProfile, updatePassengerProfile } from '../modules/passengerProfiles';
 import { sendNotification, getNotifications } from '../modules/notifications';
 import { TravelClass } from '../../types/railway';
+import { 
+  authenticatePassenger, 
+  optionalPassengerAuth, 
+  verifyOwnership, 
+  issuePassengerToken, 
+  AuthenticatedRequest 
+} from '../middleware/auth';
+import { MultimodalGraphEngine } from '../../engine/multimodal/graphEngine';
+import { getAllCityPacks, getCityPack } from '../../engine/multimodal/cityPacks';
 
 export const v1Router = Router();
 
@@ -219,13 +228,15 @@ v1Router.post('/disruptions/replan', (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
-// 8. Bookings & Ticketing (Server-Side Transactions)
+// 8. Bookings & Ticketing (Server-Side Transactions & Authorization)
 // ---------------------------------------------------------------------------
-v1Router.post('/bookings', (req: Request, res: Response) => {
+v1Router.post('/bookings', optionalPassengerAuth, (req: AuthenticatedRequest, res: Response) => {
   try {
     const idempotencyKey = (req.headers['x-idempotency-key'] as string) || req.body.idempotencyKey;
+    const passengerProfileId = req.authenticatedPassengerId || req.body.passengerProfileId;
     const booking = createBooking({
       ...req.body,
+      passengerProfileId,
       idempotencyKey
     });
     res.status(201).json({ booking });
@@ -234,42 +245,84 @@ v1Router.post('/bookings', (req: Request, res: Response) => {
   }
 });
 
-v1Router.get('/bookings/:id', (req: Request, res: Response) => {
+v1Router.get('/bookings/:id', optionalPassengerAuth, (req: AuthenticatedRequest, res: Response) => {
   const booking = getBookingById(req.params.id) || getBookingByPnr(req.params.id);
   if (!booking) {
     return res.status(404).json({ error: 'BOOKING_NOT_FOUND', message: `Booking ${req.params.id} not found.` });
   }
+
+  // Cross-user data exposure protection: if booking is owned by a profile and caller is authenticated as another user, forbid
+  if (booking.passengerProfileId && req.authenticatedPassengerId && booking.passengerProfileId !== req.authenticatedPassengerId) {
+    return res.status(403).json({
+      error: 'FORBIDDEN_CROSS_USER_ACCESS',
+      message: 'Cross-user data access denied: you do not have authorization to view this booking.'
+    });
+  }
+
   res.json({ booking });
 });
 
-v1Router.post('/bookings/:id/reconcile', (req: Request, res: Response) => {
+v1Router.post('/bookings/:id/reconcile', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
   try {
-    const reconciled = reconcileBooking(req.params.id);
+    const booking = getBookingById(req.params.id) || getBookingByPnr(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ error: 'BOOKING_NOT_FOUND', message: `Booking ${req.params.id} not found.` });
+    }
+
+    if (booking.passengerProfileId && booking.passengerProfileId !== req.authenticatedPassengerId) {
+      return res.status(403).json({
+        error: 'FORBIDDEN_CROSS_USER_ACCESS',
+        message: 'Cross-user data access denied: you cannot reconcile a transaction belonging to another passenger.'
+      });
+    }
+
+    const reconciled = reconcileBooking(booking.id, req.authenticatedPassengerId);
     res.json({ booking: reconciled, message: 'Transaction reconciled successfully.' });
   } catch (err: any) {
     res.status(400).json({ error: 'RECONCILIATION_FAILED', message: err.message });
   }
 });
 
-v1Router.get('/tickets', (req: Request, res: Response) => {
-  const passengerProfileId = req.query.passengerProfileId as string;
+v1Router.get('/tickets', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
+  // Enforce caller's own profile ID to strictly prevent cross-user ticket leakage
+  const passengerProfileId = req.authenticatedPassengerId!;
   const category = (req.query.category as any) || 'all';
   const tickets = listBookings({ passengerProfileId, category });
   res.json({ count: tickets.length, tickets });
 });
 
-v1Router.get('/tickets/:id', (req: Request, res: Response) => {
+v1Router.get('/tickets/:id', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
   const booking = getBookingById(req.params.id) || getBookingByPnr(req.params.id);
   if (!booking) {
     return res.status(404).json({ error: 'TICKET_NOT_FOUND', message: `Ticket ${req.params.id} not found.` });
   }
+
+  if (booking.passengerProfileId && booking.passengerProfileId !== req.authenticatedPassengerId) {
+    return res.status(403).json({
+      error: 'FORBIDDEN_CROSS_USER_ACCESS',
+      message: 'Cross-user data access denied: you do not have authorization to view this ticket.'
+    });
+  }
+
   res.json({ ticket: booking });
 });
 
-v1Router.post('/tickets/:id/cancel', (req: Request, res: Response) => {
+v1Router.post('/tickets/:id/cancel', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
   try {
+    const booking = getBookingById(req.params.id) || getBookingByPnr(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ error: 'TICKET_NOT_FOUND', message: `Ticket ${req.params.id} not found.` });
+    }
+
+    if (booking.passengerProfileId && booking.passengerProfileId !== req.authenticatedPassengerId) {
+      return res.status(403).json({
+        error: 'FORBIDDEN_CROSS_USER_ACCESS',
+        message: 'Cross-user data access denied: you cannot cancel a ticket belonging to another passenger.'
+      });
+    }
+
     const reason = (req.body.reason as string) || 'Passenger voluntary cancellation';
-    const result = cancelBooking(req.params.id, reason);
+    const result = cancelBooking(booking.id, reason, req.authenticatedPassengerId);
     res.json({ cancellation: result });
   } catch (err: any) {
     res.status(400).json({ error: 'CANCELLATION_FAILED', message: err.message });
@@ -349,18 +402,39 @@ v1Router.get('/metro/interchanges', (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
-// 12. Passenger Profiles
+// 12. Passenger Profiles & Token Authorization
 // ---------------------------------------------------------------------------
 v1Router.post('/passengers', (req: Request, res: Response) => {
   try {
     const profile = createPassengerProfile(req.body);
-    res.status(201).json({ profile });
+    const token = issuePassengerToken(profile.id);
+    res.status(201).json({ profile, token });
   } catch (err: any) {
     res.status(400).json({ error: 'PROFILE_CREATION_FAILED', message: err.message });
   }
 });
 
-v1Router.get('/passengers/:id', (req: Request, res: Response) => {
+v1Router.post('/auth/token', (req: Request, res: Response) => {
+  const profileId = req.body.passengerProfileId || req.body.profileId;
+  if (!profileId) {
+    return res.status(400).json({ error: 'INVALID_PARAMS', message: 'passengerProfileId is required.' });
+  }
+  const profile = getPassengerProfile(profileId);
+  if (!profile) {
+    return res.status(404).json({ error: 'PROFILE_NOT_FOUND', message: `Profile ${profileId} not found.` });
+  }
+  const token = issuePassengerToken(profile.id);
+  res.json({ token, profile });
+});
+
+v1Router.get('/passengers/:id', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
+  if (req.authenticatedPassengerId !== req.params.id) {
+    return res.status(403).json({
+      error: 'FORBIDDEN_CROSS_USER_ACCESS',
+      message: 'Cross-user data access denied: you cannot view another passenger’s profile.'
+    });
+  }
+
   const profile = getPassengerProfile(req.params.id);
   if (!profile) {
     return res.status(404).json({ error: 'PROFILE_NOT_FOUND', message: `Profile ${req.params.id} not found.` });
@@ -368,7 +442,14 @@ v1Router.get('/passengers/:id', (req: Request, res: Response) => {
   res.json({ profile });
 });
 
-v1Router.put('/passengers/:id', (req: Request, res: Response) => {
+v1Router.put('/passengers/:id', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
+  if (req.authenticatedPassengerId !== req.params.id) {
+    return res.status(403).json({
+      error: 'FORBIDDEN_CROSS_USER_ACCESS',
+      message: 'Cross-user data access denied: you cannot update another passenger’s profile.'
+    });
+  }
+
   const updated = updatePassengerProfile(req.params.id, req.body);
   if (!updated) {
     return res.status(404).json({ error: 'PROFILE_NOT_FOUND', message: `Profile ${req.params.id} not found.` });
@@ -379,8 +460,9 @@ v1Router.put('/passengers/:id', (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // 13. Notifications
 // ---------------------------------------------------------------------------
-v1Router.get('/notifications', (req: Request, res: Response) => {
-  const profileId = req.query.profileId as string;
+v1Router.get('/notifications', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
+  // Strictly isolate notifications to authenticated passenger
+  const profileId = req.authenticatedPassengerId!;
   const notifications = getNotifications(profileId);
   res.json({ count: notifications.length, notifications });
 });
@@ -418,3 +500,84 @@ v1Router.get('/health', (req: Request, res: Response) => {
   const health = checkSystemHealth(!!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY');
   res.json(health);
 });
+
+// ---------------------------------------------------------------------------
+// 17. Multimodal Routing & City Packs Architecture
+// ---------------------------------------------------------------------------
+v1Router.get('/multimodal/cities', (_req: Request, res: Response) => {
+  const packs = getAllCityPacks();
+  res.json({
+    count: packs.length,
+    cities: packs.map(p => ({
+      cityId: p.cityId,
+      name: p.name,
+      nativeName: p.nativeName,
+      state: p.state,
+      tier: p.tier,
+      nodeCount: p.nodes.length,
+      edgeCount: p.edges.length,
+      manifestCount: p.coverageManifest.length,
+      coverageManifest: p.coverageManifest
+    }))
+  });
+});
+
+v1Router.get('/multimodal/city/:cityId', (req: Request, res: Response) => {
+  const pack = getCityPack(req.params.cityId);
+  if (!pack) {
+    return res.status(404).json({ error: 'CITY_NOT_FOUND', message: `City pack ${req.params.cityId} not found.` });
+  }
+  res.json({ cityPack: pack });
+});
+
+v1Router.get('/multimodal/plan', (req: Request, res: Response) => {
+  const origin = req.query.origin as string;
+  const destination = req.query.destination as string;
+  const city = (req.query.city as string) || 'mumbai';
+
+  if (!origin || !destination) {
+    return res.status(400).json({ error: 'INVALID_PARAMS', message: 'origin and destination parameters are required.' });
+  }
+
+  try {
+    const engine = new MultimodalGraphEngine(city);
+    const accessibleStepFree = req.query.accessibleStepFree === 'true' || req.query.accessibleStepFree === '1';
+    const acOnly = req.query.acOnly === 'true' || req.query.acOnly === '1';
+    const expressThreshold = req.query.expressAdvantageThresholdMinutes 
+      ? parseInt(req.query.expressAdvantageThresholdMinutes as string, 10) 
+      : 15;
+    
+    const preferredModes = req.query.preferredModes 
+      ? (req.query.preferredModes as string).split(',').map(m => m.trim() as any) 
+      : undefined;
+    const excludedModes = req.query.excludedModes 
+      ? (req.query.excludedModes as string).split(',').map(m => m.trim() as any) 
+      : undefined;
+
+    const itineraries = engine.planJourney({
+      cityId: city,
+      origin,
+      destination,
+      departureTime: (req.query.departureTime as string) || '08:30',
+      preferences: {
+        priority: req.query.priority as any,
+        accessibleStepFree,
+        acOnly,
+        expressAdvantageThresholdMinutes: expressThreshold,
+        preferredModes,
+        excludedModes
+      }
+    });
+
+    res.json({
+      city,
+      origin,
+      destination,
+      count: itineraries.length,
+      itineraries
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'ROUTING_FAILED', message: err.message || 'Multimodal routing calculation failed.' });
+  }
+});
+

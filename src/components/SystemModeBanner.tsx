@@ -16,7 +16,7 @@ export const SystemModeBanner: React.FC = () => {
           <span>Controlled Scenario Runtime (October 2026 Fixture)</span>
           <span aria-hidden="true" className="text-amber-500/60">·</span>
           <span className="text-amber-800 dark:text-amber-200">
-            Unofficial Educational Redesign. No Live IR / NTES feed claimed.
+            Independent Demonstration & Research Prototype · Not affiliated with official Indian Railways, CRIS, or IRCTC.
           </span>
         </div>
 

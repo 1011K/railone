@@ -24,25 +24,25 @@ export const InstitutionalInsignia: React.FC<InstitutionalInsigniaProps> = ({
             viewBox="0 0 48 48" 
             fill="none" 
             xmlns="http://www.w3.org/2000/svg"
-            aria-label="Government of India Ministry of Railways Emblem"
+            aria-label="Indian Railway Transit Network Emblem (Independent Demonstration · Not official GoI)"
           >
             {/* Circular Base & Gold Rim */}
             <circle cx="24" cy="24" r="22" fill="#1e3a8a" stroke="#d97706" strokeWidth="2.5" />
             <circle cx="24" cy="24" r="18" fill="#172554" stroke="#f59e0b" strokeWidth="1" strokeDasharray="2 2" />
             
-            {/* Ashoka Wheel (Chakra) Hub */}
+            {/* Transit Wheel Hub */}
             <circle cx="24" cy="26" r="8" fill="#0284c7" stroke="#ffffff" strokeWidth="1.5" />
             <circle cx="24" cy="26" r="3" fill="#ffffff" />
-            {/* Chakra Spokes */}
+            {/* Transit Radial Spokes */}
             <path d="M24 18V34M16 26H32M18.3 20.3L29.7 31.7M29.7 20.3L18.3 31.7" stroke="#ffffff" strokeWidth="1" strokeLinecap="round" />
             
-            {/* Lion Capital Crest Stylized Crown Top */}
+            {/* Geometric Railway Network Signal Beacon */}
             <path d="M20 10H28L29 14H19L20 10Z" fill="#f59e0b" stroke="#ffffff" strokeWidth="0.8" />
             <path d="M22 6H26V10H22V6Z" fill="#fef08a" />
             <circle cx="24" cy="5" r="1.5" fill="#f59e0b" />
           </svg>
           {showBadge && (
-            <span className="sr-only">Government of India Ministry of Railways Official Crest</span>
+            <span className="sr-only">Indian Rail Transit Network Demonstration Emblem</span>
           )}
         </div>
       );

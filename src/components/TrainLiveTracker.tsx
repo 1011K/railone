@@ -391,30 +391,30 @@ export const TrainLiveTracker: React.FC<TrainLiveTrackerProps> = ({
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800">
             <span className="text-slate-500 block">Current Location:</span>
             <span className="font-bold text-slate-900 dark:text-white text-sm">
-              {obs?.currentStationCode ? STATIONS[obs.currentStationCode]?.name : 'Origin (Kalyan)'}
+              {obs?.currentStationCode ? (STATIONS[obs.currentStationCode]?.name || obs.currentStationCode) : 'Unavailable (Unobserved)'}
             </span>
             <span className="text-[11px] text-slate-500 block mt-0.5">
-              {obs?.hasDepartedOrigin ? 'In Transit' : 'Waiting to Depart Origin'}
+              {obs ? (obs.hasDepartedOrigin ? 'In Transit' : 'Waiting at Origin') : 'Live Telemetry Unavailable'}
             </span>
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800">
             <span className="text-slate-500 block">Current Delay:</span>
-            <span className={`font-bold text-sm ${obs?.delayMinutesAtCurrent ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-              {obs?.delayMinutesAtCurrent ? `+${obs.delayMinutesAtCurrent} min late` : 'Running On Time'}
+            <span className={`font-bold text-sm ${!obs ? 'text-slate-500' : obs.delayMinutesAtCurrent ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              {!obs ? 'Unavailable (No Live Observation)' : obs.delayMinutesAtCurrent ? `+${obs.delayMinutesAtCurrent} min late` : 'Verified On Time'}
             </span>
             <span className="text-[11px] text-slate-500 block mt-0.5">
-              Uncertainty: ±{obs?.uncertaintyMarginMinutes || 0} min
+              {obs ? `Uncertainty: ±${obs.uncertaintyMarginMinutes || 0} min` : 'Timetable Schedule Model'}
             </span>
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800">
-            <span className="text-slate-500 block">Data Provenance:</span>
+            <span className="text-slate-500 block">Data Provenance & Freshness:</span>
             <span className="font-bold text-slate-900 dark:text-white text-sm">
-              {obs?.dataStatus || 'SCHEDULED'}
+              {obs?.dataStatus || 'TIMETABLE_SCHEDULE'}
             </span>
             <span className="text-[11px] text-slate-500 block mt-0.5 truncate" title={obs?.dataSource}>
-              {obs?.dataSource || 'Official Timetable'}
+              {obs ? (obs.lastReportedTimestamp ? `Observed: ${obs.lastReportedTimestamp.slice(-8)}` : (obs.dataSource || 'Live telemetry')) : 'Static Schedule (No Observation)'}
             </span>
           </div>
 

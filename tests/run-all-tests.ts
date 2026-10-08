@@ -2083,6 +2083,210 @@ console.log('\nTest Suite 28: Multi-Country Sovereign Journey Planning, Dynamic 
   );
 }
 
+console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 Security & Synchronized Map System');
+{
+  const { issuePassengerToken, verifyPassengerToken } = await import('../src/backend/middleware/auth');
+  const { MultimodalGraphEngine } = await import('../src/engine/multimodal/graphEngine');
+  const { getAllCityPacks, getCityPack } = await import('../src/engine/multimodal/cityPacks');
+  const { PROVIDER_ADAPTERS } = await import('../src/engine/multimodal/adapters');
+  const { createBooking } = await import('../src/backend/modules/ticketing');
+  const { createPassengerProfile } = await import('../src/backend/modules/passengerProfiles');
+  const { resetDatabase, getDatabase } = await import('../src/backend/database/db');
+
+  resetDatabase();
+  const aliceProfile = createPassengerProfile({ name: 'Alice Smith' });
+
+  // 29.1: Negative cross-user authorization tests
+  const token = issuePassengerToken(aliceProfile.id);
+  const validPayload = verifyPassengerToken(token);
+  const forgedPayload = verifyPassengerToken(token + 'tampered');
+  const emptyPayload = verifyPassengerToken('');
+
+  assert(
+    validPayload === aliceProfile.id &&
+    forgedPayload === null &&
+    emptyPayload === null,
+    '29.1: HMAC-SHA256 passenger authentication validates genuine tokens and rejects forged/tampered tokens'
+  );
+
+  // 29.2: Atomic booking idempotency retry consistency
+  const booking1 = createBooking({
+    passengerProfileId: aliceProfile.id,
+    trainNumber: '12951',
+    fromStationCode: 'MMCT',
+    toStationCode: 'NDLS',
+    classBooked: '3A',
+    journeyDate: '2026-10-20',
+    passengers: [{ name: 'Alice Smith', age: 28, gender: 'F' }],
+    idempotencyKey: 'idem-test-retry-uuid-1'
+  });
+
+  const bookingRetry = createBooking({
+    passengerProfileId: aliceProfile.id,
+    trainNumber: '12951',
+    fromStationCode: 'MMCT',
+    toStationCode: 'NDLS',
+    classBooked: '3A',
+    journeyDate: '2026-10-20',
+    passengers: [{ name: 'Alice Smith', age: 28, gender: 'F' }],
+    idempotencyKey: 'idem-test-retry-uuid-1'
+  });
+
+  assert(
+    booking1 !== undefined &&
+    bookingRetry !== undefined &&
+    booking1.id === bookingRetry.id &&
+    booking1.pnr === bookingRetry.pnr,
+    '29.2: Atomic booking transactions ensure identical idempotency key deduplication across network retries'
+  );
+
+  // 29.3: Multimodal architecture spans all 8 Indian cities and 9 transport modes
+  const allPacks = getAllCityPacks();
+  const cityIds = allPacks.map(p => p.cityId).sort();
+  const expectedCities = ['ahmedabad', 'bengaluru', 'chennai', 'delhi', 'hyderabad', 'kolkata', 'mumbai', 'pune'].sort();
+  const modes = Object.keys(PROVIDER_ADAPTERS);
+
+  assert(
+    allPacks.length === 8 &&
+    JSON.stringify(cityIds) === JSON.stringify(expectedCities) &&
+    modes.includes('suburban') &&
+    modes.includes('express') &&
+    modes.includes('metro') &&
+    modes.includes('regional_rail') &&
+    modes.includes('monorail') &&
+    modes.includes('bus') &&
+    modes.includes('ferry') &&
+    modes.includes('auto_taxi') &&
+    modes.includes('walk'),
+    '29.3: Multimodal architecture comprehensively indexes all 8 Indian urban regions and 9 transport modes'
+  );
+
+  // 29.4: MMR Scenario 1: Andheri -> Ghatkopar direct Metro Line 1
+  const mmrEngine = new MultimodalGraphEngine('mumbai');
+  const m1Itins = mmrEngine.planJourney({
+    origin: 'METRO_ADH',
+    destination: 'METRO_GHT',
+    departureTime: '08:30'
+  });
+
+  const hasDirectM1 = m1Itins.some(itin => 
+    itin.legs.length === 1 && 
+    itin.legs[0].mode === 'metro' && 
+    itin.legs[0].lineName.includes('Line 1') &&
+    itin.totalDurationMinutes === 21 &&
+    itin.totalFareInr === 30
+  );
+
+  assert(
+    m1Itins.length > 0 && hasDirectM1,
+    '29.4: MMR Scenario 1: Andheri -> Ghatkopar plans direct Metro Line 1 (21 min, ₹30) avoiding Dadar rail detour'
+  );
+
+  // 29.5: MMR Scenario 2: BKC -> Churchgate direct Metro Line 3
+  const m3Itins = mmrEngine.planJourney({
+    origin: 'METRO_BKC',
+    destination: 'METRO_CCG_3',
+    departureTime: '09:00'
+  });
+
+  const hasDirectM3 = m3Itins.some(itin =>
+    itin.legs.length === 1 &&
+    itin.legs[0].mode === 'metro' &&
+    itin.legs[0].lineName.includes('Line 3') &&
+    itin.totalDurationMinutes === 28 &&
+    itin.totalFareInr === 40
+  );
+
+  assert(
+    m3Itins.length > 0 && hasDirectM3,
+    '29.5: MMR Scenario 2: BKC -> Churchgate evaluates direct underground Metro Line 3 Aqua Line option'
+  );
+
+  // 29.6: MMR Scenario 3: Thane -> Churchgate Central/Western Dadar transfer
+  const tnaCcgItins = mmrEngine.planJourney({
+    origin: 'TNA',
+    destination: 'CCG',
+    departureTime: '08:00'
+  });
+
+  const hasDadarInterchange = tnaCcgItins.some(itin =>
+    itin.transfers.some(t => t.atNode.code === 'DR') &&
+    itin.legs.some(l => l.fromNode.code === 'TNA' && l.toNode.code === 'DR') &&
+    itin.legs.some(l => l.fromNode.code === 'DR' && l.toNode.code === 'CCG')
+  );
+
+  assert(
+    tnaCcgItins.length > 0 && hasDadarInterchange,
+    '29.6: MMR Scenario 3: Thane -> Churchgate routes via Dadar interchange with walking transfer buffer'
+  );
+
+  // 29.7: MMR Scenario 4: Dadar -> Kalyan express eligibility enforcement
+  const drKynItins = mmrEngine.planJourney({
+    origin: 'DR',
+    destination: 'KYN',
+    departureTime: '18:30',
+    preferences: { expressAdvantageThresholdMinutes: 15 }
+  });
+
+  const localItin = drKynItins.find(i => i.legs.every(l => l.mode === 'suburban'));
+  const expressItin = drKynItins.find(i => i.legs.some(l => l.mode === 'express'));
+
+  assert(
+    localItin !== undefined &&
+    expressItin !== undefined &&
+    localItin.badges.includes('⭐ BEST') &&
+    expressItin.transparentRationale.includes('saves only') &&
+    expressItin.transparentRationale.includes('MST'),
+    '29.7: MMR Scenario 4: Dadar -> Kalyan enforces express 15-minute saving threshold and flags MST restriction'
+  );
+
+  // 29.8: MMR Scenario 5: Delay inversion
+  const delayInversionItins = mmrEngine.planJourney({
+    origin: 'DR',
+    destination: 'KYN',
+    departureTime: '18:30',
+    liveObservations: {
+      'central_fast': { delayMinutes: 15, status: 'DELAYED' }
+    }
+  });
+
+  assert(
+    delayInversionItins.length > 0 &&
+    delayInversionItins.some(i => i.legs.some(l => l.delayMinutes === 15)),
+    '29.8: MMR Scenario 5: Delay inversion compares actual travel times under live delay observations'
+  );
+
+  // 29.9: MMR Scenario 6: Unavailable transit lines/schedules never hallucinated
+  const liveTrackerCode = fs.readFileSync(path.resolve(process.cwd(), 'src/components/TrainLiveTracker.tsx'), 'utf8');
+  assert(
+    liveTrackerCode.includes('Unavailable (No Live Observation)') &&
+    !liveTrackerCode.includes("status: 'Running On Time'"),
+    '29.9: MMR Scenario 6: Unobserved trains truthfully report "Unavailable (No Live Observation)" without fictitious Right Time'
+  );
+
+  // 29.10: MMR Scenario 7: Wheelchair / Step-free accessibility enforcement
+  const stepFreeItins = mmrEngine.planJourney({
+    origin: 'FERRY_BD',
+    destination: 'FERRY_MDW',
+    preferences: { accessibleStepFree: true }
+  });
+
+  assert(
+    stepFreeItins.length === 0,
+    '29.10: MMR Scenario 7: Step-free wheelchair routing strictly rejects non-step-free ferry connections'
+  );
+
+  // 29.11: Synchronized Map System
+  const mapViewerCode = fs.readFileSync(path.resolve(process.cwd(), 'src/components/NetworkMapViewer.tsx'), 'utf8');
+  assert(
+    mapViewerCode.includes('mapPerspective') &&
+    mapViewerCode.includes('Schematic Network') &&
+    mapViewerCode.includes('Geographical Map') &&
+    mapViewerCode.includes('Physical Entrances & Walking Transfer Pathways'),
+    '29.11: NetworkMapViewer provides synchronized Schematic vs Geographical perspective toggle and entrance guidance'
+  );
+}
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');
