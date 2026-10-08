@@ -1,7 +1,7 @@
 /**
- * Multi-Country Institutional Transport Authority System
+ * Indian passenger transport research context (foreign definitions retained for research only)
  * 
- * Provides official government transport authority definitions, emblems,
+ * Provides illustrative authority metadata, never proof of government affiliation,
  * statutory charters, currencies, stations, corridors, and fare models.
  * 
  * Supported Institutional Authorities:
@@ -87,9 +87,9 @@ export const INSTITUTIONAL_AUTHORITIES: Record<AuthorityId, InstitutionalAuthori
     id: 'india',
     countryCode: 'IN',
     countryName: 'Republic of India',
-    governmentBody: 'Ministry of Railways · Government of India',
-    operatingAgency: 'Centre for Railway Information Systems (CRIS) · Indian Railways',
-    shortTitle: 'Indian Railways (CRIS)',
+    governmentBody: 'Independent India-focused transport research project',
+    operatingAgency: 'RailOne Next · independent demonstration (not CRIS / Indian Railways)',
+    shortTitle: 'RailOne Next (Unofficial)',
     motto: 'Lifeline of the Nation · राष्ट्र की जीवन रेखा',
     statutoryAct: 'The Railways Act, 1989 (Act No. 24 of 1989)',
     regulatoryCharter: 'Statutory Passenger Tariff & Unreserved Ticketing System Framework',
@@ -418,15 +418,14 @@ export const INSTITUTIONAL_AUTHORITIES: Record<AuthorityId, InstitutionalAuthori
   }
 };
 
-export function getAuthorityById(id: string): InstitutionalAuthority {
-  if (id in INSTITUTIONAL_AUTHORITIES) {
-    return INSTITUTIONAL_AUTHORITIES[id as AuthorityId];
-  }
+// Product scope is India-only. Overseas definitions exist for design benchmarking
+// but must not activate foreign booking, fare or transport authority screens.
+export function getAuthorityById(_id: string): InstitutionalAuthority {
   return INSTITUTIONAL_AUTHORITIES.india;
 }
 
 export function getAllAuthorities(): InstitutionalAuthority[] {
-  return Object.values(INSTITUTIONAL_AUTHORITIES);
+  return [INSTITUTIONAL_AUTHORITIES.india];
 }
 
 export function getDefaultAuthority(): InstitutionalAuthority {
