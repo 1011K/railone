@@ -84,6 +84,27 @@ export interface AppTranslations {
   thinking: string;
   endCall: string;
   startCall: string;
+  departAfter: string;
+  arriveBy: string;
+  allClasses: string;
+  secondClass: string;
+  firstClass: string;
+  acMandatory: string;
+  fastest: string;
+  leastCrowded: string;
+  lowestFare: string;
+  fewestTransfers: string;
+  verifiedTrunk: string;
+  bookTicket: string;
+  trackerSubtab: string;
+  boardSubtab: string;
+  mapSubtab: string;
+  coachSubtab: string;
+  allServices: string;
+  activePassesSubtab: string;
+  seasonPassesSubtab: string;
+  walletSubtab: string;
+  tteSubtab: string;
 }
 
 export const TRANSLATIONS: Record<AppLanguage, AppTranslations> = {
@@ -164,7 +185,28 @@ export const TRANSLATIONS: Record<AppLanguage, AppTranslations> = {
     speaking: 'Rail Yatri speaking...',
     thinking: 'Checking railway schedules...',
     endCall: 'End Call',
-    startCall: 'Start Voice Call'
+    startCall: 'Start Voice Call',
+    departAfter: 'Depart After',
+    arriveBy: 'Arrive By',
+    allClasses: 'All Classes',
+    secondClass: '2nd Class (II)',
+    firstClass: '1st Class (I)',
+    acMandatory: 'AC Local Only',
+    fastest: '⚡ Fastest',
+    leastCrowded: '👥 Least Crowded',
+    lowestFare: '💰 Lowest Fare',
+    fewestTransfers: 'Direct',
+    verifiedTrunk: '[VERIFIED TRUNK]',
+    bookTicket: 'Book Specimen Ticket',
+    trackerSubtab: 'Running Tracker',
+    boardSubtab: 'Station Board',
+    mapSubtab: 'Network Map',
+    coachSubtab: 'Coach Guide',
+    allServices: 'All Services',
+    activePassesSubtab: 'Active & Unreserved',
+    seasonPassesSubtab: 'Season Passes',
+    walletSubtab: 'R-Wallet',
+    tteSubtab: 'TTE Inspection'
   },
   hi: {
     appName: 'रेलवन नेक्स्ट',
@@ -243,7 +285,28 @@ export const TRANSLATIONS: Record<AppLanguage, AppTranslations> = {
     speaking: 'रेल यात्री बोल रहा है...',
     thinking: 'रेलवे शेड्यूल सत्यापित किया जा रहा है...',
     endCall: 'कॉल समाप्त करें',
-    startCall: 'वॉइस कॉल शुरू करें'
+    startCall: 'वॉइस कॉल शुरू करें',
+    departAfter: 'प्रस्थान समय',
+    arriveBy: 'आगमन समय',
+    allClasses: 'सभी श्रेणियां',
+    secondClass: 'द्वितीय श्रेणी (II)',
+    firstClass: 'प्रथम श्रेणी (I)',
+    acMandatory: 'केवल एसी लोकल',
+    fastest: '⚡ सबसे तेज़',
+    leastCrowded: '👥 कम भीड़',
+    lowestFare: '💰 न्यूनतम किराया',
+    fewestTransfers: 'सीधी ट्रेन',
+    verifiedTrunk: '[सत्यापित ट्रंक]',
+    bookTicket: 'टिकट बुक करें',
+    trackerSubtab: 'रनिंग ट्रैकर',
+    boardSubtab: 'स्टेशन बोर्ड',
+    mapSubtab: 'नेटवर्क मैप',
+    coachSubtab: 'कोच स्थिति',
+    allServices: 'सभी सेवाएं',
+    activePassesSubtab: 'सक्रिय एवं अनारक्षित',
+    seasonPassesSubtab: 'सीज़न पास',
+    walletSubtab: 'आर-वॉलेट',
+    tteSubtab: 'टीटीई सत्यापन'
   },
   mr: {
     appName: 'रेलोन नेक्स्ट',
@@ -322,7 +385,28 @@ export const TRANSLATIONS: Record<AppLanguage, AppTranslations> = {
     speaking: 'रेल यात्री बोलत आहे...',
     thinking: 'रेल्वे वेळापत्रक तपासत आहे...',
     endCall: 'कॉल संपवा',
-    startCall: 'व्हॉइस कॉल सुरू करा'
+    startCall: 'व्हॉइस कॉल सुरू करा',
+    departAfter: 'सुटण्याची वेळ',
+    arriveBy: 'पोहोचण्याची वेळ',
+    allClasses: 'सर्व वर्ग',
+    secondClass: 'द्वितीय श्रेणी (II)',
+    firstClass: 'प्रथम श्रेणी (I)',
+    acMandatory: 'फक्त एसी लोकल',
+    fastest: '⚡ सर्वात वेगवान',
+    leastCrowded: '👥 कमी गर्दी',
+    lowestFare: '💰 सर्वात कमी भाडे',
+    fewestTransfers: 'थेट गाडी',
+    verifiedTrunk: '[प्रमाणित मार्ग]',
+    bookTicket: 'तिकीट बुक करा',
+    trackerSubtab: 'थेट ट्रॅकर',
+    boardSubtab: 'स्थानक फलक',
+    mapSubtab: 'नेटवर्क नकाशा',
+    coachSubtab: 'डब्यांची स्थिती',
+    allServices: 'सर्व गाड्या',
+    activePassesSubtab: 'सक्रिय व अनारक्षित',
+    seasonPassesSubtab: 'सीझन पास',
+    walletSubtab: 'आर-पाकीट',
+    tteSubtab: 'टीटीई तपासणी'
   }
 };
 

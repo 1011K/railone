@@ -98,9 +98,6 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
               <span className="text-xs font-black text-slate-900 dark:text-white">
                 {t.appName}
               </span>
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black bg-theme-primary/10 text-theme-primary border border-theme-primary/20">
-                IN
-              </span>
             </div>
             <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
               {t.ministryName}
@@ -163,7 +160,8 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[10px]">
           <button
             onClick={() => {
-              onNavigateToJourney('DR', 'TNA');
+              if (onOpenRailSathi) onOpenRailSathi();
+              else onSwitchTab('help');
             }}
             className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-cyan-200 border border-white/10 whitespace-nowrap active:scale-95"
           >
@@ -171,7 +169,8 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
           </button>
           <button
             onClick={() => {
-              onNavigateToJourney('TNA', 'CSMT');
+              if (onOpenRailSathi) onOpenRailSathi();
+              else onSwitchTab('help');
             }}
             className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-cyan-200 border border-white/10 whitespace-nowrap active:scale-95"
           >

@@ -22,6 +22,8 @@ import {
 
 import { PassengerNavTab } from '../common/BottomNavigation';
 import { useAuthority } from '../AuthorityContext';
+import { useTheme } from '../ThemeContext';
+import { getTranslation } from '../../i18n/translations';
 
 interface MobileJourneysTabProps {
   initialOrigin?: string;
@@ -37,6 +39,8 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
   onInspectTrain
 }) => {
   const { authority, formatCurrency } = useAuthority();
+  const { language } = useTheme();
+  const t = getTranslation(language);
   const [originInput, setOriginInput] = useState(authority?.defaultOriginCode || initialOrigin);
   const [destInput, setDestInput] = useState(authority?.defaultDestCode || initialDest);
   const [departureTime, setDepartureTime] = useState(() => {
@@ -118,10 +122,10 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
         <div className="space-y-1">
           <div className="flex items-center justify-between px-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-              {authority.shortTitle} Corridors
+              {authority.shortTitle} {language === 'en' ? 'Corridors' : t.officialRoutes}
             </span>
             <span className="text-[9px] font-mono text-emerald-500 font-bold">
-              [VERIFIED TRUNK]
+              {language === 'en' ? '[VERIFIED TRUNK]' : t.verifiedTrunk}
             </span>
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[10px]">
@@ -161,7 +165,7 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
               type="text"
               value={originInput}
               onChange={(e) => setOriginInput(e.target.value.toUpperCase())}
-              placeholder={`From Station (e.g. ${authority.stations[0]?.name || 'Origin'}, ${authority.defaultOriginCode})`}
+              placeholder={`${t.fromStation} (${authority.defaultOriginCode})`}
               className="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
             />
           </div>
@@ -183,7 +187,7 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
               type="text"
               value={destInput}
               onChange={(e) => setDestInput(e.target.value.toUpperCase())}
-              placeholder={`To Station (e.g. ${authority.stations[1]?.name || 'Destination'}, ${authority.defaultDestCode})`}
+              placeholder={`${t.toStation} (${authority.defaultDestCode})`}
               className="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
             />
           </div>
@@ -199,7 +203,7 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
                 !isArriveBy ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500'
               }`}
             >
-              Depart At
+              {t.departAfter}
             </button>
             <button
               type="button"
@@ -208,7 +212,7 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
                 isArriveBy ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500'
               }`}
             >
-              Arrive By
+              {t.arriveBy}
             </button>
           </div>
 
@@ -226,11 +230,11 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
         {/* Class Filter Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-[10px]">
           {[
-            { id: 'any', label: 'All Classes' },
-            { id: 'second', label: 'Second (II)' },
-            { id: 'first', label: 'First (I)' },
+            { id: 'any', label: t.allClasses },
+            { id: 'second', label: t.secondClass },
+            { id: 'first', label: t.firstClass },
             { id: 'ac_preferred', label: 'AC Preferred' },
-            { id: 'ac_mandatory', label: 'AC Only' }
+            { id: 'ac_mandatory', label: t.acMandatory }
           ].map(f => (
             <button
               key={f.id}
@@ -260,10 +264,10 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
             onChange={(e) => setPriority(e.target.value as any)}
             className="bg-transparent font-bold text-theme-primary focus:outline-hidden"
           >
-            <option value="fastest">Fastest</option>
-            <option value="lowest_fare">Lowest Fare</option>
-            <option value="fewest_transfers">Fewest Transfers</option>
-            <option value="least_crowded">Least Crowded</option>
+            <option value="fastest">{t.fastest}</option>
+            <option value="lowest_fare">{t.lowestFare}</option>
+            <option value="fewest_transfers">{t.fewestTransfers}</option>
+            <option value="least_crowded">{t.leastCrowded}</option>
           </select>
         </div>
       </div>
@@ -439,7 +443,7 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
                         className="px-3.5 py-2 rounded-xl bg-theme-primary hover:bg-blue-600 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 min-h-[44px]"
                       >
                         <Ticket className="w-3.5 h-3.5" />
-                        <span>Book E-Ticket</span>
+                        <span>{t.bookTicket}</span>
                       </button>
                     </div>
 

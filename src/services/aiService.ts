@@ -80,7 +80,29 @@ export class AiRailwayService {
       });
     }
 
-    if (q.includes('ac') || q.includes('leave') || q.includes('home') || q.includes('time') || q.includes('kalyan')) {
+    if (q.includes('failure') || q.includes('compressor') || q.includes('malfunction') || q.includes('grievance') || q.includes('madad')) {
+      tasks.push({
+        title: 'Draft Official RailMadad Complaint',
+        description: 'Air conditioning failure in Coach AC-03 of Kalyan-CSMT AC Fast Local 95114. Draft statutory complaint to Central Railway Electrical Maintenance & RailMadad 139.',
+        category: 'GRIEVANCE_RAILMADAD',
+        priority: 'P0_CRITICAL',
+        associatedTrain: '95114',
+        stationCode: 'CSMT',
+        dueTime: 'Immediate',
+        provenance: 'SCHEDULED'
+      });
+
+      tasks.push({
+        title: 'RPF / Train Superintendent Escalation',
+        description: 'Notify onboard Train Superintendent or dial Statutory Helpline 139 for immediate HVAC technician dispatch at next halt.',
+        category: 'GRIEVANCE_RAILMADAD',
+        priority: 'P1_HIGH',
+        associatedTrain: '95114',
+        stationCode: 'KYN',
+        dueTime: now,
+        provenance: 'SCHEDULED'
+      });
+    } else if (q.includes('ac') || q.includes('leave') || q.includes('home') || q.includes('time') || q.includes('kalyan')) {
       tasks.push({
         title: 'Departure Timing Buffer Advisory',
         description: 'Live rake telemetry unavailable. Allow standard 10–15 min walking buffer before scheduled departure and check platform display upon arrival.',

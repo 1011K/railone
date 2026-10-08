@@ -4,6 +4,8 @@ import { PAN_INDIA_TRAINS, PAN_INDIA_OBSERVATIONS } from '../../fixtures/panIndi
 import { computePredictedStops, PredictedStop } from '../../engine/delayModel';
 import { NetworkMapViewer } from '../NetworkMapViewer';
 import { CoachPositionGuide, RakeModelType } from '../CoachPositionGuide';
+import { useTheme } from '../ThemeContext';
+import { getTranslation } from '../../i18n/translations';
 import { 
   Radio, 
   Map, 
@@ -44,6 +46,8 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
   onPlanRouteFromStation,
   onPlanRouteToStation
 }) => {
+  const { language } = useTheme();
+  const t = getTranslation(language);
   // Sub-Tab Navigation: tracker | board | map | coach
   const [activeSubTab, setActiveSubTab] = useState<'tracker' | 'board' | 'map' | 'coach'>('tracker');
   
@@ -236,10 +240,10 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
       {/* 1. NATIVE MOBILE SUB-TAB NAVIGATION BAR */}
       <div className="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-200/70 dark:bg-slate-900 border border-slate-300/60 dark:border-slate-800 text-[11px] font-bold">
         {[
-          { id: 'tracker', label: 'Running', icon: Radio },
-          { id: 'board', label: 'Live Board', icon: Clock },
-          { id: 'map', label: '2D Map', icon: Map },
-          { id: 'coach', label: 'Coach Guide', icon: Layers },
+          { id: 'tracker', label: t.trackerSubtab, icon: Radio },
+          { id: 'board', label: t.boardSubtab, icon: Clock },
+          { id: 'map', label: t.mapSubtab, icon: Map },
+          { id: 'coach', label: t.coachSubtab, icon: Layers },
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -776,7 +780,7 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
             </div>
           </div>
 
-          {/* 3D God's Eye Wayfinding Card */}
+          {/* Station Navigation & Guide Card (Mobile 2D Native) */}
           <button
             onClick={() => onOpenGodsEye(boardStationCode)}
             className="w-full p-3.5 rounded-3xl bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 border border-blue-500/30 text-white flex items-center justify-between shadow-md active:scale-98 transition-all"
@@ -786,20 +790,20 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
                 <Compass className="w-5 h-5 text-cyan-300" />
               </div>
               <div className="text-left">
-                <div className="text-xs font-black">3D Station Layout & FOB Wayfinding</div>
-                <div className="text-[10px] text-cyan-200 font-mono">Step-free elevators & walk times at {boardStationCode}</div>
+                <div className="text-xs font-black">{t.stationNavTitle}</div>
+                <div className="text-[10px] text-cyan-200 font-mono">{t.stationNavSubtitle} ({boardStationCode})</div>
               </div>
             </div>
-            <Eye className="w-4 h-4 text-cyan-300" />
+            <ArrowRight className="w-4 h-4 text-cyan-300" />
           </button>
 
           {/* Service Filter Chips */}
           <div className="flex items-center gap-1.5 text-xs font-bold">
             {[
-              { id: 'all', label: 'All Services' },
-              { id: 'fast', label: 'Fast Locals' },
-              { id: 'slow', label: 'Slow Locals' },
-              { id: 'ac', label: 'AC Locals' }
+              { id: 'all', label: t.allServices },
+              { id: 'fast', label: t.fastLocal },
+              { id: 'slow', label: t.slowLocal },
+              { id: 'ac', label: t.acLocal }
             ].map(f => (
               <button
                 key={f.id}

@@ -159,34 +159,18 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
       'वांद्रे': 'BA'
     };
 
-    const foundDev: string[] = [];
+    const matches: Array<{ code: string; index: number }> = [];
+
+    // 1. Check Devanagari keywords with exact string positions
     for (const [stWord, code] of Object.entries(devanagariMap)) {
-      if (q.includes(stWord) && !foundDev.includes(code)) {
-        foundDev.push(code);
-      }
-    }
-    if (foundDev.length >= 2) {
-      return { from: foundDev[0], to: foundDev[1] };
-    } else if (foundDev.length === 1) {
-      return { from: foundDev[0], to: foundDev[0] === 'DR' ? 'TNA' : 'CSMT' };
-    }
-
-    // Regex patterns: "from X to Y", "X to Y", "X se Y", "X te Y", "X -> Y"
-    const regex = /(?:from\s+)?([a-z\u0900-\u097f\s\.\(\)]+?)\s+(?:to|se|te|->|tak|and)\s+([a-z\u0900-\u097f\s\.\(\)]+)/i;
-    const match = q.match(regex);
-    if (match) {
-      const s1 = RailBackendTools.normalizeStation(match[1].trim());
-      const s2 = RailBackendTools.normalizeStation(match[2].trim());
-      if (s1.matchedStation && s2.matchedStation) {
-        return { from: s1.matchedStation.code, to: s2.matchedStation.code };
+      const idx = q.indexOf(stWord);
+      if (idx !== -1 && !matches.some(m => m.code === code)) {
+        matches.push({ code, index: idx });
       }
     }
 
-    // Scan all known stations in STATIONS
-    const stationEntries = Object.values(STATIONS);
-    const found: Array<{ code: string; index: number }> = [];
-
-    for (const st of stationEntries) {
+    // 2. Check all stations in STATIONS
+    for (const st of Object.values(STATIONS)) {
       const nameLower = st.name.toLowerCase();
       const codeLower = st.code.toLowerCase();
       const idxName = q.indexOf(nameLower);
@@ -196,18 +180,28 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
       else if (idxName !== -1) bestIdx = idxName;
       else if (idxCode !== -1) bestIdx = idxCode;
 
-      if (bestIdx !== -1) {
-        if (!found.some(f => f.code === st.code)) {
-          found.push({ code: st.code, index: bestIdx });
-        }
+      if (bestIdx !== -1 && !matches.some(m => m.code === st.code)) {
+        matches.push({ code: st.code, index: bestIdx });
       }
     }
 
-    if (found.length >= 2) {
-      found.sort((a, b) => a.index - b.index);
-      return { from: found[0].code, to: found[1].code };
-    } else if (found.length === 1) {
-      return { from: found[0].code, to: found[0].code === 'DR' ? 'TNA' : 'CSMT' };
+    if (matches.length >= 2) {
+      matches.sort((a, b) => a.index - b.index);
+      return { from: matches[0].code, to: matches[1].code };
+    } else if (matches.length === 1) {
+      return { from: matches[0].code, to: matches[0].code === 'DR' ? 'TNA' : 'CSMT' };
+    }
+
+    // 3. Fallback to clean regex
+    const cleanQ = q.replace(/(?:quote|fare|price|cost|ticket|book|buy|fast|slow|local|किराया|भाडे|तिकीट|टिकट)/gi, ' ');
+    const regex = /(?:from\s+)?([a-z\u0900-\u097f\s]+?)\s+(?:to|se|te|->|tak|and)\s+([a-z\u0900-\u097f\s]+)/i;
+    const match = cleanQ.match(regex);
+    if (match) {
+      const s1 = RailBackendTools.normalizeStation(match[1].trim());
+      const s2 = RailBackendTools.normalizeStation(match[2].trim());
+      if (s1.matchedStation && s2.matchedStation) {
+        return { from: s1.matchedStation.code, to: s2.matchedStation.code };
+      }
     }
 
     // Default fallback: Dadar to Thane

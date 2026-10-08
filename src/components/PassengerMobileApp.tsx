@@ -22,7 +22,6 @@ import { PAN_INDIA_TRAINS } from '../fixtures/panIndiaTrainsData';
 import { resolveStation } from '../engine/journeyEngine';
 import { ThemeSelectorModal } from './ThemeSelectorModal';
 import { useAuthority } from './AuthorityContext';
-import { InstitutionalAuthoritySelectorModal } from './InstitutionalAuthoritySelectorModal';
 import { InstitutionalInsignia } from './common/InstitutionalInsignia';
 import { getTranslation } from '../i18n/translations';
 
@@ -80,7 +79,6 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const [currentTime, setCurrentTime] = useState<string>('10:42');
 
   // Modals & Flow States
-  const [showAuthorityModal, setShowAuthorityModal] = useState<boolean>(false);
   const [showLaunchSequence, setShowLaunchSequence] = useState<boolean>(() => {
     return !sessionStorage.getItem('railone_launch_seen');
   });
@@ -343,9 +341,6 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 text-[10px] font-bold">
                 <InstitutionalInsignia authorityId="india" size={14} />
                 <span>Indian Railways</span>
-                <span className="px-1 rounded text-[8px] font-mono bg-theme-primary/10 text-theme-primary font-black">
-                  IN
-                </span>
               </div>
             </div>
             {/* Provenance Micro-Pill & Authority Attribution (Zero CRIS) */}
@@ -641,11 +636,18 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         </React.Suspense>
       )}
 
-      {/* Sovereign National Authority Selector Modal */}
-      <InstitutionalAuthoritySelectorModal
-        isOpen={showAuthorityModal}
-        onClose={() => setShowAuthorityModal(false)}
-      />
+      {/* Floating Rail Yatri Assistant Quick Action FAB */}
+      {activeTab !== 'help' && (
+        <button
+          onClick={() => setActiveTab('help')}
+          aria-label="Open Rail Yatri AI Assistant"
+          className="fixed bottom-20 right-4 z-30 px-3.5 py-2.5 rounded-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-xl border border-white/20 flex items-center gap-2 transition-all active:scale-95 touch-target min-h-[44px]"
+        >
+          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+          <span>{t.railYatriTitle.split(' ')[0]} {t.railYatriTitle.split(' ')[1]}</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+        </button>
+      )}
 
       {/* Onboarding Flow */}
       {showOnboarding && !showLaunchSequence && (

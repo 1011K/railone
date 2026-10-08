@@ -338,18 +338,6 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
               <Footprints className="w-3.5 h-3.5" />
               <span>FOB Pathfinder</span>
             </button>
-
-            <button
-              onClick={() => setViewMode('gods_eye_3d')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold transition-colors ${
-                viewMode === 'gods_eye_3d' 
-                  ? 'bg-theme-primary text-white shadow-xs' 
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>3D Overview</span>
-            </button>
           </div>
 
           {/* Level Filter */}

@@ -28,6 +28,8 @@ import {
 
 import { useAuthority } from '../AuthorityContext';
 import { InstitutionalInsignia } from '../common/InstitutionalInsignia';
+import { useTheme } from '../ThemeContext';
+import { getTranslation } from '../../i18n/translations';
 
 interface MobileTicketsTabProps {
   onNavigateToJourney: () => void;
@@ -39,6 +41,8 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
   onOpenSpecimenModal
 }) => {
   const { authority, formatCurrency } = useAuthority();
+  const { language } = useTheme();
+  const t = getTranslation(language);
   const [tickets, setTickets] = useState<SpecimenTicket[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'active' | 'season' | 'wallet' | 'tte'>('active');
   const [walletBalance, setWalletBalance] = useState(450);
@@ -165,10 +169,10 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
       {/* Sub-Tabs Pills */}
       <div className="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-bold">
         {[
-          { id: 'active', label: 'My Tickets' },
-          { id: 'season', label: 'Season Pass' },
-          { id: 'wallet', label: 'Transit Wallet' },
-          { id: 'tte', label: `${authority.inspectorTitle.split(' ')[0]} Verify` }
+          { id: 'active', label: t.activePassesSubtab },
+          { id: 'season', label: t.seasonPassesSubtab },
+          { id: 'wallet', label: t.walletSubtab },
+          { id: 'tte', label: t.tteSubtab }
         ].map(tab => (
           <button
             key={tab.id}
