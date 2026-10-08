@@ -28,10 +28,19 @@ export function verifyPassengerToken(token: string): string | null {
   if (!token || typeof token !== 'string') return null;
   const parts = token.trim().split('.');
   if (parts.length !== 3) {
-    // If raw ID was passed directly in dev/testing header, verify it exists as a fallback only if prefixed
     return null;
   }
   const [passengerId, timestampStr, signature] = parts;
+  if (!passengerId || !timestampStr || !signature) return null;
+
+  const ts = Number(timestampStr);
+  if (isNaN(ts) || ts <= 0) return null;
+  const now = Date.now();
+  // Reject future tokens (> 60s clock skew) and tokens older than 30 days
+  if (ts > now + 60_000 || now - ts > 30 * 24 * 60 * 60 * 1000) {
+    return null;
+  }
+
   const payload = `${passengerId}.${timestampStr}`;
   const expectedSig = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
   
@@ -60,20 +69,9 @@ export function authenticatePassenger(req: AuthenticatedRequest, res: Response, 
     token = tokenHeader.trim();
   }
 
-  // Allow explicit testing/mock bypass header if valid signature or explicit testing mode with known passenger
   let passengerId: string | null = null;
   if (token) {
     passengerId = verifyPassengerToken(token);
-    // If token directly matches a signed token or is a testing profile ID with explicit x-passenger-id
-    if (!passengerId && process.env.NODE_ENV === 'test' && token.startsWith('USER-')) {
-      passengerId = token;
-    }
-  } else {
-    // Check if client supplied passenger ID with test session header
-    const directId = req.headers['x-passenger-id'] as string;
-    if (directId && directId.startsWith('USER-')) {
-      passengerId = directId;
-    }
   }
 
   if (!passengerId) {
@@ -115,14 +113,6 @@ export function optionalPassengerAuth(req: AuthenticatedRequest, _res: Response,
   let passengerId: string | null = null;
   if (token) {
     passengerId = verifyPassengerToken(token);
-    if (!passengerId && process.env.NODE_ENV === 'test' && token.startsWith('USER-')) {
-      passengerId = token;
-    }
-  } else {
-    const directId = req.headers['x-passenger-id'] as string;
-    if (directId && directId.startsWith('USER-')) {
-      passengerId = directId;
-    }
   }
 
   if (passengerId) {

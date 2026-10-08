@@ -133,7 +133,7 @@ export function listBookings(options?: {
   const params: any[] = [];
 
   if (options?.passengerProfileId) {
-    query += ' AND (passenger_profile_id = ? OR passenger_profile_id IS NULL)';
+    query += ' AND passenger_profile_id = ?';
     params.push(options.passengerProfileId);
   }
 

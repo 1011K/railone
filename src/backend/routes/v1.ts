@@ -232,8 +232,22 @@ v1Router.post('/disruptions/replan', (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 v1Router.post('/bookings', optionalPassengerAuth, (req: AuthenticatedRequest, res: Response) => {
   try {
+    const requestedProfileId = req.body.passengerProfileId;
+    if (requestedProfileId && (!req.authenticatedPassengerId || req.authenticatedPassengerId !== requestedProfileId)) {
+      if (!req.authenticatedPassengerId) {
+        return res.status(401).json({
+          error: 'UNAUTHORIZED',
+          message: 'Authentication token required to bind booking to a passenger profile.'
+        });
+      }
+      return res.status(403).json({
+        error: 'FORBIDDEN_CROSS_USER_ACCESS',
+        message: 'Cross-user data access denied: you cannot create a booking on behalf of another passenger profile.'
+      });
+    }
+
     const idempotencyKey = (req.headers['x-idempotency-key'] as string) || req.body.idempotencyKey;
-    const passengerProfileId = req.authenticatedPassengerId || req.body.passengerProfileId;
+    const passengerProfileId = req.authenticatedPassengerId || undefined;
     const booking = createBooking({
       ...req.body,
       passengerProfileId,
@@ -245,18 +259,33 @@ v1Router.post('/bookings', optionalPassengerAuth, (req: AuthenticatedRequest, re
   }
 });
 
+v1Router.get('/bookings', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
+  const passengerProfileId = req.authenticatedPassengerId!;
+  const category = (req.query?.category as any) || 'all';
+  const bookings = listBookings({ passengerProfileId, category });
+  res.json({ count: bookings.length, bookings });
+});
+
 v1Router.get('/bookings/:id', optionalPassengerAuth, (req: AuthenticatedRequest, res: Response) => {
   const booking = getBookingById(req.params.id) || getBookingByPnr(req.params.id);
   if (!booking) {
     return res.status(404).json({ error: 'BOOKING_NOT_FOUND', message: `Booking ${req.params.id} not found.` });
   }
 
-  // Cross-user data exposure protection: if booking is owned by a profile and caller is authenticated as another user, forbid
-  if (booking.passengerProfileId && req.authenticatedPassengerId && booking.passengerProfileId !== req.authenticatedPassengerId) {
-    return res.status(403).json({
-      error: 'FORBIDDEN_CROSS_USER_ACCESS',
-      message: 'Cross-user data access denied: you do not have authorization to view this booking.'
-    });
+  // Cross-user data exposure protection: if booking is owned by a profile, enforce authentication and ownership
+  if (booking.passengerProfileId) {
+    if (!req.authenticatedPassengerId) {
+      return res.status(401).json({
+        error: 'UNAUTHORIZED',
+        message: 'Authentication required to view this booking record.'
+      });
+    }
+    if (booking.passengerProfileId !== req.authenticatedPassengerId) {
+      return res.status(403).json({
+        error: 'FORBIDDEN_CROSS_USER_ACCESS',
+        message: 'Cross-user data access denied: you do not have authorization to view this booking.'
+      });
+    }
   }
 
   res.json({ booking });

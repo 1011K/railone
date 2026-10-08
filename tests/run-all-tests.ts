@@ -2091,26 +2091,51 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
   const { PROVIDER_ADAPTERS } = await import('../src/engine/multimodal/adapters');
   const { createBooking } = await import('../src/backend/modules/ticketing');
   const { createPassengerProfile } = await import('../src/backend/modules/passengerProfiles');
+  const { listBookings } = await import('../src/backend/modules/bookingHistory');
   const { resetDatabase, getDatabase } = await import('../src/backend/database/db');
+  const { v1Router } = await import('../src/backend/routes/v1');
 
   resetDatabase();
   const aliceProfile = createPassengerProfile({ name: 'Alice Smith' });
+  const bobProfile = createPassengerProfile({ name: 'Bob Jones' });
 
   // 29.1: Negative cross-user authorization tests
-  const token = issuePassengerToken(aliceProfile.id);
-  const validPayload = verifyPassengerToken(token);
-  const forgedPayload = verifyPassengerToken(token + 'tampered');
+  const aliceToken = issuePassengerToken(aliceProfile.id);
+  const bobToken = issuePassengerToken(bobProfile.id);
+  const validPayload = verifyPassengerToken(aliceToken);
+  const forgedPayload = verifyPassengerToken(aliceToken + 'tampered');
   const emptyPayload = verifyPassengerToken('');
 
   assert(
     validPayload === aliceProfile.id &&
     forgedPayload === null &&
     emptyPayload === null,
-    '29.1: HMAC-SHA256 passenger authentication validates genuine tokens and rejects forged/tampered tokens'
+    '29.1a: HMAC-SHA256 passenger authentication validates genuine tokens and rejects forged/tampered tokens'
   );
 
-  // 29.2: Atomic booking idempotency retry consistency
-  const booking1 = createBooking({
+  // Negative endpoint authorization testing helper
+  const invokeRoute = (method: string, url: string, headers: Record<string, string>): Promise<{ status: number; body: any }> => {
+    return new Promise((resolve) => {
+      let statusCode = 200;
+      let resBody: any = null;
+      const req: any = {
+        method,
+        url,
+        path: url.split('?')[0],
+        headers: { ...headers },
+        body: {},
+        params: {}
+      };
+      const res: any = {
+        status(code: number) { statusCode = code; return this; },
+        json(data: any) { resBody = data; resolve({ status: statusCode, body: resBody }); return this; },
+        send(data: any) { resBody = data; resolve({ status: statusCode, body: resBody }); return this; }
+      };
+      v1Router(req, res, () => resolve({ status: 404, body: null }));
+    });
+  };
+
+  const aliceBooking = createBooking({
     passengerProfileId: aliceProfile.id,
     trainNumber: '12951',
     fromStationCode: 'MMCT',
@@ -2118,9 +2143,52 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     classBooked: '3A',
     journeyDate: '2026-10-20',
     passengers: [{ name: 'Alice Smith', age: 28, gender: 'F' }],
-    idempotencyKey: 'idem-test-retry-uuid-1'
+    idempotencyKey: 'idem-alice-sec-1'
   });
 
+  const bobBooking = createBooking({
+    passengerProfileId: bobProfile.id,
+    trainNumber: '12137',
+    fromStationCode: 'CSMT',
+    toStationCode: 'KYN',
+    classBooked: 'SL',
+    journeyDate: '2026-10-21',
+    passengers: [{ name: 'Bob Jones', age: 35, gender: 'M' }],
+    idempotencyKey: 'idem-bob-sec-1'
+  });
+
+  // Bob attempts to read Alice's booking -> 403 Forbidden
+  const bobAccessAlice = await invokeRoute('GET', `/bookings/${aliceBooking.id}`, {
+    authorization: `Bearer ${bobToken}`
+  });
+
+  // Unauthenticated caller attempts to read Alice's booking -> 401 Unauthorized
+  const unauthAccessAlice = await invokeRoute('GET', `/bookings/${aliceBooking.id}`, {});
+
+  // Alice reads her own booking -> 200 OK
+  const aliceAccessOwn = await invokeRoute('GET', `/bookings/${aliceBooking.id}`, {
+    authorization: `Bearer ${aliceToken}`
+  });
+
+  // GET /bookings for Alice only returns Alice's bookings, isolating Bob's
+  const aliceList = await invokeRoute('GET', '/bookings', {
+    authorization: `Bearer ${aliceToken}`
+  });
+
+  assert(
+    bobAccessAlice.status === 403 &&
+    bobAccessAlice.body?.error === 'FORBIDDEN_CROSS_USER_ACCESS' &&
+    unauthAccessAlice.status === 401 &&
+    unauthAccessAlice.body?.error === 'UNAUTHORIZED' &&
+    aliceAccessOwn.status === 200 &&
+    aliceAccessOwn.body?.booking?.id === aliceBooking.id &&
+    aliceList.status === 200 &&
+    aliceList.body?.bookings?.length === 1 &&
+    aliceList.body?.bookings[0]?.id === aliceBooking.id,
+    '29.1b: Passenger booking endpoints enforce strict cross-user isolation (401 unauthenticated, 403 cross-user access, isolated listings)'
+  );
+
+  // 29.2: Atomic booking idempotency retry consistency
   const bookingRetry = createBooking({
     passengerProfileId: aliceProfile.id,
     trainNumber: '12951',
@@ -2129,14 +2197,14 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     classBooked: '3A',
     journeyDate: '2026-10-20',
     passengers: [{ name: 'Alice Smith', age: 28, gender: 'F' }],
-    idempotencyKey: 'idem-test-retry-uuid-1'
+    idempotencyKey: 'idem-alice-sec-1'
   });
 
   assert(
-    booking1 !== undefined &&
+    aliceBooking !== undefined &&
     bookingRetry !== undefined &&
-    booking1.id === bookingRetry.id &&
-    booking1.pnr === bookingRetry.pnr,
+    aliceBooking.id === bookingRetry.id &&
+    aliceBooking.pnr === bookingRetry.pnr,
     '29.2: Atomic booking transactions ensure identical idempotency key deduplication across network retries'
   );
 
@@ -2161,7 +2229,7 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     '29.3: Multimodal architecture comprehensively indexes all 8 Indian urban regions and 9 transport modes'
   );
 
-  // 29.4: MMR Scenario 1: Andheri -> Ghatkopar direct Metro Line 1
+  // 29.4: MMR Scenario 1: Andheri -> Ghatkopar direct Metro Line 1 & Live Cancellation Filtering
   const mmrEngine = new MultimodalGraphEngine('mumbai');
   const m1Itins = mmrEngine.planJourney({
     origin: 'METRO_ADH',
@@ -2177,9 +2245,19 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     itin.totalFareInr === 30
   );
 
+  // When Metro Line 1 is marked CANCELLED in liveObservations, planner must exclude it
+  const m1CancelledItins = mmrEngine.planJourney({
+    origin: 'METRO_ADH',
+    destination: 'METRO_GHT',
+    departureTime: '08:30',
+    liveObservations: {
+      'metro_line_1': { delayMinutes: 0, status: 'CANCELLED' }
+    }
+  });
+
   assert(
-    m1Itins.length > 0 && hasDirectM1,
-    '29.4: MMR Scenario 1: Andheri -> Ghatkopar plans direct Metro Line 1 (21 min, ₹30) avoiding Dadar rail detour'
+    m1Itins.length > 0 && hasDirectM1 && m1CancelledItins.length === 0,
+    '29.4: MMR Scenario 1: Andheri -> Ghatkopar plans direct Metro Line 1 (21 min, ₹30) and strictly excludes cancelled services'
   );
 
   // 29.5: MMR Scenario 2: BKC -> Churchgate direct Metro Line 3
@@ -2240,20 +2318,31 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     '29.7: MMR Scenario 4: Dadar -> Kalyan enforces express 15-minute saving threshold and flags MST restriction'
   );
 
-  // 29.8: MMR Scenario 5: Delay inversion
+  // 29.8: MMR Scenario 5: Real delay inversion (Slow Local beats delayed bunched Fast Local)
   const delayInversionItins = mmrEngine.planJourney({
     origin: 'DR',
     destination: 'KYN',
     departureTime: '18:30',
     liveObservations: {
-      'central_fast': { delayMinutes: 15, status: 'DELAYED' }
+      'cr_central_fast': { delayMinutes: 25, status: 'DELAYED' }
     }
   });
 
+  const slowLocalItin = delayInversionItins.find(i => 
+    i.legs.some(l => l.lineName.includes('Slow'))
+  );
+  const delayedFastItin = delayInversionItins.find(i => 
+    i.legs.some(l => l.lineName.includes('Fast'))
+  );
+
   assert(
-    delayInversionItins.length > 0 &&
-    delayInversionItins.some(i => i.legs.some(l => l.delayMinutes === 15)),
-    '29.8: MMR Scenario 5: Delay inversion compares actual travel times under live delay observations'
+    slowLocalItin !== undefined &&
+    delayedFastItin !== undefined &&
+    slowLocalItin.totalDurationMinutes === 62 &&
+    delayedFastItin.totalDurationMinutes === 73 &&
+    slowLocalItin.totalDurationMinutes < delayedFastItin.totalDurationMinutes &&
+    slowLocalItin.badges.includes('DELAY_INVERSION'),
+    '29.8: MMR Scenario 5: Real delay inversion recommends on-time Slow Local (62m) over bunched Fast Local (48m+25m=73m) with DELAY_INVERSION badge'
   );
 
   // 29.9: MMR Scenario 6: Unavailable transit lines/schedules never hallucinated
@@ -2276,14 +2365,57 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     '29.10: MMR Scenario 7: Step-free wheelchair routing strictly rejects non-step-free ferry connections'
   );
 
-  // 29.11: Synchronized Map System
+  // 29.11: Synchronized Map System: Schematic topology vs. Geographical coordinate map (WGS84)
   const mapViewerCode = fs.readFileSync(path.resolve(process.cwd(), 'src/components/NetworkMapViewer.tsx'), 'utf8');
   assert(
     mapViewerCode.includes('mapPerspective') &&
     mapViewerCode.includes('Schematic Network') &&
     mapViewerCode.includes('Geographical Map') &&
-    mapViewerCode.includes('Physical Entrances & Walking Transfer Pathways'),
-    '29.11: NetworkMapViewer provides synchronized Schematic vs Geographical perspective toggle and entrance guidance'
+    mapViewerCode.includes('WGS-84 PROJECTION') &&
+    mapViewerCode.includes('projectGeographical'),
+    '29.11: NetworkMapViewer implements real WGS-84 coordinate projection and synchronized Schematic vs Geographical toggle'
+  );
+
+  // 29.12: Bidirectional routing across all 8 Indian cities
+  const cityBidirectionalChecks = [
+    { city: 'mumbai', forward: ['TNA', 'CSMT'], reverse: ['CSMT', 'TNA'] },
+    { city: 'delhi', forward: ['NDLS', 'GZB'], reverse: ['GZB', 'NDLS'] },
+    { city: 'bengaluru', forward: ['SBC', 'WFD'], reverse: ['WFD', 'SBC'] },
+    { city: 'kolkata', forward: ['SDAH', 'BNGA'], reverse: ['BNGA', 'SDAH'] },
+    { city: 'pune', forward: ['PUNE', 'LNL'], reverse: ['LNL', 'PUNE'] },
+    { city: 'chennai', forward: ['MSB', 'TBM'], reverse: ['TBM', 'MSB'] },
+    { city: 'hyderabad', forward: ['HYB', 'LPI'], reverse: ['LPI', 'HYB'] },
+    { city: 'ahmedabad', forward: ['ADI', 'GNC'], reverse: ['GNC', 'ADI'] }
+  ];
+
+  let bidirectionalPassCount = 0;
+  for (const check of cityBidirectionalChecks) {
+    const engine = new MultimodalGraphEngine(check.city);
+    const fwdItins = engine.planJourney({ origin: check.forward[0], destination: check.forward[1] });
+    const revItins = engine.planJourney({ origin: check.reverse[0], destination: check.reverse[1] });
+    if (fwdItins.length > 0 && revItins.length > 0) {
+      bidirectionalPassCount++;
+    } else {
+      console.error(`  [FAIL BIDIRECTIONAL] City ${check.city}: forward=${fwdItins.length}, reverse=${revItins.length}`);
+    }
+  }
+
+  assert(
+    bidirectionalPassCount === 8,
+    '29.12: All 8 Indian urban regions support complete bidirectional routing (both forward and return journeys pass)'
+  );
+
+  // 29.13: Door-to-door first/last mile walk legs in itinerary
+  const puneEngine = new MultimodalGraphEngine('pune');
+  const d2dItins = puneEngine.planJourney({
+    origin: 'hinjewadi',
+    destination: 'swargate'
+  });
+
+  const hasFirstMileWalk = d2dItins.length > 0 && d2dItins[0].legs[0].mode === 'walk' && d2dItins[0].legs[0].instructions.includes('Walk from Hinjewadi');
+  assert(
+    hasFirstMileWalk && d2dItins[0].totalWalkMinutes >= 5,
+    '29.13: Door-to-door journey planning creates concrete first-mile/last-mile walking legs and instructions in itinerary'
   );
 }
 

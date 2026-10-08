@@ -18,6 +18,7 @@ import {
   ALL_NETWORK_TRAINS
 } from '../engine/networkMapEngine';
 import { generateMetroTrips } from '../engine/journeyEngine';
+import { MUMBAI_NODES } from '../engine/multimodal/cityPacks';
 import { 
   Train, 
   Layers, 
@@ -41,6 +42,23 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useTheme } from './ThemeContext';
+
+const GEO_COORDS_MAP: Record<string, { lat: number; lon: number }> = {};
+for (const n of MUMBAI_NODES) {
+  GEO_COORDS_MAP[n.code] = { lat: n.latitude, lon: n.longitude };
+  GEO_COORDS_MAP[n.id] = { lat: n.latitude, lon: n.longitude };
+}
+
+function projectGeographical(code: string, fallbackX: number, fallbackY: number): { x: number; y: number } {
+  const coord = GEO_COORDS_MAP[code];
+  if (!coord) return { x: fallbackX, y: fallbackY };
+  // Mumbai suburban geographic bounds: lon 72.78 to 73.20, lat 18.90 to 19.35
+  const normX = (coord.lon - 72.78) / (73.20 - 72.78);
+  const normY = (coord.lat - 18.90) / (19.35 - 18.90);
+  const px = 100 + Math.max(0, Math.min(1, normX)) * 800;
+  const py = 880 - Math.max(0, Math.min(1, normY)) * 800;
+  return { x: Math.round(px), y: Math.round(py) };
+}
 
 interface NetworkMapViewerProps {
   onPlanRouteFromStation?: (stationCode: string) => void;
@@ -288,12 +306,19 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     setRotation(-15);
   };
 
-  // Convert SVG coordinates for 2D vs 3D Isometric Projection
-  const projectCoords = (x: number, y: number, z: number = 0) => {
-    if (renderMode === '2d') {
-      return { px: x, py: y };
+  // Convert SVG coordinates for 2D vs 3D Isometric Projection, with Geographical WGS-84 support
+  const projectCoords = (x: number, y: number, z: number = 0, stationCode?: string) => {
+    let targetX = x;
+    let targetY = y;
+    if (mapPerspective === 'geographical' && stationCode) {
+      const geo = projectGeographical(stationCode, x, y);
+      targetX = geo.x;
+      targetY = geo.y;
     }
-    const iso = project3DIsometric(x, y, z, pitch, rotation);
+    if (renderMode === '2d') {
+      return { px: targetX, py: targetY };
+    }
+    const iso = project3DIsometric(targetX, targetY, z, pitch, rotation);
     return { px: iso.projX, py: iso.projY };
   };
 
@@ -323,7 +348,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     }
 
     if (target) {
-      const p = projectCoords(target.x, target.y, target.z || 10);
+      const p = projectCoords(target.x, target.y, target.z || 10, target.code);
       const targetZoom = 1.3;
       setPan({ 
         x: Math.round((500 - p.px) * targetZoom), 
@@ -341,7 +366,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     setSearchQuery('');
     const marker = trainMarkers.find(m => m.trainNumber === tNum);
     if (marker) {
-      const p = projectCoords(marker.position.x, marker.position.y, (marker.position.z || 10) + 5);
+      const p = projectCoords(marker.position.x, marker.position.y, (marker.position.z || 10) + 5, marker.fromStationCode);
       const targetZoom = 1.3;
       setPan({ 
         x: Math.round((500 - p.px) * targetZoom), 
@@ -754,6 +779,11 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               <span className="text-[10px] text-slate-400 uppercase font-mono">
                 [{mapPerspective.toUpperCase()} · {renderMode.toUpperCase()}]
               </span>
+              {mapPerspective === 'geographical' && (
+                <span className="px-2 py-0.5 rounded bg-emerald-950/90 text-emerald-400 font-mono text-[9px] border border-emerald-600/70">
+                  WGS-84 PROJECTION
+                </span>
+              )}
             </div>
             {selectedTrainNumber && (
               <div className="px-3 py-1.5 rounded-2xl bg-theme-primary text-white backdrop-blur text-xs font-bold flex items-center gap-1.5 shadow-lg animate-pulse">
@@ -985,8 +1015,8 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               {/* 1. Track Lines Layer */}
               <g className="tracks-layer">
                 {filteredSegments.map(seg => {
-                  const p1 = projectCoords(seg.coordinates.x1, seg.coordinates.y1, 5);
-                  const p2 = projectCoords(seg.coordinates.x2, seg.coordinates.y2, 5);
+                  const p1 = projectCoords(seg.coordinates.x1, seg.coordinates.y1, 5, seg.fromCode);
+                  const p2 = projectCoords(seg.coordinates.x2, seg.coordinates.y2, 5, seg.toCode);
 
                   const isSelected = selectedSegmentId === seg.id;
                   const isTraversedByActiveTrain = activeTrainSegments.has(seg.id);
@@ -1067,7 +1097,7 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               {/* 2. Stations Nodes Layer */}
               <g className="stations-layer">
                 {stations.map(st => {
-                  const p = projectCoords(st.x, st.y, st.z || 10);
+                  const p = projectCoords(st.x, st.y, st.z || 10, st.code);
                   const isSelected = selectedStationCode === st.code;
                   const isMetro = st.line === 'metro';
                   const isMatchingFilter = suburbanLineFilter === 'all' || 
@@ -1164,7 +1194,16 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
               {/* 3. Live Train Markers Layer */}
               <g className="trains-layer">
                 {trainMarkers.map(tm => {
-                  const p = projectCoords(tm.position.x, tm.position.y, (tm.position.z || 10) + 5);
+                  let p = projectCoords(tm.position.x, tm.position.y, (tm.position.z || 10) + 5);
+                  if (mapPerspective === 'geographical' && tm.fromStationCode && tm.toStationCode) {
+                    const p1 = projectCoords(tm.position.x, tm.position.y, 5, tm.fromStationCode);
+                    const p2 = projectCoords(tm.position.x, tm.position.y, 5, tm.toStationCode);
+                    const ratio = Math.max(0, Math.min(1, tm.progressPercent / 100));
+                    p = {
+                      px: Math.round(p1.px + (p2.px - p1.px) * ratio),
+                      py: Math.round(p1.py + (p2.py - p1.py) * ratio)
+                    };
+                  }
                   const isSelected = selectedTrainNumber === tm.trainNumber;
                   const delayColor = getDelayColor(tm.delayMinutes);
 

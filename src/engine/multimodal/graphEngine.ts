@@ -192,7 +192,7 @@ export class MultimodalGraphEngine {
     const depTime = params.departureTime || '08:30';
 
     // 1. Explore candidate paths up to depth 4
-    const candidatePaths = this.findPaths(originNode.id, destNode.id, 4, prefs);
+    const candidatePaths = this.findPaths(originNode.id, destNode.id, 4, prefs, params.liveObservations);
 
     if (candidatePaths.length === 0) {
       return [];
@@ -211,6 +211,7 @@ export class MultimodalGraphEngine {
         prefs,
         index: i,
         walkAccessMinutes: resolvedOrigin.walkAccessMinutes,
+        destWalkAccessMinutes: resolvedDest.walkAccessMinutes,
         resolvedOriginName: resolvedOrigin.resolvedName,
         resolvedDestName: resolvedDest.resolvedName,
         liveObservations: params.liveObservations
@@ -229,7 +230,8 @@ export class MultimodalGraphEngine {
     startNodeId: string,
     targetNodeId: string,
     maxDepth: number,
-    prefs: MultimodalRoutingPreferences
+    prefs: MultimodalRoutingPreferences,
+    liveObservations?: Record<string, { delayMinutes: number; status: 'ON_TIME' | 'DELAYED' | 'CANCELLED' }>
   ): MultimodalEdge[][] {
     const results: MultimodalEdge[][] = [];
     const queue: Array<{ currentNodeId: string; edges: MultimodalEdge[]; visited: Set<string> }> = [];
@@ -237,7 +239,7 @@ export class MultimodalGraphEngine {
     // Also consider inter-station walking edges if origin is a parent transit hub (e.g. ADH vs METRO_ADH)
     const initialEdges = this.adjacency.get(startNodeId) || [];
     for (const edge of initialEdges) {
-      if (this.isEdgeAllowed(edge, prefs)) {
+      if (this.isEdgeAllowed(edge, prefs, liveObservations)) {
         const visited = new Set<string>([startNodeId, edge.toNodeId]);
         queue.push({ currentNodeId: edge.toNodeId, edges: [edge], visited });
       }
@@ -258,7 +260,7 @@ export class MultimodalGraphEngine {
 
       const nextEdges = this.adjacency.get(current.currentNodeId) || [];
       for (const nextEdge of nextEdges) {
-        if (!this.isEdgeAllowed(nextEdge, prefs)) continue;
+        if (!this.isEdgeAllowed(nextEdge, prefs, liveObservations)) continue;
         if (current.visited.has(nextEdge.toNodeId)) continue;
 
         // Disallow consecutive walk edges
@@ -298,7 +300,11 @@ export class MultimodalGraphEngine {
     return false;
   }
 
-  private isEdgeAllowed(edge: MultimodalEdge, prefs: MultimodalRoutingPreferences): boolean {
+  private isEdgeAllowed(
+    edge: MultimodalEdge,
+    prefs: MultimodalRoutingPreferences,
+    liveObservations?: Record<string, { delayMinutes: number; status: 'ON_TIME' | 'DELAYED' | 'CANCELLED' }>
+  ): boolean {
     // Mode exclusion
     if (prefs.excludedModes && prefs.excludedModes.includes(edge.mode)) return false;
     if (prefs.preferredModes && prefs.preferredModes.length > 0) {
@@ -320,7 +326,26 @@ export class MultimodalGraphEngine {
     // Unavailable service filtering (Missing or non-operational feeds)
     if (edge.dataQuality === 'UNAVAILABLE') return false;
 
+    // Filter cancelled services from live observations
+    if (liveObservations) {
+      const obs = this.getObservation(edge, liveObservations);
+      if (obs && obs.status === 'CANCELLED') return false;
+    }
+
     return true;
+  }
+
+  private getObservation(
+    edge: MultimodalEdge,
+    liveObservations?: Record<string, { delayMinutes: number; status: 'ON_TIME' | 'DELAYED' | 'CANCELLED' }>
+  ): { delayMinutes: number; status: 'ON_TIME' | 'DELAYED' | 'CANCELLED' } | undefined {
+    if (!liveObservations) return undefined;
+    return (
+      liveObservations[edge.lineId] ||
+      liveObservations[edge.id] ||
+      (edge.lineId === 'line1' ? (liveObservations['metro_line_1'] || liveObservations['line1']) : undefined) ||
+      (edge.lineId === 'central_fast' ? (liveObservations['cr_central_fast'] || liveObservations['central_fast']) : undefined)
+    );
   }
 
   private buildItineraryFromEdges(ctx: {
@@ -331,16 +356,17 @@ export class MultimodalGraphEngine {
     prefs: MultimodalRoutingPreferences;
     index: number;
     walkAccessMinutes: number;
+    destWalkAccessMinutes?: number;
     resolvedOriginName: string;
     resolvedDestName: string;
     liveObservations?: Record<string, { delayMinutes: number; status: 'ON_TIME' | 'DELAYED' | 'CANCELLED' }>;
   }): MultimodalItinerary | null {
-    const { edges, originNode, destNode, depTime, index, walkAccessMinutes, liveObservations } = ctx;
+    const { edges, originNode, destNode, depTime, index, walkAccessMinutes, destWalkAccessMinutes = 0, liveObservations } = ctx;
     const legs: MultimodalItineraryLeg[] = [];
     const transfers: MultimodalTransfer[] = [];
     let currentTime = depTime;
     let totalDuration = 0;
-    let totalWalkMinutes = walkAccessMinutes;
+    let totalWalkMinutes = walkAccessMinutes + destWalkAccessMinutes;
     let totalDistance = 0;
     let totalFare = 0;
     const fareByMode: Partial<Record<TransportMode, number>> = {};
@@ -348,10 +374,40 @@ export class MultimodalGraphEngine {
     let isAcOnly = true;
     let hasUnavailable = false;
 
-    // Optional origin walking leg if door-to-door offset exists
+    // 1. First-mile door-to-door walking leg if origin landmark / GPS offset exists
     if (walkAccessMinutes > 0) {
+      const firstMileArr = this.addMinutes(currentTime, walkAccessMinutes);
+      legs.push({
+        legIndex: 1,
+        mode: 'walk',
+        operator: 'Footpath / Pedestrian',
+        lineName: `Walk from ${ctx.resolvedOriginName} to ${originNode.name}`,
+        routeIdentifier: 'first_mile_walk',
+        fromNode: {
+          id: `ORIGIN_${originNode.code}`,
+          code: 'WALK_ORIG',
+          name: ctx.resolvedOriginName,
+          city: originNode.city,
+          state: originNode.state,
+          mode: 'walk',
+          latitude: originNode.latitude,
+          longitude: originNode.longitude,
+          stepFreeAccessible: true
+        },
+        toNode: originNode,
+        departureTime: currentTime,
+        arrivalTime: firstMileArr,
+        durationMinutes: walkAccessMinutes,
+        distanceKm: Math.round(walkAccessMinutes * 0.075 * 10) / 10,
+        fareInr: 0,
+        isAcService: false,
+        stepFreeAccessible: true,
+        dataQuality: 'TIMETABLE_SCHEDULE',
+        provenanceLabel: '[TIMETABLE SCHEDULE]',
+        instructions: `Walk from ${ctx.resolvedOriginName} to ${originNode.name} (${walkAccessMinutes} min).`
+      });
       totalDuration += walkAccessMinutes;
-      currentTime = this.addMinutes(currentTime, walkAccessMinutes);
+      currentTime = firstMileArr;
     }
 
     for (let i = 0; i < edges.length; i++) {
@@ -365,16 +421,17 @@ export class MultimodalGraphEngine {
       if (edge.mode !== 'metro' && !edge.isAcService && edge.mode !== 'walk') {
         isAcOnly = false;
       }
+      if (edge.dataQuality === 'UNAVAILABLE') {
+        hasUnavailable = true;
+      }
 
       // Check live delay heuristic (Delay inversion support)
       let duration = edge.durationMinutes;
       let delayMin = 0;
-      if (liveObservations && (liveObservations[edge.lineId] || liveObservations[edge.id])) {
-        const obs = liveObservations[edge.lineId] || liveObservations[edge.id];
-        if (obs.delayMinutes > 0) {
-          delayMin = obs.delayMinutes;
-          duration += delayMin;
-        }
+      const obs = this.getObservation(edge, liveObservations);
+      if (obs && obs.delayMinutes > 0) {
+        delayMin = obs.delayMinutes;
+        duration += delayMin;
       }
 
       const legDepTime = currentTime;
@@ -392,7 +449,7 @@ export class MultimodalGraphEngine {
       fareByMode[edge.mode] = (fareByMode[edge.mode] || 0) + legFare;
 
       const leg: MultimodalItineraryLeg = {
-        legIndex: i + 1,
+        legIndex: legs.length + 1,
         mode: edge.mode,
         operator: edge.operator,
         lineName: edge.lineName,
@@ -437,6 +494,42 @@ export class MultimodalGraphEngine {
           });
         }
       }
+    }
+
+    // 2. Last-mile door-to-door walking leg if destination landmark / GPS offset exists
+    if (destWalkAccessMinutes > 0) {
+      const lastMileArr = this.addMinutes(currentTime, destWalkAccessMinutes);
+      legs.push({
+        legIndex: legs.length + 1,
+        mode: 'walk',
+        operator: 'Footpath / Pedestrian',
+        lineName: `Walk from ${destNode.name} to ${ctx.resolvedDestName}`,
+        routeIdentifier: 'last_mile_walk',
+        fromNode: destNode,
+        toNode: {
+          id: `DEST_${destNode.code}`,
+          code: 'WALK_DEST',
+          name: ctx.resolvedDestName,
+          city: destNode.city,
+          state: destNode.state,
+          mode: 'walk',
+          latitude: destNode.latitude,
+          longitude: destNode.longitude,
+          stepFreeAccessible: true
+        },
+        departureTime: currentTime,
+        arrivalTime: lastMileArr,
+        durationMinutes: destWalkAccessMinutes,
+        distanceKm: Math.round(destWalkAccessMinutes * 0.075 * 10) / 10,
+        fareInr: 0,
+        isAcService: false,
+        stepFreeAccessible: true,
+        dataQuality: 'TIMETABLE_SCHEDULE',
+        provenanceLabel: '[TIMETABLE SCHEDULE]',
+        instructions: `Walk from ${destNode.name} to ${ctx.resolvedDestName} (${destWalkAccessMinutes} min).`
+      });
+      totalDuration += destWalkAccessMinutes;
+      currentTime = lastMileArr;
     }
 
     return {
@@ -527,6 +620,21 @@ export class MultimodalGraphEngine {
         badges.push('LOW_WALK');
       }
 
+      // Check Delay Inversion:
+      // An on-time normally slower route completes faster than a bunched delayed fast train
+      const myScheduledDuration = itin.legs.reduce((acc, l) => acc + (l.durationMinutes - (l.delayMinutes || 0)), 0);
+      const isDelayedCompetitorBeaten = itineraries.some(other => {
+        if (other === itin) return false;
+        const otherScheduledDuration = other.legs.reduce((acc, l) => acc + (l.durationMinutes - (l.delayMinutes || 0)), 0);
+        const otherHasDelay = other.legs.some(l => (l.delayMinutes || 0) > 0);
+        return otherScheduledDuration < myScheduledDuration && otherHasDelay && itin.totalDurationMinutes < other.totalDurationMinutes;
+      });
+
+      if (isDelayedCompetitorBeaten) {
+        badges.push('DELAY_INVERSION');
+        reasons.unshift(`Delay inversion: on-time service (${itin.totalDurationMinutes} min) beats bunched delayed faster train.`);
+      }
+
       // Check Dadar -> Kalyan Express vs Local rule (Scenario 4)
       const hasExpressLeg = itin.legs.some(l => l.mode === 'express');
       const hasLocalLeg = itin.legs.some(l => l.mode === 'suburban');
@@ -539,7 +647,9 @@ export class MultimodalGraphEngine {
 
         if (localEquivalent) {
           const timeSaved = localEquivalent.totalDurationMinutes - itin.totalDurationMinutes;
-          if (timeSaved < expressThresholdMinutes) {
+          if (timeSaved <= 0) {
+            itin.transparentRationale = `Express is ${Math.abs(timeSaved)} min slower than Suburban Local at higher tariff (₹${itin.totalFareInr} vs ₹${localEquivalent.totalFareInr}) and prohibits suburban season tickets (MST). Suburban Local recommended.`;
+          } else if (timeSaved < expressThresholdMinutes) {
             // Express does not save enough time to warrant recommendation
             itin.transparentRationale = `Express saves only ${timeSaved} min (< ${expressThresholdMinutes} min threshold) at higher tariff (₹${itin.totalFareInr} vs ₹${localEquivalent.totalFareInr}) and prohibits suburban season tickets (MST). Suburban Local recommended.`;
           } else {
