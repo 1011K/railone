@@ -162,14 +162,17 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
     trainName = 'Station Platform Permit';
     serviceType = 'platform';
     distanceKm = 0;
-    unitFare = 10; // Official ₹10 platform ticket tariff
+    unitFare = 10; // DEMO placeholder only; official platform-tariff verification pending
   } else if (req.ticketType === 'METRO_TOKEN' || reqTrainNum === 'METRO') {
     trainNumber = 'METRO';
     trainName = 'Mumbai Metro Transit Line';
     serviceType = 'metro';
     isMetro = true;
     isSuburban = false;
-    distanceKm = calculateStationDistance(fromStation.code, toStation.code) || 12;
+    distanceKm = calculateStationDistance(fromStation.code, toStation.code);
+    if (distanceKm === null || distanceKm <= 0) {
+      throw new Error('Metro station distance is unmapped; refusing to invent a distance or issue a mock fare.');
+    }
     unitFare = calculateMetroFare(distanceKm).totalFare;
   } else if (req.ticketType === 'SEASON_MST' || reqTrainNum === 'MST-PASS') {
     trainNumber = 'MST-PASS';
