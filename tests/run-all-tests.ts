@@ -27,6 +27,7 @@ import { checkSystemHealth } from '../src/backend/modules/health';
 import { StatutoryTelephonyAdapter } from '../src/backend/modules/providerAdapters';
 import { findExpressTrainsBetween } from '../src/backend/modules/services';
 import { getAuditLogs } from '../src/backend/modules/auditLog';
+import { ALL_22_SERVICES } from '../src/components/ServicesHubModal';
 
 let totalTests = 0;
 let passedTests = 0;
@@ -2439,6 +2440,141 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
   assert(
     tnaCsmtItins.length > 0 && !arrivesAtNariman,
     '29.15: Multimodal equivalence map strictly isolates Nariman Point bus terminus from CSMT railway terminus'
+  );
+}
+
+// =========================================================================
+// TEST SUITE 30: GHATKOPAR RESOLUTION, DADAR BRIDGE, 22 SERVICES & LAUNCH AUDIO
+// =========================================================================
+
+console.log('\nTest Suite 30: Ghatkopar Resolution & Metro Isolation, Dadar Platform Bridge Distinction, 22-Services Directory Completeness, and Cinematic Audio Launch Verification');
+{
+  // 30.1: Ghatkopar exact station code 'GC' resolves to Central Suburban Ghatkopar
+  const gcExact = normalizeStation('GC');
+  assert(
+    gcExact.matchedStation !== undefined &&
+    gcExact.matchedStation.code === 'GC' &&
+    gcExact.confidence === 'EXACT',
+    '30.1: Exact station code "GC" resolves directly to Central Suburban Ghatkopar with EXACT confidence'
+  );
+
+  // 30.2: Ghatkopar exact lowercase name 'ghatkopar' resolves to Central Suburban Ghatkopar
+  const gcName = normalizeStation('ghatkopar');
+  assert(
+    gcName.matchedStation !== undefined &&
+    gcName.matchedStation.code === 'GC' &&
+    gcName.matchedStation.name === 'Ghatkopar',
+    '30.2: Lowercase station name "ghatkopar" resolves directly to Central Suburban Ghatkopar'
+  );
+
+  // 30.3: Ghatkopar common misspelling aliases ('ghatkopr', 'gatkopar', 'ghatcopar') resolve to GC
+  const misspellings = ['ghatkopr', 'gatkopar', 'ghatcopar'];
+  const allMisspellingsResolved = misspellings.every(q => {
+    const res = normalizeStation(q);
+    return res.matchedStation?.code === 'GC';
+  });
+  assert(
+    allMisspellingsResolved,
+    '30.3: Common Ghatkopar misspelling aliases ("ghatkopr", "gatkopar", "ghatcopar") robustly resolve to Central Suburban GC'
+  );
+
+  // 30.4: Ghatkopar Devanagari query 'घाटकोपर' resolves to Central Suburban Ghatkopar
+  const gcDevanagari = normalizeStation('घाटकोपर');
+  assert(
+    gcDevanagari.matchedStation !== undefined &&
+    gcDevanagari.matchedStation.code === 'GC' &&
+    gcDevanagari.confidence === 'EXACT',
+    '30.4: Native Devanagari script query "घाटकोपर" resolves to Central Suburban Ghatkopar with EXACT confidence'
+  );
+
+  // 30.5: Metro Line 1 station code 'METRO_GHT' is isolated from Central Suburban code 'GC'
+  const gcStation = STATIONS['GC'];
+  const metroGhtStation = (STATIONS as any)['METRO_GHT'];
+  const gcNormalized = normalizeStation('GC');
+  const metroNormalized = normalizeStation('METRO_GHT');
+  assert(
+    gcStation !== undefined &&
+    metroGhtStation !== undefined &&
+    gcStation.code === 'GC' &&
+    metroGhtStation.code === 'METRO_GHT' &&
+    gcStation.line === 'central' &&
+    metroGhtStation.line === 'metro' &&
+    gcNormalized.matchedStation?.code === 'GC' &&
+    metroNormalized.matchedStation?.code === 'METRO_GHT',
+    '30.5: Central Suburban code "GC" and Metro Line 1 "METRO_GHT" maintain strict modal code isolation'
+  );
+
+  // 30.6: Dadar Central ('DR') vs Western ('DDR') code distinction
+  const drResult = normalizeStation('DR');
+  const ddrResult = normalizeStation('DDR');
+  assert(
+    drResult.matchedStation?.code === 'DR' &&
+    ddrResult.matchedStation?.code === 'DDR' &&
+    drResult.matchedStation?.name === 'Dadar (Central)' &&
+    ddrResult.matchedStation?.name === 'Dadar (Western)',
+    '30.6: Distinct codes "DR" and "DDR" resolve cleanly to Central and Western railway platforms respectively'
+  );
+
+  // 30.7: Generic 'Dadar' query detects multi-line ambiguity with both DR and DDR in candidate list
+  const dadarGeneric = normalizeStation('Dadar');
+  const hasDr = dadarGeneric.candidates.some(c => c.code === 'DR');
+  const hasDdr = dadarGeneric.candidates.some(c => c.code === 'DDR');
+  assert(
+    dadarGeneric.isAmbiguous === true && hasDr && hasDdr,
+    '30.7: Generic query "Dadar" flags platform interchange ambiguity and surfaces both DR and DDR candidates'
+  );
+
+  // 30.8: Dadar interchange foot-over-bridge transfer enforces minimum 7-minute walking transfer buffer
+  assert(
+    STATIONS.DR.interchangeWalkMinutes === 7 && STATIONS.DR.isInterchange === true,
+    '30.8: Dadar Central (DR) interchange metadata enforces minimum 7-minute foot-over-bridge walking transfer buffer'
+  );
+
+  // 30.9: All 22 transit services are registered across 4 categories with zero duplicates
+  const serviceIds = new Set(ALL_22_SERVICES.map(s => s.id));
+  const expectedCategories = ['ticketing', 'navigation', 'assistance', 'insights'];
+  const categoriesPresent = expectedCategories.every(cat => 
+    ALL_22_SERVICES.some(s => s.category === cat)
+  );
+  assert(
+    ALL_22_SERVICES.length === 22 &&
+    serviceIds.size === 22 &&
+    categoriesPresent,
+    '30.9: Complete directory of all 22 transit services registered with zero duplicate IDs across all 4 functional categories'
+  );
+
+  // 30.10: External statutory services are gated with isExternalLink: true and official HTTPS URLs
+  const railmadad = ALL_22_SERVICES.find(s => s.id === 'railmadad_help');
+  const ecatering = ALL_22_SERVICES.find(s => s.id === 'food_station_amenities');
+  assert(
+    railmadad?.isExternalLink === true &&
+    railmadad?.externalUrl === 'https://railmadad.indianrailways.gov.in' &&
+    ecatering?.isExternalLink === true &&
+    ecatering?.externalUrl === 'https://ecatering.irctc.co.in',
+    '30.10: External statutory services (RailMadad 139 and IRCTC e-Catering) enforce gated external provider notices and authentic HTTPS URLs'
+  );
+
+  // 30.11: Native mobile app index contains 22-services directory modal and category filters
+  const mobileIndexSource = fs.readFileSync(path.resolve(process.cwd(), 'apps/mobile/app/(tabs)/index.tsx'), 'utf8');
+  assert(
+    mobileIndexSource.includes('NATIVE_22_SERVICES') &&
+    mobileIndexSource.includes('All 22 Transit Services') &&
+    mobileIndexSource.includes('servicesCategory') &&
+    mobileIndexSource.includes('assistantButtonsRow') &&
+    mobileIndexSource.includes('bookingGrid'),
+    '30.11: Native mobile application index (index.tsx) implements native 22-services directory modal, quick booking grid, and assistant controls'
+  );
+
+  // 30.12: Cinematic launch sequence audio and playback controls
+  const launchSequenceSource = fs.readFileSync(path.resolve(process.cwd(), 'src/components/LaunchSequence.tsx'), 'utf8');
+  assert(
+    launchSequenceSource.includes('AudioContext') &&
+    launchSequenceSource.includes('311') &&
+    launchSequenceSource.includes('370') &&
+    launchSequenceSource.includes('railone_launch_muted') &&
+    launchSequenceSource.includes('RotateCcw') &&
+    launchSequenceSource.includes('Skip Intro'),
+    '30.12: LaunchSequence implements synthesized dual-tone electric horn (311Hz/370Hz), audio mute persistence, skip control, and replay capability'
   );
 }
 
