@@ -81,6 +81,8 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const touchPinchDistRef = useRef<number | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const hasPassedDragThresholdRef = useRef<boolean>(false);
 
   // Load dataset for current scope
   const stations = useMemo(() => getStationsForScope(scope), [scope]);
@@ -209,33 +211,55 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
     setIsDragging(false);
   };
 
-  // Touch drag and pinch-to-zoom handlers for mobile devices
+  // Touch drag and pinch-to-zoom handlers with 360px viewport optimization
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
-      setIsDragging(true);
+      touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      hasPassedDragThresholdRef.current = false;
+      setIsDragging(false);
       setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
     } else if (e.touches.length === 2) {
       setIsDragging(false);
+      hasPassedDragThresholdRef.current = false;
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
-      touchPinchDistRef.current = Math.hypot(dx, dy);
+      const dist = Math.hypot(dx, dy);
+      touchPinchDistRef.current = dist > 10 ? dist : null;
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && isDragging) {
-      setPan({
-        x: e.touches[0].clientX - dragStart.x,
-        y: e.touches[0].clientY - dragStart.y
-      });
-    } else if (e.touches.length === 2 && touchPinchDistRef.current !== null) {
+    if (e.touches.length === 1 && touchStartPosRef.current) {
+      const deltaX = e.touches[0].clientX - touchStartPosRef.current.x;
+      const deltaY = e.touches[0].clientY - touchStartPosRef.current.y;
+      const moveDistance = Math.hypot(deltaX, deltaY);
+
+      // Enforce 6px drag threshold to prevent accidental drags during taps on 360px viewport
+      if (!hasPassedDragThresholdRef.current && moveDistance > 6) {
+        hasPassedDragThresholdRef.current = true;
+        setIsDragging(true);
+      }
+
+      if (hasPassedDragThresholdRef.current) {
+        const rawX = e.touches[0].clientX - dragStart.x;
+        const rawY = e.touches[0].clientY - dragStart.y;
+        // Clamp pan so map never slides off-screen on narrow viewports
+        const clampedX = Math.max(-600, Math.min(600, rawX));
+        const clampedY = Math.max(-500, Math.min(500, rawY));
+        setPan({ x: clampedX, y: clampedY });
+      }
+    } else if (e.touches.length === 2 && touchPinchDistRef.current !== null && touchPinchDistRef.current > 15) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const newDist = Math.hypot(dx, dy);
-      const ratio = newDist / touchPinchDistRef.current;
-      if (Math.abs(1 - ratio) > 0.01) {
-        setZoom(z => Math.max(0.6, Math.min(3.0, Number((z * ratio).toFixed(2)))));
-        touchPinchDistRef.current = newDist;
+      if (newDist > 15) {
+        const rawRatio = newDist / touchPinchDistRef.current;
+        // Smooth ratio dampening to prevent jumpy zoom on small screens
+        const dampedRatio = 1 + (rawRatio - 1) * 0.7;
+        if (Math.abs(1 - dampedRatio) > 0.008) {
+          setZoom(z => Math.max(0.6, Math.min(3.0, Number((z * dampedRatio).toFixed(2)))));
+          touchPinchDistRef.current = newDist;
+        }
       }
     }
   };
@@ -243,6 +267,15 @@ export const NetworkMapViewer: React.FC<NetworkMapViewerProps> = ({
   const handleTouchEnd = () => {
     setIsDragging(false);
     touchPinchDistRef.current = null;
+    touchStartPosRef.current = null;
+    hasPassedDragThresholdRef.current = false;
+  };
+
+  const handleTouchCancel = () => {
+    setIsDragging(false);
+    touchPinchDistRef.current = null;
+    touchStartPosRef.current = null;
+    hasPassedDragThresholdRef.current = false;
   };
 
   const handleZoomIn = () => setZoom(z => Math.min(3.0, Number((z + 0.25).toFixed(2))));

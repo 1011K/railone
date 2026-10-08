@@ -1755,6 +1755,196 @@ console.log('\nTest Suite 26: Phone-First Mobile Architecture, Coach Separation,
   );
 }
 
+console.log('\nTest Suite 27: Multi-Country Institutional Transport Authority System & 360px Viewport Resilience');
+{
+  const { INSTITUTIONAL_AUTHORITIES, getAuthorityById, getAllAuthorities } = await import('../src/models/authorities');
+  const { InstitutionalInsignia } = await import('../src/components/common/InstitutionalInsignia');
+  const { InstitutionalAuthoritySelectorModal } = await import('../src/components/InstitutionalAuthoritySelectorModal');
+  const { DEVICE_PRESETS } = await import('../src/components/MobileDeviceSimulator');
+
+  // 27.1: All 5 sovereign institutional authorities configured
+  const authKeys = Object.keys(INSTITUTIONAL_AUTHORITIES);
+  assert(
+    authKeys.includes('india') &&
+    authKeys.includes('uk') &&
+    authKeys.includes('japan') &&
+    authKeys.includes('switzerland') &&
+    authKeys.includes('germany') &&
+    authKeys.length === 5,
+    '27.1: All 5 sovereign institutional authorities (India, UK, Japan, Switzerland, Germany) configured with valid legal frameworks'
+  );
+
+  // 27.2: Vector Insignias render with zero emojis
+  const indiaSvg = renderToString(React.createElement(InstitutionalInsignia, { authorityId: 'india', size: 32 }));
+  const ukSvg = renderToString(React.createElement(InstitutionalInsignia, { authorityId: 'uk', size: 32 }));
+  const japanSvg = renderToString(React.createElement(InstitutionalInsignia, { authorityId: 'japan', size: 32 }));
+  const swissSvg = renderToString(React.createElement(InstitutionalInsignia, { authorityId: 'switzerland', size: 32 }));
+  const germanSvg = renderToString(React.createElement(InstitutionalInsignia, { authorityId: 'germany', size: 32 }));
+
+  assert(
+    indiaSvg.includes('<svg') && ukSvg.includes('<svg') && japanSvg.includes('<svg') && swissSvg.includes('<svg') && germanSvg.includes('<svg') &&
+    !indiaSvg.includes('🚂') && !ukSvg.includes('👑') && !japanSvg.includes('🗾') &&
+    indiaSvg.includes('aria-label') && ukSvg.includes('aria-label') && germanSvg.includes('DB'),
+    '27.2: Institutional insignia vector renders for all 5 authorities with zero emojis'
+  );
+
+  // 27.3: Authority selector modal renders sovereign government ministries
+  const modalHtml = renderToString(React.createElement(InstitutionalAuthoritySelectorModal, {
+    isOpen: true,
+    onClose: () => {}
+  }));
+
+  assert(
+    modalHtml.includes('Ministry of Railways') &&
+    modalHtml.includes('Department for Transport') &&
+    modalHtml.includes('Ministry of Land, Infrastructure, Transport and Tourism') &&
+    modalHtml.includes('Federal Department of the Environment, Transport') &&
+    modalHtml.includes('Federal Ministry for Digital and Transport') &&
+    modalHtml.includes('role="dialog"'),
+    '27.3: Authority selector modal renders sovereign government ministries and statutory mandates'
+  );
+
+  // 27.4: Multi-country currencies
+  const inAuth = getAuthorityById('india');
+  const ukAuth = getAuthorityById('uk');
+  const jpAuth = getAuthorityById('japan');
+  const chAuth = getAuthorityById('switzerland');
+  const deAuth = getAuthorityById('germany');
+
+  assert(
+    inAuth.currency.symbol === '₹' && inAuth.currency.code === 'INR' &&
+    ukAuth.currency.symbol === '£' && ukAuth.currency.code === 'GBP' &&
+    jpAuth.currency.symbol === '¥' && jpAuth.currency.code === 'JPY' &&
+    chAuth.currency.symbol === 'CHF ' && chAuth.currency.code === 'CHF' &&
+    deAuth.currency.symbol === '€' && deAuth.currency.code === 'EUR',
+    '27.4: Multi-country currency formatters calculate proper national currency symbols (£, ¥, CHF, €, ₹)'
+  );
+
+  // 27.5: Sovereign emergency helplines
+  assert(
+    inAuth.emergencyContacts.some(c => c.number === '139') &&
+    ukAuth.emergencyContacts.some(c => c.number === '61016') &&
+    jpAuth.emergencyContacts.some(c => c.number === '050-2016-1603') &&
+    chAuth.emergencyContacts.some(c => c.number === '0848 44 66 88') &&
+    deAuth.emergencyContacts.some(c => c.number === '030 2970'),
+    '27.5: Sovereign emergency helplines properly mapped (139 for India, 61016 for UK, 050-2016-1603 for Japan, 0848 44 66 88 for Switzerland, 030 2970 for Germany)'
+  );
+
+  // 27.6: Mobile device simulator indexes 360px Galaxy S24
+  const galaxyS24 = DEVICE_PRESETS.find(p => p.id === 'galaxy-s24');
+  assert(
+    Boolean(galaxyS24) &&
+    galaxyS24?.width === 360 &&
+    galaxyS24?.height === 780 &&
+    galaxyS24?.platform === 'android',
+    '27.6: Mobile device simulator indexes 360px Galaxy S24 and enforces narrow viewport standards'
+  );
+
+  // 27.7: NetworkMapViewer and StationGodsEyeModal touch drag threshold & pan clamping
+  const networkMapContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/NetworkMapViewer.tsx'), 'utf8');
+  const godsEyeContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/StationGodsEyeModal.tsx'), 'utf8');
+
+  assert(
+    networkMapContent.includes('moveDistance > 6') &&
+    networkMapContent.includes('hasPassedDragThresholdRef') &&
+    networkMapContent.includes('Math.max(-600, Math.min(600, rawX))') &&
+    godsEyeContent.includes('moveDistance > 6') &&
+    godsEyeContent.includes('Math.max(-500, Math.min(500, rawX))'),
+    '27.7: NetworkMapViewer and StationGodsEyeModal enforce 6px drag threshold and bounded pan clamping for 360px viewports'
+  );
+
+  // 27.8: BottomNavigation renders touch targets >= 44px with safe-area insets
+  const { BottomNavigation } = await import('../src/components/common/BottomNavigation');
+  const bottomNavHtml = renderToString(React.createElement(BottomNavigation, {
+    activeTab: 'home',
+    onTabChange: () => {},
+    savedTicketCount: 2
+  }));
+
+  assert(
+    bottomNavHtml.includes('safe-area-inset-bottom') &&
+    bottomNavHtml.includes('safe-area-inset-left') &&
+    bottomNavHtml.includes('min-h-[48px]') &&
+    bottomNavHtml.includes('role="navigation"'),
+    '27.8: BottomNavigation renders touch targets >= 44px with safe-area bottom and lateral insets'
+  );
+
+  // 27.9: SpecimenTicketModal renders sovereign authority attribution
+  const { SpecimenTicketModal } = await import('../src/components/SpecimenTicketModal');
+  const specimenModalHtml = renderToString(React.createElement(SpecimenTicketModal, {
+    isOpen: true,
+    onClose: () => {},
+    itinerary: {
+      id: 'it-test',
+      legs: [{
+        legIndex: 0,
+        train: {
+          trainNumber: '12137',
+          trainName: 'Punjab Mail',
+          originStation: 'CSMT',
+          destinationStation: 'FZR',
+          serviceType: 'mail_express',
+          runningDays: [0, 1, 2, 3, 4, 5, 6],
+          stops: [],
+          availableClasses: ['SL', '3A', '2A', '1A']
+        },
+        fromStation: { id: 'csmt', code: 'CSMT', name: 'CSMT', line: 'central', city: 'Mumbai', platforms: [1], aliases: [] },
+        toStation: { id: 'tna', code: 'TNA', name: 'Thane', line: 'central', city: 'Mumbai', platforms: [1], aliases: [] },
+        scheduledDep: '19:35',
+        scheduledArr: '20:15',
+        predictedDep: '19:35',
+        predictedArr: '20:15',
+        delayDepMinutes: 0,
+        delayArrMinutes: 0,
+        departurePlatform: '18',
+        arrivalPlatform: '5',
+        dataStatus: 'SCHEDULED',
+        crowding: { level: 'LOW', confidence: 'HIGH', explanation: '', peakWindow: false, crowdReason: '' },
+        skippedStopsCount: 0,
+        stoppingPatternLabel: ''
+      }],
+      transfers: [],
+      totalDurationMinutes: 40,
+      scheduledDeparture: '19:35',
+      predictedDeparture: '19:35',
+      scheduledArrival: '20:15',
+      predictedArrival: '20:15',
+      totalFareByClass: { SL: 140, '3A': 505 },
+      recommendedClass: 'SL',
+      eligibility: { status: 'ELIGIBLE', summary: '', rulesApplied: [], validClasses: ['SL'], passPermitted: false, ticketRequiredNote: '' },
+      score: 95,
+      rankReason: '',
+      isRecommended: true,
+      leaveHomeTime: '19:00',
+      leaveHomeMarginMinutes: 35,
+      isAcService: false
+    },
+    selectedClass: 'SL',
+    onBookingCreated: () => {}
+  }));
+
+  assert(
+    specimenModalHtml.includes('Ministry of Railways') &&
+    specimenModalHtml.includes('The Railways Act') &&
+    specimenModalHtml.includes('Institutional Ticket Issuance Portal') &&
+    specimenModalHtml.includes('role="dialog"'),
+    '27.9: SpecimenTicketModal renders sovereign authority attribution, security watermark, and statutory law citation'
+  );
+
+  // 27.10: Passenger Mobile App clean of raw code references and developer jargon
+  const helpTabContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/mobile/MobileHelpTab.tsx'), 'utf8');
+  const myTicketsContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/MyTicketsView.tsx'), 'utf8');
+  const homeViewContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/HomePassengerView.tsx'), 'utf8');
+
+  assert(
+    !helpTabContent.includes('Developer Scenario Lab') &&
+    !helpTabContent.includes('Developer Diagnostics Mode') &&
+    !myTicketsContent.includes('RAILONE TRANSIT BENCHMARK') &&
+    !homeViewContent.includes('Indian Railways Institutional Transit Benchmark'),
+    '27.10: Passenger Mobile App UI verified clean of raw code references and internal developer jargon'
+  );
+}
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');

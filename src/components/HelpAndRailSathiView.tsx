@@ -105,12 +105,12 @@ export const HelpAndRailSathiView: React.FC<HelpAndRailSathiViewProps> = ({
               }`}
             >
               <Layers className="w-4 h-4" />
-              <span>Scenarios Lab (Dev Mode)</span>
+              <span>Operations Simulation Center</span>
             </button>
           )}
         </div>
 
-        {/* Developer Mode Diagnostics Toggle */}
+        {/* Operational Diagnostics Toggle */}
         <div className="flex items-center gap-2 text-xs">
           <label className="flex items-center gap-2 cursor-pointer text-slate-500 dark:text-slate-400 select-none">
             <input
@@ -124,7 +124,7 @@ export const HelpAndRailSathiView: React.FC<HelpAndRailSathiViewProps> = ({
               }}
               className="rounded border-slate-300 dark:border-slate-700 text-theme-primary focus:ring-theme-primary"
             />
-            <span className="font-semibold text-[11px]">Developer Diagnostics Mode</span>
+            <span className="font-semibold text-[11px]">Emergency & Disruption Simulator</span>
           </label>
         </div>
       </div>
@@ -143,7 +143,7 @@ export const HelpAndRailSathiView: React.FC<HelpAndRailSathiViewProps> = ({
           <div className="p-3 bg-amber-500/15 border border-amber-500/30 rounded-2xl text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              <strong>Developer Scenario Lab:</strong> Execute simulated operational disruptions (signal failures, mega-blocks, cancelled rakes) to benchmark journey engine replanning.
+              <strong>Operations Simulation Center:</strong> Evaluate network resilience during operational disruptions (signal failures, mega-blocks, cancelled services) to ensure reliable passenger routing.
             </span>
           </div>
           <ScenariosLab

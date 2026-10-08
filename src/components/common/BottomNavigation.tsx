@@ -49,10 +49,12 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       aria-label="Primary Mobile Navigation"
       className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-lg select-none"
       style={{
-        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)'
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
+        paddingLeft: 'max(env(safe-area-inset-left, 0px), 4px)',
+        paddingRight: 'max(env(safe-area-inset-right, 0px), 4px)'
       }}
     >
-      <div className="max-w-md mx-auto grid grid-cols-5 px-1 py-1.5 gap-0.5">
+      <div className="max-w-md mx-auto grid grid-cols-5 px-0.5 py-1.5 gap-0.5">
         {tabs.map(tab => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -91,7 +93,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                 )}
               </div>
 
-              <span className={`text-[11px] mt-0.5 tracking-tight ${isActive ? 'font-black text-theme-primary' : 'font-medium'}`}>
+              <span className={`text-[10px] sm:text-[11px] mt-0.5 tracking-tight ${isActive ? 'font-black text-theme-primary' : 'font-medium'}`}>
                 {tab.label}
               </span>
             </button>

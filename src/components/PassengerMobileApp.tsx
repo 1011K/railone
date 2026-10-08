@@ -20,6 +20,9 @@ import { CoachPositionGuide, RakeModelType } from './CoachPositionGuide';
 import { TRAIN_TRIPS, STATIONS } from '../fixtures/railwayData';
 import { PAN_INDIA_TRAINS } from '../fixtures/panIndiaTrainsData';
 import { ThemeSelectorModal } from './ThemeSelectorModal';
+import { useAuthority } from './AuthorityContext';
+import { InstitutionalAuthoritySelectorModal } from './InstitutionalAuthoritySelectorModal';
+import { InstitutionalInsignia } from './common/InstitutionalInsignia';
 
 import {
   Compass,
@@ -58,14 +61,15 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   presetDest = 'CSMT'
 }) => {
   const { theme, language, setLanguage, isDark, toggleDarkMode } = useTheme();
+  const { authority } = useAuthority();
 
   // App Navigation & Selection State
   const [activeTab, setActiveTab] = useState<PassengerNavTab>('home');
   const [selectedCityId, setSelectedCityId] = useState<string>(() => {
     return localStorage.getItem('railone_user_city') || 'mumbai';
   });
-  const [journeyOrigin, setJourneyOrigin] = useState<string>(presetOrigin);
-  const [journeyDest, setJourneyDest] = useState<string>(presetDest);
+  const [journeyOrigin, setJourneyOrigin] = useState<string>(presetOrigin || authority.defaultOriginCode);
+  const [journeyDest, setJourneyDest] = useState<string>(presetDest || authority.defaultDestCode);
   const [inspectedTrainNumber, setInspectedTrainNumber] = useState<string>('95112');
   const [savedTicketCount, setSavedTicketCount] = useState<number>(0);
 
@@ -73,6 +77,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const [currentTime, setCurrentTime] = useState<string>('10:42');
 
   // Modals & Flow States
+  const [showAuthorityModal, setShowAuthorityModal] = useState<boolean>(false);
   const [showLaunchSequence, setShowLaunchSequence] = useState<boolean>(() => {
     return !sessionStorage.getItem('railone_launch_seen');
   });
@@ -281,10 +286,21 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans select-none overflow-hidden">
+    <div 
+      className="relative w-full h-full flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans select-none overflow-x-hidden overflow-y-hidden"
+      style={{
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)'
+      }}
+    >
       
       {/* 1. TOP HARDWARE STATUS BAR (Authentic Mobile System Bar) */}
-      <div className="shrink-0 h-11 px-5 pt-2 flex items-center justify-between text-xs font-semibold z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50">
+      <div 
+        className="shrink-0 h-11 px-5 pt-2 flex items-center justify-between text-xs font-semibold z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50"
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 8px)'
+        }}
+      >
         {/* System Clock */}
         <span className="font-mono text-slate-800 dark:text-slate-200 tracking-tight text-[13px] font-bold">
           {currentTime}
@@ -301,46 +317,58 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         </div>
       </div>
 
-      {/* 2. APP COMPACT HEADER (Clean Transit Brand, City & Tools) */}
-      <header className="shrink-0 px-3.5 py-2.5 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between z-10 shadow-xs">
-        {/* Brand & City Dropdown */}
+      {/* 2. APP COMPACT HEADER (Clean Transit Brand, Sovereign Authority & Tools) */}
+      <header className="shrink-0 px-3 py-2 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between z-10 shadow-xs">
+        {/* Brand & Authority Selector Button */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-theme-primary text-white flex items-center justify-center font-black shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-theme-primary text-white flex items-center justify-center font-black shadow-sm shrink-0">
             <Train className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-sm font-black tracking-tight text-slate-900 dark:text-white">
                 RailOne
               </span>
               <button
-                onClick={() => setShowCityPicker(true)}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/20 text-[10px] font-bold transition-all"
-                title="Change Transit Network"
+                onClick={() => setShowAuthorityModal(true)}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 text-[10px] font-bold transition-all active:scale-95 touch-target min-h-[28px]"
+                title="Switch Sovereign Transport Authority"
               >
-                <span>{currentCity.name}</span>
-                <ChevronDown className="w-3 h-3" />
+                <InstitutionalInsignia authorityId={authority.id} size={15} />
+                <span className="truncate max-w-[85px] sm:max-w-none">{authority.shortTitle.split(' ')[0]}</span>
+                <span className="px-1 rounded text-[8px] font-mono bg-theme-primary/10 text-theme-primary font-black">
+                  {authority.countryCode}
+                </span>
+                <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
               </button>
             </div>
-            {/* Provenance Micro-Pill */}
+            {/* Provenance Micro-Pill & Authority Attribution */}
             <div className="flex items-center gap-1 text-[9px] font-mono mt-0.5">
-              <span className={`px-1 rounded text-[8px] font-bold ${
-                currentCity.provenanceTag === '[VERIFIED LIVE]'
-                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-              }`}>
-                {currentCity.provenanceTag}
+              <span className="px-1 rounded text-[8px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                [STATUTORY ACTIVE]
+              </span>
+              <span className="text-slate-500 dark:text-slate-400 truncate max-w-[130px] sm:max-w-none text-[8px]">
+                {authority.operatingAgency.split('·')[0].trim()}
               </span>
             </div>
           </div>
         </div>
 
         {/* Right Header Actions */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
+          {/* Authority Flag / Insignia Quick Button */}
+          <button
+            onClick={() => setShowAuthorityModal(true)}
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[36px] min-w-[36px] flex items-center justify-center"
+            title="Sovereign Authority System"
+          >
+            <InstitutionalInsignia authorityId={authority.id} size={18} />
+          </button>
+
           {/* Language Toggle */}
           <button
             onClick={cycleLanguage}
-            className="px-2 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
+            className="px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[36px]"
             title="Cycle Language (EN / HI / MR)"
           >
             {language}
@@ -349,7 +377,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
           {/* Theme Palette Button */}
           <button
             onClick={() => setShowThemeModal(true)}
-            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[36px] min-w-[36px] flex items-center justify-center"
             title="Switch Livery & Color Theme"
           >
             <Palette className="w-4 h-4 text-theme-primary" />
@@ -358,13 +386,29 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
           {/* Dark / Light Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[36px] min-w-[36px] flex items-center justify-center"
             title="Toggle Dark / Light Mode"
           >
             {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
           </button>
         </div>
       </header>
+
+      {/* Sovereign Authority Bar */}
+      <div className="shrink-0 px-3.5 py-1 bg-slate-900 text-slate-100 border-b border-slate-800 flex items-center justify-between text-[10px]">
+        <div className="flex items-center gap-1.5 truncate">
+          <InstitutionalInsignia authorityId={authority.id} size={13} />
+          <span className="font-extrabold uppercase tracking-wider text-slate-300 truncate">
+            {authority.governmentBody}
+          </span>
+        </div>
+        <button
+          onClick={() => setShowAuthorityModal(true)}
+          className="text-[9px] font-bold text-theme-primary hover:underline shrink-0 ml-2 font-mono uppercase"
+        >
+          {authority.countryCode} ➔
+        </button>
+      </div>
 
       {/* 3. MAIN TAB CONTENT VIEWPORT */}
       <main className="flex-1 overflow-y-auto overscroll-contain relative pb-20">
@@ -597,6 +641,12 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
           />
         </React.Suspense>
       )}
+
+      {/* Sovereign National Authority Selector Modal */}
+      <InstitutionalAuthoritySelectorModal
+        isOpen={showAuthorityModal}
+        onClose={() => setShowAuthorityModal(false)}
+      />
 
       {/* Onboarding Flow */}
       {showOnboarding && !showLaunchSequence && (

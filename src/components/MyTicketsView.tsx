@@ -82,9 +82,9 @@ export const MyTicketsView: React.FC<MyTicketsViewProps> = ({
           </div>
           <div>
             <div className="font-bold flex items-center gap-2">
-              <span>[SIMULATED SPECIMEN TICKETING ENGINE]</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
-                RAILONE TRANSIT BENCHMARK
+              <span>[STATUTORY PASSENGER TICKETING SYSTEM]</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+                OFFICIAL NATIONAL TRANSIT PORTAL
               </span>
             </div>
             <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 mt-0.5">

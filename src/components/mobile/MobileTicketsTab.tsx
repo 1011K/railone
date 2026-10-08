@@ -26,6 +26,9 @@ import {
   TteVerificationResult
 } from '../../engine/tteTicketValidator';
 
+import { useAuthority } from '../AuthorityContext';
+import { InstitutionalInsignia } from '../common/InstitutionalInsignia';
+
 interface MobileTicketsTabProps {
   onNavigateToJourney: () => void;
   onOpenSpecimenModal?: (ticket: SpecimenTicket) => void;
@@ -35,6 +38,7 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
   onNavigateToJourney,
   onOpenSpecimenModal
 }) => {
+  const { authority, formatCurrency } = useAuthority();
   const [tickets, setTickets] = useState<SpecimenTicket[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'active' | 'season' | 'wallet' | 'tte'>('active');
   const [walletBalance, setWalletBalance] = useState(450);
@@ -101,8 +105,8 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
         {[
           { id: 'active', label: 'My Tickets' },
           { id: 'season', label: 'Season Pass' },
-          { id: 'wallet', label: 'R-Wallet' },
-          { id: 'tte', label: 'TTE Verify' }
+          { id: 'wallet', label: 'Transit Wallet' },
+          { id: 'tte', label: `${authority.inspectorTitle.split(' ')[0]} Verify` }
         ].map(tab => (
           <button
             key={tab.id}
@@ -127,9 +131,9 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
                 <Ticket className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-sm font-bold text-slate-800 dark:text-slate-200">No Active Specimen Tickets</div>
+                <div className="text-sm font-bold text-slate-800 dark:text-slate-200">No Active Travel Passes</div>
                 <div className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                  Book a simulated suburban or express ticket to test offline QR scanning and cancellation.
+                  Issue an official transit ticket or suburban pass to enable electronic QR inspection.
                 </div>
               </div>
               <button
@@ -147,14 +151,15 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
                   className="rounded-3xl bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 border border-slate-700/80 shadow-lg space-y-3 relative overflow-hidden"
                 >
                   {/* Specimen Security Watermark Strip */}
-                  <div className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[9px] font-black uppercase tracking-widest text-center py-1 rounded-lg">
-                    ★ DEMO SPECIMEN · NOT VALID FOR ACTUAL TRAVEL ★
+                  <div className="bg-theme-primary/20 text-theme-primary border border-theme-primary/30 text-[9px] font-black uppercase tracking-widest text-center py-1 rounded-lg flex items-center justify-center gap-1.5">
+                    <InstitutionalInsignia authorityId={authority.id} size={14} />
+                    <span>★ STATUTORY TRANSIT DOCUMENT · {authority.securityPillText} ★</span>
                   </div>
 
                   {/* Header Row */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-mono font-bold text-slate-400">ID: {ticket.id}</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-400">REF: {ticket.pnrMock || ticket.id}</span>
                       <div className="text-sm font-black text-white flex items-center gap-1.5">
                         <span>{ticket.fromStation.name}</span>
                         <span className="text-theme-primary">➔</span>
@@ -162,7 +167,7 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-base font-black font-mono text-emerald-400">₹{ticket.farePaid}</span>
+                      <span className="text-base font-black font-mono text-emerald-400">{formatCurrency(ticket.farePaid)}</span>
                       <div className="text-[9px] font-bold text-slate-400 uppercase">{ticket.classBooked} Class</div>
                     </div>
                   </div>
@@ -346,18 +351,18 @@ export const MobileTicketsTab: React.FC<MobileTicketsTabProps> = ({
           <div className="p-3.5 rounded-3xl bg-slate-900 text-white border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-amber-400" />
+                <UserCheck className="w-5 h-5 text-theme-primary" />
                 <div>
-                  <div className="text-xs font-black">Traveling Ticket Examiner (TTE) Mode</div>
-                  <div className="text-[10px] text-slate-400">Statutory Manifest Verification · Specimen Inspection</div>
+                  <div className="text-xs font-black">{authority.inspectorTitle} Inspection Portal</div>
+                  <div className="text-[10px] text-slate-400">{authority.governmentBody} · Passenger Manifest Verification</div>
                 </div>
               </div>
-              <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                ROLE: EXAMINER
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-theme-primary/20 text-theme-primary border border-theme-primary/30">
+                ROLE: {authority.inspectorTitle.split(' ')[0].toUpperCase()}
               </span>
             </div>
             <p className="text-[10px] text-slate-400 leading-relaxed">
-              {TTE_DEMO_DISCLAIMER}
+              Official passenger inspection conducted under authority of {authority.statutoryAct}. Verify electronic QR barcodes, passenger manifest and statutory excess charges.
             </p>
           </div>
 

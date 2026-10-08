@@ -72,7 +72,7 @@ export const HomePassengerView: React.FC<HomePassengerViewProps> = ({
         <div className="relative z-10 max-w-3xl space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-theme-primary/20 text-blue-300 border border-theme-primary/40">
             <ShieldCheck className="w-4 h-4 text-theme-primary" />
-            <span>Indian Railways Institutional Transit Benchmark</span>
+            <span>National Passenger Rail Transit Authority</span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">

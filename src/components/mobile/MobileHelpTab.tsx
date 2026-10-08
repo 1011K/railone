@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { useTheme, THEME_CONFIG, ColorTheme } from '../ThemeContext';
+import { useAuthority } from '../AuthorityContext';
 import { 
   HelpCircle, 
   PhoneCall, 
@@ -37,6 +38,7 @@ export const MobileHelpTab: React.FC<MobileHelpTabProps> = ({
   onOpen3DStation
 }) => {
   const { theme, setTheme, language, setLanguage, isDark, toggleDarkMode } = useTheme();
+  const { authority } = useAuthority();
   const [activeAccordion, setActiveAccordion] = useState<string | null>('emergency');
   
   // RailMadad Complaint Quick Drafter
@@ -71,43 +73,48 @@ export const MobileHelpTab: React.FC<MobileHelpTabProps> = ({
       <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
         <div className="flex items-center gap-2 text-theme-primary font-black text-xs uppercase tracking-wider">
           <HelpCircle className="w-4 h-4" />
-          <span>Passenger Support & Railway Safety</span>
+          <span>{authority.governmentBody}</span>
         </div>
         <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-          Help & Assistance Center
+          Passenger Rights & Safety Directorate
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Official statutory guidelines, emergency RPF contacts, and RailMadad assistance.
+          Official statutory guidelines, 24/7 security contacts ({authority.emergencyContacts.map(c => c.number).join(', ')}), and passenger services.
         </p>
       </div>
 
-      {/* 1. Emergency Helpline 139 Card */}
-      <div className="p-4 rounded-3xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-950 dark:text-rose-100 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black shadow-xs">
-              <PhoneCall className="w-4 h-4" />
+      {/* 1. Emergency Helpline Card */}
+      {(() => {
+        const primary = authority.emergencyContacts.find(c => c.isPrimary) || authority.emergencyContacts[0];
+        return (
+          <div className="p-4 rounded-3xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-950 dark:text-rose-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black shadow-xs">
+                  <PhoneCall className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-extrabold text-rose-900 dark:text-rose-200">
+                    Statutory Helpline {primary.number}
+                  </h2>
+                  <span className="text-[11px] text-rose-700 dark:text-rose-400 font-medium">
+                    {primary.label}
+                  </span>
+                </div>
+              </div>
+              <a
+                href={`tel:${primary.number}`}
+                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors touch-target"
+              >
+                <span>Call {primary.number}</span>
+              </a>
             </div>
-            <div>
-              <h2 className="text-sm font-extrabold text-rose-900 dark:text-rose-200">
-                Statutory Railway Helpline 139
-              </h2>
-              <span className="text-[11px] text-rose-700 dark:text-rose-400 font-medium">
-                RPF Security · Medical Emergency · Grievance
-              </span>
-            </div>
+            <p className="text-xs text-rose-800 dark:text-rose-300 leading-relaxed">
+              {primary.description}. Operating under authority of {authority.statutoryAct}.
+            </p>
           </div>
-          <a
-            href="tel:139"
-            className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors touch-target"
-          >
-            <span>Call 139</span>
-          </a>
-        </div>
-        <p className="text-xs text-rose-800 dark:text-rose-300 leading-relaxed">
-          National integrated railway helpline. Dial 139 for immediate Government Railway Police (GRP) or Railway Protection Force (RPF) assistance inside trains or on platforms.
-        </p>
-      </div>
+        );
+      })()}
 
       {/* 2. Accordions for Assistance Modules */}
       <div className="space-y-2">
@@ -294,7 +301,7 @@ export const MobileHelpTab: React.FC<MobileHelpTabProps> = ({
           >
             <span className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-theme-primary" />
-              <span>Institutional Dossier (Academic Benchmarks & Proofs)</span>
+              <span>Statutory Regulatory Framework & Global Transit Charters</span>
             </span>
             <ChevronRight className="w-4 h-4 text-slate-400" />
           </button>
