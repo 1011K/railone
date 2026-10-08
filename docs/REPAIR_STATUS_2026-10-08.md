@@ -21,6 +21,12 @@
 13. Correct teammate Node.js prerequisite to >=22.13, add reproducible `npm run setup` and `npm run setup:web` commands.
 14. Add `npm run test:contracts` for 13 lightweight source-level regression guards. This does not replace actual tests.
 
+## Concurrent-work warning (checked on 8 October 2026)
+
+While this P0 repair was being committed, `feature/india-multimodal-rebuild` advanced by two commits to `f135f87454750eda4df4d3f30e9542c1e3501ce5`. The two branches **diverge**. Newer upstream changes include dynamic translations, phone actions, 2D guide updates and dark-mode tokens. Overlapping files include `src/models/authorities.ts` and `src/components/mobile/MobileLiveTab.tsx`.
+
+**Do not force-push, assume a fast-forward, or blindly overwrite upstream.** Reconcile those commits and this repair branch through a reviewed merge/rebase, then execute the full test and physical-device gates. No CI was run and no pull request or merge was initiated here.
+
 ## Remaining release blockers: grouped by gate
 
 ### Gate A. Security, demo identity and financial correctness (P0)
