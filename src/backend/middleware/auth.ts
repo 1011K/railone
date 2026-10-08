@@ -3,7 +3,11 @@ import crypto from 'node:crypto';
 import { getPassengerProfile, PassengerProfile } from '../modules/passengerProfiles';
 import { getBookingById, BookingRecord } from '../modules/ticketing';
 
-const AUTH_SECRET = process.env.AUTH_SECRET || 'railone-next-statutory-auth-secret-key-2026';
+// Demo tokens can use an ephemeral process secret; production must fail closed.
+if (process.env.NODE_ENV === 'production' && (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32)) {
+  throw new Error('Production AUTH_SECRET must contain at least 32 characters.');
+}
+const AUTH_SECRET = process.env.AUTH_SECRET || crypto.randomBytes(32).toString('hex');
 
 export interface AuthenticatedRequest extends Request {
   authenticatedPassenger?: PassengerProfile;

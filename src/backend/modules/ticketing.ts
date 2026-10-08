@@ -65,6 +65,16 @@ export function createBooking(req: CreateBookingRequest): BookingRecord {
   if (req.idempotencyKey) {
     const existing = getBookingByIdempotencyKey(req.idempotencyKey);
     if (existing) {
+      if (existing.passengerProfileId !== req.passengerProfileId) {
+        throw new Error('Idempotency key belongs to another passenger.');
+      }
+      if (existing.trainNumber !== req.trainNumber ||
+          existing.journeyDate !== req.journeyDate ||
+          existing.fromStationCode !== req.fromStationCode ||
+          existing.toStationCode !== req.toStationCode ||
+          existing.classBooked !== req.classBooked) {
+        throw new Error('Idempotency key was used for another journey.');
+      }
       logAuditEvent({
         eventType: 'BOOKING_IDEMPOTENT_HIT',
         actor: req.passengerProfileId || 'guest',

@@ -36,7 +36,8 @@ export function estimateCrowdLevel(
 
   let level: CrowdingLevel = 'LOW';
   let crowdReason = '';
-  let confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'DATA_SPARSE' = 'HIGH';
+  // No validated occupancy feed exists: time-band rules cannot be high confidence.
+  let confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'DATA_SPARSE' = 'LOW';
 
   if (isACService) {
     if (isCommuteFlowDirection && isMajorBoardingHub) {
@@ -52,7 +53,7 @@ export function estimateCrowdLevel(
     return {
       level,
       confidence,
-      explanation: `AC Local estimate: ${level} load. ${crowdReason}`,
+      explanation: `RULE-BASED ESTIMATE (not measured occupancy): ${level}. ${crowdReason}`,
       peakWindow: isPeak,
       crowdReason
     };
@@ -63,7 +64,7 @@ export function estimateCrowdLevel(
     if (precedingDelayMinutes >= 15) {
       level = 'CRUSH_LOAD';
       crowdReason = `Compounded bunching: preceding trains delayed (+${precedingDelayMinutes}m) causing platform buildup at ${boardingStationCode}.`;
-      confidence = 'HIGH';
+      confidence = 'LOW';
     } else if (train.serviceType === 'suburban_fast' && isMajorBoardingHub) {
       level = 'CRUSH_LOAD';
       crowdReason = 'Peak fast corridor commuter surge. Extreme boarding pressure at junction stations.';
@@ -92,7 +93,7 @@ export function estimateCrowdLevel(
   return {
     level,
     confidence,
-    explanation: `${level} passenger density anticipated at ${boardingStationCode}. ${crowdReason}`,
+    explanation: `RULE-BASED ESTIMATE (not measured occupancy): ${level} at ${boardingStationCode}. ${crowdReason}`,
     peakWindow: isPeak,
     crowdReason
   };
