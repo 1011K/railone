@@ -3,7 +3,7 @@
   "version": "4.0.0",
   "description": "RailOne Next — Mobile Native Railway Passenger Application for Android and iOS",
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.13.0",
     "npm": ">=10.0.0"
   },
   "main": "expo-router/entry",
