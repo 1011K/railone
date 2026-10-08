@@ -39,7 +39,7 @@ export const STATIONS: Record<string, Station> = {
     platforms: [1, 2, 3, 4, 5, 6, 7, 8],
     isInterchange: true,
     interchangeWalkMinutes: 7, // Walking transfer from Central to Western platforms via foot overbridge
-    aliases: ['dadar', 'dadar cr', 'dadar central']
+    aliases: ['dadar', 'dadar cr', 'dadar central', 'dadar east', 'dadar (east)', 'dadar e', 'dadar (cr)']
   },
   CLA: {
     id: 'CLA',
@@ -191,7 +191,7 @@ export const STATIONS: Record<string, Station> = {
     platforms: [1, 2, 3, 4, 5, 6, 7],
     isInterchange: true,
     interchangeWalkMinutes: 7,
-    aliases: ['dadar', 'dadar western', 'dadar wr', 'ddr']
+    aliases: ['dadar', 'dadar western', 'dadar wr', 'ddr', 'dadar west', 'dadar (west)', 'dadar w']
   },
   BA: {
     id: 'BA',

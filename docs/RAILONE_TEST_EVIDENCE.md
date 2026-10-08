@@ -70,10 +70,10 @@ $ npm test
   [PASS] Test Suite 27: Multi-Country Institutional Authority Registry (27.1 - 27.10)
   [PASS] Test Suite 28: Multi-Country Journey Planning & Dynamic Tariffs (28.1 - 28.8)
   [PASS] Test Suite 29: India Multimodal Architecture, MMR Scenarios & Security (29.1 - 29.15)
-  [PASS] Test Suite 30: Ghatkopar Resolution, Dadar Bridge, 22 Services & Launch Audio (30.1 - 30.12)
+  [PASS] Test Suite 30: Ghatkopar Resolution, Dadar Bridge, 22 Services, Launch Audio & Multimodal Kurla-BKC (30.1 - 30.18)
 
 ====================================================
-TEST SUMMARY: 276/276 Passed (0 Failed)
+TEST SUMMARY: 282/282 Passed (0 Failed)
 ====================================================
 Exit Code: 0
 ```
@@ -98,15 +98,15 @@ Source contracts: 13/13. Run full npm test, typechecks and device checks separat
 Exit Code: 0
 ```
 
-### 3. Root TypeScript Strict Typecheck (`npm run lint`)
+### 3. Root TypeScript Lint (`npm run lint`)
 ```powershell
 $ npm run lint
 > react-example@0.0.0 lint
 > tsc --noEmit
-Exit Code: 0 (Zero errors)
+Exit Code: 0 (0 errors)
 ```
 
-### 4. Production Client Bundle Build (`npm run build`)
+### 4. Root Production Web Build (`npm run build`)
 ```powershell
 $ npm run build
 > react-example@0.0.0 build
@@ -119,15 +119,15 @@ rendering chunks...
 computing gzip size...
 dist/index.html                                      1.30 kB │ gzip:   0.54 kB
 dist/assets/index-Cpf9JFkN.css                     193.45 kB │ gzip:  25.88 kB
-dist/assets/MovingTrain3DModal-CZQvSmDo.js          18.72 kB │ gzip:   4.82 kB
-dist/assets/InstitutionalDossierModal-BIyb9fqk.js   20.53 kB │ gzip:   5.14 kB
-dist/assets/StationGodsEyeModal-Xx1w2488.js         56.64 kB │ gzip:  12.18 kB
-dist/assets/index-D0bOZip5.js                      862.27 kB │ gzip: 210.26 kB
-✓ built in 7.37s
+dist/assets/MovingTrain3DModal-BUgAnoV9.js          18.72 kB │ gzip:   4.83 kB
+dist/assets/InstitutionalDossierModal-BQmuDt1l.js   20.53 kB │ gzip:   5.14 kB
+dist/assets/StationGodsEyeModal-CqXt_4qv.js         61.68 kB │ gzip:  12.92 kB
+dist/assets/index-UCPPUavX.js                      864.19 kB │ gzip: 210.70 kB
+✓ built in 6.10s
 Exit Code: 0
 ```
 
-### 5. Native Mobile Expo Application Typecheck (`npm run mobile:lint`)
+### 5. Native Mobile TypeScript Lint (`npm run mobile:lint`)
 ```powershell
 $ npm run mobile:lint
 > react-example@0.0.0 mobile:lint
@@ -135,15 +135,56 @@ $ npm run mobile:lint
 
 > @railone/mobile@4.0.0 lint
 > tsc --noEmit
-Exit Code: 0 (Zero errors)
+Exit Code: 0 (0 errors)
+```
+
+### 6. Native Mobile Doctor Diagnostics (`npm run mobile:doctor`)
+```powershell
+$ npm run mobile:doctor
+> react-example@0.0.0 mobile:doctor
+> npm --prefix apps/mobile run doctor
+
+> @railone/mobile@4.0.0 doctor
+> npx --yes expo-doctor
+
+Running 18 checks on your project...
+18/18 checks passed. No issues detected!
+Exit Code: 0
+```
+
+### 7. Native Mobile Web Export Bundle (`npm run mobile:build-web`)
+```powershell
+$ npm run mobile:build-web
+> react-example@0.0.0 mobile:build-web
+> npm --prefix apps/mobile run build:web
+
+> @railone/mobile@4.0.0 build:web
+> expo export -p web --no-minify
+
+Starting Metro Bundler
+Web Bundled 2468ms (1329 modules)
+› web bundles (1):
+_expo/static/js/web/entry-12ef16d13265ac049155ac5d2b2d7b22.js (6.22 MB)
+› Files (3):
+favicon.ico (14.5 kB)
+index.html (1.22 kB)
+metadata.json (49 B)
+Exported: dist
+Exit Code: 0
 ```
 
 ---
 
-## 3. Key Bug Regressions Resolved & Verified
+## 3. Summary of Regression Safeguards
 
-1. **Ticketing Idempotency Collision**: SQLite returns `null` for unassigned foreign keys while JavaScript requests send `undefined`. A strict `!==` comparison falsely triggered `Error: Idempotency key belongs to another passenger`. Resolved via normalized comparison `(existingProfile || null) !== (requestedProfile || null)`.
-2. **UTS Suburban Ticket Cancellation Refund Route**: Commit `1f1b0fd` routed simulated UPI refunds to `cashRefund` (toBank), causing `walletRefund` to be 0 and failing test 22.7. Corrected to credit `walletRefund` by default for simulated suburban tickets, passing test 22.7 (`walletRefund === 65`).
-3. **Ghatkopar Misspelling Normalization**: Station aliases expanded to include `ghatkopr`, `gatkopar`, `ghatcopar`, and Devanagari `घाटकोपर`, successfully resolving all misspellings to `GC` while maintaining modal segregation from Metro Line 1 (`METRO_GHT`).
-4. **Dadar Central (DR) vs Western (DDR) Ambiguity**: Added `'dadar'` to `STATIONS.DDR.aliases` so generic queries flag ambiguity and return both platform candidates, while distinct queries resolve to Central and Western platforms with a 7-minute FOB transfer buffer.
-5. **Mobile Native Index Missing Stylesheet Properties**: Added all 11 missing style rules (`bookingGrid`, `bookingGridItem`, `bookingGridTitle`, `bookingGridSub`, `servicesHubBanner`, `servicesHubContent`, `servicesHubTitle`, `servicesHubSubtitle`, `servicesHubBadge`, `servicesHubBadgeText`, `assistantButtonsRow`) and Modal 6 for the 22-services directory.
+| Area | Verified Guarantee | Test / Guard File |
+| :--- | :--- | :--- |
+| **All 9 Urban Regions** | Mumbai, Pune, Delhi NCR, Bengaluru, Kolkata, Chennai, Hyderabad, Kochi, Ahmedabad–Gandhinagar | `tests/run-all-tests.ts` (Suite 29.3, 29.12) |
+| **Kurla -> BKC Feeder Link** | Walk CLA to Kurla bus terminal -> BEST feeder bus to BKC -> Walk to Metro 3 | `tests/run-all-tests.ts` (Suite 30.13) |
+| **Suburban AC EMU Locals** | Western (`EDGE_SUB_BVI_CCG_AC`) and Central (`EDGE_SUB_TNA_CSMT_AC`) AC services | `tests/run-all-tests.ts` (Suite 30.14) |
+| **Late-Night Curfew** | Services after operational hours (e.g. 23:55 on Metro Line 1) return 0 itineraries | `tests/run-all-tests.ts` (Suite 30.15) |
+| **Punctuated Station Aliases** | " Dadar , West " -> DDR, "Dadar East" -> DR | `tests/run-all-tests.ts` (Suite 30.16) |
+| **Station 2D Blueprints** | Full platform geometries for Ghatkopar (`GC`) and Panvel (`PNVL`) | `tests/run-all-tests.ts` (Suite 30.17) |
+| **Native 22 Services Directory** | Complete 22 services registered in native mobile index with routes/links | `tests/run-all-tests.ts` (Suite 30.18) |
+| **Audio Launch Sequence** | Dual-tone electric locomotive horn (311Hz/370Hz) with mute toggle and replay | `tests/run-all-tests.ts` (Suite 30.12) |
+| **Security & Auth Tokens** | HMAC-SHA256 signature, profile-ID-only renewal forbidden, cross-user isolation | `scripts/check-regression-contracts.mjs` (Contracts 1–4) |

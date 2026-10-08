@@ -9,10 +9,12 @@
 ## 1. Epistemic Assessment: What Is Truly Complete vs What Requires External Authority
 
 RailOne Next currently represents a fully functioning, verified client-and-server architecture with:
-- 100% automated test passes (276/276 tests)
-- Full multimodal door-to-door graph routing across 8 Indian metropolitan regions
+- 100% automated test passes (282/282 tests across 30 test suites)
+- 100% regression contract passes (13/13 source contracts)
+- Full multimodal door-to-door graph routing across all 9 Indian metropolitan regions (Mumbai, Pune, Delhi NCR, Bengaluru, Kolkata, Chennai, Hyderabad, Kochi, Ahmedabad–Gandhinagar)
 - Native mobile client parity with full 22-services directory and voice assistant
-- Production Vite build and zero TypeScript errors
+- Passing `expo-doctor` (18/18 checks) and passing `expo export -p web` (6.22 MB distribution bundle)
+- Production Vite build and zero TypeScript errors (`tsc --noEmit` clean on root and `apps/mobile`)
 
 However, in accordance with the **Railway-Source Verification & Integrity Rules** (`AGENTS.md`), we must be brutally honest about items that CANNOT be completed without formal government authorization or production infrastructure.
 
@@ -34,7 +36,7 @@ However, in accordance with the **Railway-Source Verification & Integrity Rules*
 
 | Item ID | Capability | Current State in RailOne | Target Production State | Technical Steps & Blockers |
 | :--- | :--- | :--- | :--- | :--- |
-| **P1-01** | EAS Cloud Build & Binary Distribution | `apps/mobile/eas.json` configured for Android APK and iOS simulator | Signed APK and TestFlight builds deployed to app stores | **Infrastructure Blocker**: Requires valid Expo Application Services (EAS) account credentials and Apple Developer / Google Play Console organization memberships. Local prebuild (`npx expo prebuild`) is fully functional. |
+| **P1-01** | EAS Cloud Build & Binary Distribution | `apps/mobile/eas.json` configured for Android APK and iOS simulator; `expo-doctor` passes 18/18 | Signed APK and TestFlight builds deployed to app stores | **Infrastructure Blocker**: Requires valid Expo Application Services (EAS) account credentials and Apple Developer / Google Play Console organization memberships. Local prebuild (`npx expo prebuild`) and web export (`expo export -p web`) are fully functional. |
 | **P1-02** | High-Fidelity On-Device Speech Models | Web Speech API and Expo Speech with Dograh fallback | On-device Vosk / Whisper-lite Hindi/Marathi acoustic models for offline operation | **Device Resource Constraint**: High-quality multilingual acoustic weights exceed 40MB; requires progressive lazy-loading to avoid bloating low-end commuter devices in cellular dead zones. |
 | **P1-03** | Real-Time Push Notifications for Train Blocks | Saved journeys local preference storage | Web Push / APNs / FCM push notifications for Sunday Mega-blocks | **Server Infrastructure**: Requires standing notification service worker paired with verified railway press release ingestion pipeline. |
 
@@ -45,8 +47,8 @@ However, in accordance with the **Railway-Source Verification & Integrity Rules*
 | Item ID | Capability | Current State in RailOne | Target Production State | Estimated Complexity |
 | :--- | :--- | :--- | :--- | :--- |
 | **P2-01** | Dynamic 3D Concourse Perspective Expansion | 2D God's Eye maps for 11 key stations; 3D simulator for trains | Complete 3D WebGL walk-throughs for Dadar, Kurla, and Thane FOBs | Moderate (Three.js / WebGL assets need compression to stay <1MB bundle size). |
-| **P2-02** | Multi-City Station 2D Blueprints | Complete detailed 2D concourse maps for Mumbai stations | Extend identical God's eye FOB maps to New Delhi (NDLS), Howrah (HWH), Chennai Central (MAS), and Bengaluru (SBC) | Moderate (Requires compiling physical platform blueprints from respective railway divisions). |
-| **P2-03** | Multi-Tenant Operator Tariff Ingestion Tooling | Hardcoded official tariff tables for 8 cities in `src/fixtures/` | Dynamic GTFS-Fares v2 ingest CLI to parse annual fare revision gazettes | Low / Tooling (Lightweight node CLI). |
+| **P2-02** | Multi-City Station 2D Blueprints | Complete detailed 2D concourse maps for 11 Mumbai stations | Extend identical God's eye FOB maps to New Delhi (NDLS), Howrah (HWH), Chennai Central (MAS), and Bengaluru (SBC) | Moderate (Requires compiling physical platform blueprints from respective railway divisions). |
+| **P2-03** | Multi-Tenant Operator Tariff Ingestion Tooling | Hardcoded official tariff tables for 9 cities in `src/fixtures/` | Dynamic GTFS-Fares v2 ingest CLI to parse annual fare revision gazettes | Low / Tooling (Lightweight node CLI). |
 
 ---
 

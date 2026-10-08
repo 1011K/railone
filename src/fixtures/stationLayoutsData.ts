@@ -28,7 +28,7 @@ export interface StationAmenity {
 export interface PlatformLayout {
   id: string;
   number: string;
-  line: 'western' | 'central' | 'harbour' | 'trans_harbour' | 'national';
+  line: 'western' | 'central' | 'harbour' | 'trans_harbour' | 'national' | 'metro';
   serviceType: 'slow' | 'fast' | 'both' | 'outstation';
   trackGauge: string;
   carCapacity: 12 | 15 | 16 | 24;
@@ -629,6 +629,111 @@ export const STATION_3D_LAYOUTS: Record<string, Station3DLayout> = {
       { id: 'CCG_AM_2', type: 'rpf_post', name: 'Churchgate RPF Security Post', platformId: 'CCG_4', level: 0, x: 220, y: 340, z: 0, isAccessible: true },
       { id: 'CCG_AM_3', type: 'exit_gate', name: 'Veer Nariman Road & Oval Maidan Exit', platformId: 'CCG_1', level: 0, x: 40, y: 340, z: 0, isAccessible: true },
       { id: 'CCG_AM_4', type: 'water_atm', name: 'IRCTC Pure Water ATM', platformId: 'CCG_2', level: 0, x: 100, y: 200, z: 0, isAccessible: true }
+    ]
+  },
+
+  GC: {
+    stationCode: 'GC',
+    stationName: 'Ghatkopar',
+    hindiName: 'घाटकोपर',
+    marathiName: 'घाटकोपर',
+    city: 'Mumbai',
+    zone: 'CR / MMOPL',
+    division: 'Mumbai (CR) & Mumbai Metro One',
+    isMajorInterchange: true,
+    levelsCount: 2,
+    description: 'Major Central Railway suburban and Mumbai Metro Line 1 intermodal junction. Features 4 suburban platforms and elevated Metro concourse with direct integrated bridge.',
+    platforms: [
+      { id: 'GC_PF_1', number: '1 (CR Slow Down)', line: 'central', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 280, crowdLevel: 'HEAVY', x: 40, y: 50, width: 20, height: 260 },
+      { id: 'GC_PF_2', number: '2 (CR Slow Up)', line: 'central', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 280, crowdLevel: 'CRUSH_LOAD', x: 80, y: 50, width: 20, height: 260 },
+      { id: 'GC_PF_3', number: '3 (CR Fast Down)', line: 'central', serviceType: 'fast', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'HEAVY', x: 120, y: 50, width: 22, height: 280 },
+      { id: 'GC_PF_4', number: '4 (CR Fast Up)', line: 'central', serviceType: 'fast', trackGauge: 'Broad Gauge', carCapacity: 15, lengthMeters: 300, crowdLevel: 'CRUSH_LOAD', x: 160, y: 50, width: 22, height: 280 },
+      { id: 'GC_METRO_1', number: 'Metro 1 Concourse', line: 'metro', serviceType: 'both', trackGauge: 'Standard Gauge', carCapacity: 12, lengthMeters: 140, crowdLevel: 'HEAVY', x: 220, y: 80, width: 24, height: 180 }
+    ],
+    bridges: [
+      {
+        id: 'GC_METRO_FOB',
+        name: 'Metro Integrated Foot-Over-Bridge & Gate 2 Concourse',
+        connectedPlatforms: ['GC_PF_1', 'GC_PF_2', 'GC_PF_3', 'GC_PF_4', 'GC_METRO_1'],
+        level: 1,
+        lengthMeters: 180,
+        typicalWalkMinutes: 4,
+        hasLifts: true,
+        hasEscalators: true,
+        isCovered: true,
+        crowdFactor: 1.5,
+        x1: 30,
+        y1: 120,
+        x2: 240,
+        y2: 120
+      },
+      {
+        id: 'GC_NORTH_FOB',
+        name: 'North Foot-Over-Bridge (LBS Marg West Exit)',
+        connectedPlatforms: ['GC_PF_1', 'GC_PF_2', 'GC_PF_3', 'GC_PF_4'],
+        level: 1,
+        lengthMeters: 140,
+        typicalWalkMinutes: 3,
+        hasLifts: true,
+        hasEscalators: false,
+        isCovered: true,
+        crowdFactor: 1.2,
+        x1: 30,
+        y1: 220,
+        x2: 180,
+        y2: 220
+      }
+    ],
+    amenities: [
+      { id: 'GC_AM_1', type: 'atvm_ticket', name: 'CR Main Booking Office (East & West)', platformId: 'GC_PF_1', level: 0, x: 40, y: 260, z: 0, isAccessible: true },
+      { id: 'GC_AM_2', type: 'metro_interchange', name: 'Mumbai Metro Line 1 Automatic Fare Collection (AFC) Gates', platformId: 'GC_METRO_1', level: 1, x: 220, y: 120, z: 1, isAccessible: true },
+      { id: 'GC_AM_3', type: 'lift', name: 'Platform 1/2 Step-Free Elevator to Metro Skywalk', platformId: 'GC_PF_1', level: 0, x: 50, y: 120, z: 0, isAccessible: true },
+      { id: 'GC_AM_4', type: 'exit_gate', name: 'LBS Marg & R-City Feeder Exit', platformId: 'GC_PF_4', level: 0, x: 160, y: 220, z: 0, isAccessible: true }
+    ]
+  },
+
+  PNVL: {
+    stationCode: 'PNVL',
+    stationName: 'Panvel Junction',
+    hindiName: 'पनवेल जंक्शन',
+    marathiName: 'पनवेल जंक्शन',
+    city: 'Navi Mumbai',
+    zone: 'CR / KR',
+    division: 'Mumbai (CR) & Konkan Railway',
+    isMajorInterchange: true,
+    levelsCount: 2,
+    description: 'Suburban Harbour & Trans-Harbour terminal and gateway to Konkan Railway. Modern ground-level accessible concourse with ramp-connected Foot-Over-Bridges connecting 7 platforms.',
+    platforms: [
+      { id: 'PNVL_PF_1', number: '1 (Harbour Local)', line: 'harbour', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 12, lengthMeters: 260, crowdLevel: 'MODERATE', x: 40, y: 50, width: 20, height: 260 },
+      { id: 'PNVL_PF_2', number: '2 (Harbour Local)', line: 'harbour', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 12, lengthMeters: 260, crowdLevel: 'MODERATE', x: 80, y: 50, width: 20, height: 260 },
+      { id: 'PNVL_PF_3', number: '3 (Trans-Harbour)', line: 'trans_harbour', serviceType: 'slow', trackGauge: 'Broad Gauge', carCapacity: 12, lengthMeters: 260, crowdLevel: 'LOW', x: 120, y: 50, width: 20, height: 260 },
+      { id: 'PNVL_PF_4', number: '4 (Through Line)', line: 'central', serviceType: 'outstation', trackGauge: 'Broad Gauge', carCapacity: 24, lengthMeters: 550, crowdLevel: 'LOW', x: 160, y: 30, width: 22, height: 320 },
+      { id: 'PNVL_PF_5', number: '5 (Express Halts)', line: 'central', serviceType: 'outstation', trackGauge: 'Broad Gauge', carCapacity: 24, lengthMeters: 550, crowdLevel: 'HEAVY', x: 200, y: 30, width: 22, height: 320 },
+      { id: 'PNVL_PF_6', number: '6 (Express Halts)', line: 'central', serviceType: 'outstation', trackGauge: 'Broad Gauge', carCapacity: 24, lengthMeters: 550, crowdLevel: 'MODERATE', x: 240, y: 30, width: 22, height: 320 },
+      { id: 'PNVL_PF_7', number: '7 (Konkan Railway)', line: 'national', serviceType: 'outstation', trackGauge: 'Broad Gauge', carCapacity: 24, lengthMeters: 550, crowdLevel: 'MODERATE', x: 280, y: 30, width: 22, height: 320 }
+    ],
+    bridges: [
+      {
+        id: 'PNVL_MAIN_FOB',
+        name: 'Main Foot-Over-Bridge with Ramp Access',
+        connectedPlatforms: ['PNVL_PF_1', 'PNVL_PF_2', 'PNVL_PF_3', 'PNVL_PF_4', 'PNVL_PF_5', 'PNVL_PF_6', 'PNVL_PF_7'],
+        level: 1,
+        lengthMeters: 280,
+        typicalWalkMinutes: 4,
+        hasLifts: true,
+        hasEscalators: true,
+        isCovered: true,
+        crowdFactor: 1.1,
+        x1: 30,
+        y1: 150,
+        x2: 290,
+        y2: 150
+      }
+    ],
+    amenities: [
+      { id: 'PNVL_AM_1', type: 'atvm_ticket', name: 'Panvel Suburban & PRS Reservation Concourse', platformId: 'PNVL_PF_1', level: 0, x: 40, y: 260, z: 0, isAccessible: true },
+      { id: 'PNVL_AM_2', type: 'rpf_post', name: 'Panvel RPF Security Helpline Desk', platformId: 'PNVL_PF_5', level: 0, x: 200, y: 150, z: 0, isAccessible: true },
+      { id: 'PNVL_AM_3', type: 'wheelchair_ramp', name: 'Step-Free Platform Ramp Connector', platformId: 'PNVL_PF_1', level: 0, x: 40, y: 150, z: 0, isAccessible: true }
     ]
   }
 };

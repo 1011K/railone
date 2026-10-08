@@ -538,6 +538,74 @@ export const MUMBAI_EDGES: MultimodalEdge[] = [
     stepFree: true,
     dataQuality: 'TIMETABLE_SCHEDULE'
   },
+  {
+    id: 'EDGE_SUB_BVI_CCG_AC',
+    fromNodeId: 'BVI',
+    toNodeId: 'CCG',
+    mode: 'suburban',
+    operator: 'Western Railway (WR)',
+    lineId: 'western_ac_fast',
+    lineName: 'Western AC Fast Local EMU (Borivali ➔ Churchgate)',
+    distanceKm: 34.0,
+    durationMinutes: 42,
+    fareInr: 65,
+    frequencyMinutes: 15,
+    isAcService: true,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE',
+    bookingUrl: 'https://play.google.com/store/apps/details?id=com.cris.utsmobile'
+  },
+  {
+    id: 'EDGE_SUB_CCG_BVI_AC',
+    fromNodeId: 'CCG',
+    toNodeId: 'BVI',
+    mode: 'suburban',
+    operator: 'Western Railway (WR)',
+    lineId: 'western_ac_fast',
+    lineName: 'Western AC Fast Local EMU (Churchgate ➔ Borivali)',
+    distanceKm: 34.0,
+    durationMinutes: 42,
+    fareInr: 65,
+    frequencyMinutes: 15,
+    isAcService: true,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE',
+    bookingUrl: 'https://play.google.com/store/apps/details?id=com.cris.utsmobile'
+  },
+  {
+    id: 'EDGE_SUB_TNA_CSMT_AC',
+    fromNodeId: 'TNA',
+    toNodeId: 'CSMT',
+    mode: 'suburban',
+    operator: 'Central Railway (CR)',
+    lineId: 'central_ac_fast',
+    lineName: 'Central AC Fast Local EMU (Thane ➔ CSMT)',
+    distanceKm: 34.0,
+    durationMinutes: 38,
+    fareInr: 65,
+    frequencyMinutes: 20,
+    isAcService: true,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE',
+    bookingUrl: 'https://play.google.com/store/apps/details?id=com.cris.utsmobile'
+  },
+  {
+    id: 'EDGE_SUB_CSMT_TNA_AC',
+    fromNodeId: 'CSMT',
+    toNodeId: 'TNA',
+    mode: 'suburban',
+    operator: 'Central Railway (CR)',
+    lineId: 'central_ac_fast',
+    lineName: 'Central AC Fast Local EMU (CSMT ➔ Thane)',
+    distanceKm: 34.0,
+    durationMinutes: 38,
+    fareInr: 65,
+    frequencyMinutes: 20,
+    isAcService: true,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE',
+    bookingUrl: 'https://play.google.com/store/apps/details?id=com.cris.utsmobile'
+  },
 
   // 4. Dadar <-> Kalyan Express, Fast Local & Slow Local (Solves Scenario 4 & 5 Delay Inversion)
   {
@@ -801,6 +869,62 @@ export const MUMBAI_EDGES: MultimodalEdge[] = [
     stepFree: true,
     dataQuality: 'TIMETABLE_SCHEDULE',
     bookingUrl: 'https://play.google.com/store/apps/details?id=com.chalo.bestchaloapp'
+  },
+  {
+    id: 'EDGE_WALK_CLA_BUS_KURLA',
+    fromNodeId: 'CLA',
+    toNodeId: 'BUS_KURLA',
+    mode: 'walk',
+    operator: 'Station Concourse Connector',
+    lineId: 'walk_kurla',
+    lineName: 'Kurla Station West Exit to Bus Stand Walk',
+    distanceKm: 0.15,
+    durationMinutes: 2,
+    fareInr: 0,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_WALK_BUS_KURLA_CLA',
+    fromNodeId: 'BUS_KURLA',
+    toNodeId: 'CLA',
+    mode: 'walk',
+    operator: 'Station Concourse Connector',
+    lineId: 'walk_kurla',
+    lineName: 'Kurla Bus Stand to Railway Station Concourse Walk',
+    distanceKm: 0.15,
+    durationMinutes: 2,
+    fareInr: 0,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_WALK_BUS_BKC_METRO',
+    fromNodeId: 'BUS_BKC',
+    toNodeId: 'METRO_BKC',
+    mode: 'walk',
+    operator: 'BKC Concourse Pedestrian Link',
+    lineId: 'walk_bkc',
+    lineName: 'BKC Bus Terminal to Metro Line 3 Station Walk',
+    distanceKm: 0.20,
+    durationMinutes: 3,
+    fareInr: 0,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_WALK_METRO_BKC_BUS',
+    fromNodeId: 'METRO_BKC',
+    toNodeId: 'BUS_BKC',
+    mode: 'walk',
+    operator: 'BKC Concourse Pedestrian Link',
+    lineId: 'walk_bkc',
+    lineName: 'BKC Metro Line 3 to Bus Terminal Walk',
+    distanceKm: 0.20,
+    durationMinutes: 3,
+    fareInr: 0,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
   },
 
   // 7. Maritime Ferry Link (Bhaucha Dhakka / Gateway to Mandwa)
@@ -1877,6 +2001,295 @@ export const AHMEDABAD_LANDMARKS: Record<string, DoorToDoorLocation> = {
 };
 
 // ============================================================================
+// 9. KOCHI METROPOLITAN AREA (SOUTHERN RAILWAY & KOCHI METRO / WATER METRO)
+// ============================================================================
+
+export const KOCHI_COVERAGE_MANIFEST: CoverageManifestEntry[] = [
+  {
+    operator: 'Southern Railway (SR)',
+    mode: 'suburban',
+    serviceScope: 'Ernakulam Junction (South) – Ernakulam Town (North) – Aluva Commuter MEMU / Passenger corridor',
+    operationalStatus: 'OPERATIONAL',
+    timetableEffective: 'August 2026',
+    officialSourceUrl: 'https://sr.indianrailways.gov.in',
+    publisher: 'Southern Railway Thiruvananthapuram Division',
+    permittedUsage: 'Public commuter passenger rail services',
+    verificationStatus: 'VERIFIED'
+  },
+  {
+    operator: 'Kochi Metro Rail Limited (KMRL)',
+    mode: 'metro',
+    serviceScope: 'Phase 1 & 1A Corridor (Aluva – MG Road – Tripunithura Terminal)',
+    operationalStatus: 'OPERATIONAL',
+    timetableEffective: 'October 2026',
+    officialSourceUrl: 'https://kochimetro.org',
+    publisher: 'KMRL Mass Rapid Transit Authority',
+    permittedUsage: 'Public urban rapid transit',
+    verificationStatus: 'VERIFIED'
+  },
+  {
+    operator: 'KMRL Water Metro',
+    mode: 'ferry',
+    serviceScope: 'Electric hybrid ferry network (High Court – Vypin, High Court – Fort Kochi)',
+    operationalStatus: 'OPERATIONAL',
+    timetableEffective: 'October 2026',
+    officialSourceUrl: 'https://kochimetro.org/water-metro',
+    publisher: 'Kochi Water Metro Limited',
+    permittedUsage: 'Integrated maritime public water transport',
+    verificationStatus: 'VERIFIED'
+  }
+];
+
+export const KOCHI_NODES: MultimodalNode[] = [
+  { id: 'ERS', code: 'ERS', name: 'Ernakulam Junction (South)', nativeName: 'എറണാകുളം ജംങ്ഷൻ', city: 'Kochi', state: 'Kerala', mode: 'suburban', latitude: 9.967, longitude: 76.289, platforms: [1,2,3,4,5,6], isInterchange: true, stepFreeAccessible: true },
+  { id: 'ERN', code: 'ERN', name: 'Ernakulam Town (North)', nativeName: 'എറണാകുളം ടൗൺ', city: 'Kochi', state: 'Kerala', mode: 'suburban', latitude: 9.993, longitude: 76.288, platforms: [1,2], isInterchange: true, stepFreeAccessible: true },
+  { id: 'AWY', code: 'AWY', name: 'Aluva Railway Station', nativeName: 'ആലുവ റെയിൽവേ സ്റ്റേഷൻ', city: 'Kochi', state: 'Kerala', mode: 'suburban', latitude: 10.108, longitude: 76.353, platforms: [1,2,3], isInterchange: true, stepFreeAccessible: true },
+  { id: 'METRO_ALUVA', code: 'METRO_ALUVA', name: 'Aluva Metro Terminal', nativeName: 'ആലുവ മെട്രോ', city: 'Kochi', state: 'Kerala', mode: 'metro', latitude: 10.107, longitude: 76.352, platforms: [1,2], isTerminal: true, stepFreeAccessible: true },
+  { id: 'METRO_MG_ROAD', code: 'METRO_MG_ROAD', name: 'MG Road Metro Station', nativeName: 'എം.ജി റോഡ് മെട്രോ', city: 'Kochi', state: 'Kerala', mode: 'metro', latitude: 9.976, longitude: 76.284, platforms: [1,2], isInterchange: true, stepFreeAccessible: true },
+  { id: 'WATER_HIGH_COURT', code: 'WATER_HIGH_COURT', name: 'High Court Water Metro Jetty', nativeName: 'ഹൈക്കോടതി വാട്ടർ മെട്രോ ജെട്ടി', city: 'Kochi', state: 'Kerala', mode: 'ferry', latitude: 9.982, longitude: 76.275, platforms: [1,2], isInterchange: true, stepFreeAccessible: true },
+  { id: 'WATER_VIPIN', code: 'WATER_VIPIN', name: 'Vypin Water Metro Jetty', nativeName: 'വൈപ്പിൻ വാട്ടർ മെട്രോ ജെട്ടി', city: 'Kochi', state: 'Kerala', mode: 'ferry', latitude: 9.986, longitude: 76.248, platforms: [1,2], isTerminal: true, stepFreeAccessible: true }
+];
+
+export const KOCHI_EDGES: MultimodalEdge[] = [
+  // 1. Suburban Commuter Rail Corridor
+  {
+    id: 'EDGE_KOC_SUB_ERS_AWY',
+    fromNodeId: 'ERS',
+    toNodeId: 'AWY',
+    mode: 'suburban',
+    operator: 'Southern Railway',
+    lineId: 'sr_commuter_corridor',
+    lineName: 'Ernakulam–Aluva Commuter MEMU',
+    distanceKm: 20.2,
+    durationMinutes: 32,
+    fareInr: 10,
+    frequencyMinutes: 40,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_KOC_SUB_AWY_ERS',
+    fromNodeId: 'AWY',
+    toNodeId: 'ERS',
+    mode: 'suburban',
+    operator: 'Southern Railway',
+    lineId: 'sr_commuter_corridor',
+    lineName: 'Aluva–Ernakulam Commuter MEMU (Return)',
+    distanceKm: 20.2,
+    durationMinutes: 32,
+    fareInr: 10,
+    frequencyMinutes: 40,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_KOC_SUB_ERS_ERN',
+    fromNodeId: 'ERS',
+    toNodeId: 'ERN',
+    mode: 'suburban',
+    operator: 'Southern Railway',
+    lineId: 'sr_commuter_corridor',
+    lineName: 'Ernakulam South to North Shuttle',
+    distanceKm: 3.1,
+    durationMinutes: 6,
+    fareInr: 5,
+    frequencyMinutes: 30,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_KOC_SUB_ERN_ERS',
+    fromNodeId: 'ERN',
+    toNodeId: 'ERS',
+    mode: 'suburban',
+    operator: 'Southern Railway',
+    lineId: 'sr_commuter_corridor',
+    lineName: 'Ernakulam North to South Shuttle',
+    distanceKm: 3.1,
+    durationMinutes: 6,
+    fareInr: 5,
+    frequencyMinutes: 30,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_KOC_SUB_ERN_AWY',
+    fromNodeId: 'ERN',
+    toNodeId: 'AWY',
+    mode: 'suburban',
+    operator: 'Southern Railway',
+    lineId: 'sr_commuter_corridor',
+    lineName: 'Ernakulam North–Aluva Commuter MEMU',
+    distanceKm: 17.1,
+    durationMinutes: 26,
+    fareInr: 10,
+    frequencyMinutes: 40,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_KOC_SUB_AWY_ERN',
+    fromNodeId: 'AWY',
+    toNodeId: 'ERN',
+    mode: 'suburban',
+    operator: 'Southern Railway',
+    lineId: 'sr_commuter_corridor',
+    lineName: 'Aluva–Ernakulam North Commuter MEMU (Return)',
+    distanceKm: 17.1,
+    durationMinutes: 26,
+    fareInr: 10,
+    frequencyMinutes: 40,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+
+  // 2. Kochi Metro Line 1
+  {
+    id: 'EDGE_KOC_METRO_ALUVA_MG',
+    fromNodeId: 'METRO_ALUVA',
+    toNodeId: 'METRO_MG_ROAD',
+    mode: 'metro',
+    operator: 'KMRL',
+    lineId: 'kochi_metro_line1',
+    lineName: 'Kochi Metro Line 1 (Aluva ➔ MG Road)',
+    distanceKm: 18.0,
+    durationMinutes: 34,
+    fareInr: 50,
+    frequencyMinutes: 7,
+    firstService: '06:00',
+    lastService: '22:30',
+    stepFree: true,
+    isAcService: true,
+    dataQuality: 'TIMETABLE_SCHEDULE',
+    bookingUrl: 'https://kochimetro.org'
+  },
+  {
+    id: 'EDGE_KOC_METRO_MG_ALUVA',
+    fromNodeId: 'METRO_MG_ROAD',
+    toNodeId: 'METRO_ALUVA',
+    mode: 'metro',
+    operator: 'KMRL',
+    lineId: 'kochi_metro_line1',
+    lineName: 'Kochi Metro Line 1 (MG Road ➔ Aluva)',
+    distanceKm: 18.0,
+    durationMinutes: 34,
+    fareInr: 50,
+    frequencyMinutes: 7,
+    firstService: '06:00',
+    lastService: '22:30',
+    stepFree: true,
+    isAcService: true,
+    dataQuality: 'TIMETABLE_SCHEDULE',
+    bookingUrl: 'https://kochimetro.org'
+  },
+
+  // 3. Kochi Water Metro
+  {
+    id: 'EDGE_KOC_WATER_HC_VYPIN',
+    fromNodeId: 'WATER_HIGH_COURT',
+    toNodeId: 'WATER_VIPIN',
+    mode: 'ferry',
+    operator: 'KMRL Water Metro',
+    lineId: 'water_metro_vypin',
+    lineName: 'Kochi Water Metro (High Court ➔ Vypin)',
+    distanceKm: 3.5,
+    durationMinutes: 20,
+    fareInr: 20,
+    frequencyMinutes: 15,
+    firstService: '07:00',
+    lastService: '20:00',
+    stepFree: true,
+    isAcService: true,
+    dataQuality: 'TIMETABLE_SCHEDULE',
+    bookingUrl: 'https://kochimetro.org/water-metro'
+  },
+  {
+    id: 'EDGE_KOC_WATER_VYPIN_HC',
+    fromNodeId: 'WATER_VIPIN',
+    toNodeId: 'WATER_HIGH_COURT',
+    mode: 'ferry',
+    operator: 'KMRL Water Metro',
+    lineId: 'water_metro_vypin',
+    lineName: 'Kochi Water Metro (Vypin ➔ High Court)',
+    distanceKm: 3.5,
+    durationMinutes: 20,
+    fareInr: 20,
+    frequencyMinutes: 15,
+    firstService: '07:00',
+    lastService: '20:00',
+    stepFree: true,
+    isAcService: true,
+    dataQuality: 'TIMETABLE_SCHEDULE',
+    bookingUrl: 'https://kochimetro.org/water-metro'
+  },
+
+  // 4. Intermodal Transfer Walk Links
+  {
+    id: 'EDGE_WALK_AWY_RAIL_METRO',
+    fromNodeId: 'AWY',
+    toNodeId: 'METRO_ALUVA',
+    mode: 'walk',
+    operator: 'Pedestrian Skywalk',
+    lineId: 'walk_aluva_transfer',
+    lineName: 'Aluva Railway Station to Metro Terminal Transfer',
+    distanceKm: 0.1,
+    durationMinutes: 2,
+    fareInr: 0,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_WALK_METRO_AWY_RAIL',
+    fromNodeId: 'METRO_ALUVA',
+    toNodeId: 'AWY',
+    mode: 'walk',
+    operator: 'Pedestrian Skywalk',
+    lineId: 'walk_aluva_transfer',
+    lineName: 'Aluva Metro Terminal to Railway Station Transfer',
+    distanceKm: 0.1,
+    durationMinutes: 2,
+    fareInr: 0,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_WALK_ERS_MG_METRO',
+    fromNodeId: 'ERS',
+    toNodeId: 'METRO_MG_ROAD',
+    mode: 'walk',
+    operator: 'Pedestrian Concourse Link',
+    lineId: 'walk_ers_metro',
+    lineName: 'Ernakulam South Station to MG Road Metro Walk',
+    distanceKm: 0.6,
+    durationMinutes: 8,
+    fareInr: 0,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  },
+  {
+    id: 'EDGE_WALK_MG_METRO_ERS',
+    fromNodeId: 'METRO_MG_ROAD',
+    toNodeId: 'ERS',
+    mode: 'walk',
+    operator: 'Pedestrian Concourse Link',
+    lineId: 'walk_ers_metro',
+    lineName: 'MG Road Metro to Ernakulam South Station Walk',
+    distanceKm: 0.6,
+    durationMinutes: 8,
+    fareInr: 0,
+    stepFree: true,
+    dataQuality: 'TIMETABLE_SCHEDULE'
+  }
+];
+
+export const KOCHI_LANDMARKS: Record<string, DoorToDoorLocation> = {
+  'aluva': { name: 'Aluva Town Center', latitude: 10.108, longitude: 76.353, nearestStationCode: 'AWY' },
+  'mg_road': { name: 'MG Road Commercial Promenade', latitude: 9.976, longitude: 76.284, nearestStationCode: 'METRO_MG_ROAD' },
+  'marine_drive': { name: 'Marine Drive Waterfront & High Court', latitude: 9.982, longitude: 76.275, nearestStationCode: 'WATER_HIGH_COURT' },
+  'vypin': { name: 'Vypin Island Jetty', latitude: 9.986, longitude: 76.248, nearestStationCode: 'WATER_VIPIN' }
+};
+
+// ============================================================================
 // COMBINED REUSABLE CITY PACK REGISTRY
 // ============================================================================
 
@@ -2000,6 +2413,21 @@ export const CITY_PACKS: Record<string, CityPack> = {
     landmarks: AHMEDABAD_LANDMARKS,
     defaultOriginCode: 'ADI',
     defaultDestCode: 'GNC'
+  },
+  kochi: {
+    cityId: 'kochi',
+    name: 'Kochi Metropolitan Area',
+    nativeName: 'കൊച്ചി മെട്രോപോളിറ്റൻ പ്രദേശം',
+    state: 'Kerala',
+    tier: 'REGIONAL_TIER2',
+    centerLat: 9.931,
+    centerLon: 76.267,
+    coverageManifest: KOCHI_COVERAGE_MANIFEST,
+    nodes: KOCHI_NODES,
+    edges: KOCHI_EDGES,
+    landmarks: KOCHI_LANDMARKS,
+    defaultOriginCode: 'ERS',
+    defaultDestCode: 'AWY'
   }
 };
 

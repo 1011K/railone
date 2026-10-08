@@ -29,6 +29,7 @@ export type NetworkScope =
   | 'kolkata'
   | 'chennai'
   | 'hyderabad'
+  | 'kochi'
   | 'ahmedabad';
 
 type LineFilter = 'all' | 'western' | 'central' | 'harbour' | 'transharbour' | 'metro';
@@ -71,6 +72,7 @@ const FOCUS_CITIES = [
   { id: 'kolkata', name: 'Kolkata', code: 'HWH', state: 'West Bengal', isFlagship: false },
   { id: 'chennai', name: 'Chennai', code: 'MAS', state: 'Tamil Nadu', isFlagship: false },
   { id: 'hyderabad', name: 'Hyderabad', code: 'SC', state: 'Telangana', isFlagship: false },
+  { id: 'kochi', name: 'Kochi', code: 'ERS', state: 'Kerala', isFlagship: false },
   { id: 'ahmedabad', name: 'Ahmedabad–Gandhinagar', code: 'ADI', state: 'Gujarat', isFlagship: false }
 ];
 

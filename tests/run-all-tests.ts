@@ -2209,14 +2209,14 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     '29.2: Atomic booking transactions ensure identical idempotency key deduplication across network retries'
   );
 
-  // 29.3: Multimodal architecture spans all 8 Indian cities and 9 transport modes
+  // 29.3: Multimodal architecture spans all 9 Indian cities and 9 transport modes
   const allPacks = getAllCityPacks();
   const cityIds = allPacks.map(p => p.cityId).sort();
-  const expectedCities = ['ahmedabad', 'bengaluru', 'chennai', 'delhi', 'hyderabad', 'kolkata', 'mumbai', 'pune'].sort();
+  const expectedCities = ['ahmedabad', 'bengaluru', 'chennai', 'delhi', 'hyderabad', 'kochi', 'kolkata', 'mumbai', 'pune'].sort();
   const modes = Object.keys(PROVIDER_ADAPTERS);
 
   assert(
-    allPacks.length === 8 &&
+    allPacks.length === 9 &&
     JSON.stringify(cityIds) === JSON.stringify(expectedCities) &&
     modes.includes('suburban') &&
     modes.includes('express') &&
@@ -2227,7 +2227,7 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     modes.includes('ferry') &&
     modes.includes('auto_taxi') &&
     modes.includes('walk'),
-    '29.3: Multimodal architecture comprehensively indexes all 8 Indian urban regions and 9 transport modes'
+    '29.3: Multimodal architecture comprehensively indexes all 9 Indian urban regions and 9 transport modes'
   );
 
   // 29.4: MMR Scenario 1: Andheri -> Ghatkopar direct Metro Line 1 & Live Cancellation Filtering
@@ -2377,7 +2377,7 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     '29.11: NetworkMapViewer implements real WGS-84 coordinate projection and synchronized Schematic vs Geographical toggle'
   );
 
-  // 29.12: Bidirectional routing across all 8 Indian cities
+  // 29.12: Bidirectional routing across all 9 Indian cities
   const cityBidirectionalChecks = [
     { city: 'mumbai', forward: ['TNA', 'CSMT'], reverse: ['CSMT', 'TNA'] },
     { city: 'delhi', forward: ['NDLS', 'GZB'], reverse: ['GZB', 'NDLS'] },
@@ -2386,7 +2386,8 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     { city: 'pune', forward: ['PUNE', 'LNL'], reverse: ['LNL', 'PUNE'] },
     { city: 'chennai', forward: ['MSB', 'TBM'], reverse: ['TBM', 'MSB'] },
     { city: 'hyderabad', forward: ['HYB', 'LPI'], reverse: ['LPI', 'HYB'] },
-    { city: 'ahmedabad', forward: ['ADI', 'GNC'], reverse: ['GNC', 'ADI'] }
+    { city: 'ahmedabad', forward: ['ADI', 'GNC'], reverse: ['GNC', 'ADI'] },
+    { city: 'kochi', forward: ['ERS', 'AWY'], reverse: ['AWY', 'ERS'] }
   ];
 
   let bidirectionalPassCount = 0;
@@ -2402,8 +2403,8 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
   }
 
   assert(
-    bidirectionalPassCount === 8,
-    '29.12: All 8 Indian urban regions support complete bidirectional routing (both forward and return journeys pass)'
+    bidirectionalPassCount === 9,
+    '29.12: All 9 Indian urban regions support complete bidirectional routing (both forward and return journeys pass)'
   );
 
   // 29.13: Door-to-door first/last mile walk legs in itinerary
@@ -2575,6 +2576,73 @@ console.log('\nTest Suite 30: Ghatkopar Resolution & Metro Isolation, Dadar Plat
     launchSequenceSource.includes('RotateCcw') &&
     launchSequenceSource.includes('Skip Intro'),
     '30.12: LaunchSequence implements synthesized dual-tone electric horn (311Hz/370Hz), audio mute persistence, skip control, and replay capability'
+  );
+
+  // 30.13: Kurla -> BKC multimodal journey test (walk + feeder bus)
+  const { MultimodalGraphEngine } = await import('../src/engine/multimodal/graphEngine');
+  const mmrEng = new MultimodalGraphEngine('mumbai');
+  const claBkcItins = mmrEng.planJourney({
+    origin: 'CLA',
+    destination: 'METRO_BKC'
+  });
+  const hasClaBkcMultimodal = claBkcItins.some(itin =>
+    itin.legs.some(l => l.mode === 'walk' && l.fromNode.code === 'CLA') &&
+    itin.legs.some(l => l.mode === 'bus') &&
+    itin.legs.some(l => l.toNode.code === 'METRO_BKC')
+  );
+  assert(
+    claBkcItins.length > 0 && hasClaBkcMultimodal,
+    '30.13: Kurla Junction (CLA) to BKC connects seamlessly via pedestrian walk link and BEST feeder bus network'
+  );
+
+  // 30.14: AC-only filtering returns exclusively AC-enabled suburban services
+  const acItins = mmrEng.planJourney({
+    origin: 'BVI',
+    destination: 'CCG',
+    preferences: { acOnly: true }
+  });
+  const allLegsAc = acItins.length > 0 && acItins.every(itin =>
+    itin.legs.every(l => l.isAcService === true)
+  );
+  assert(
+    allLegsAc,
+    '30.14: Suburban AC-only route preference filters exclusively for AC Local EMU services'
+  );
+
+  // 30.15: Evening last-service cutoff on Metro Line 1 returns 0 journeys
+  const lateMetroItins = mmrEng.planJourney({
+    origin: 'METRO_ADH',
+    destination: 'METRO_GHT',
+    departureTime: '23:55'
+  });
+  assert(
+    lateMetroItins.length === 0,
+    '30.15: Departures past operational curfew (23:55) on Metro Line 1 return 0 itineraries'
+  );
+
+  // 30.16: Dadar West / East alias resolution with whitespace and punctuation
+  const ddrPunct = normalizeStation(' Dadar , West ');
+  const drClean = normalizeStation('Dadar East');
+  assert(
+    ddrPunct.matchedStation?.code === 'DDR' &&
+    drClean.matchedStation?.code === 'DR',
+    '30.16: Station normalizer cleanly resolves punctuated " Dadar , West " to DDR and "Dadar East" to DR'
+  );
+
+  // 30.17: 2D station layout models exist for Ghatkopar (GC) and Panvel (PNVL)
+  const { STATION_3D_LAYOUTS } = await import('../src/fixtures/stationLayoutsData');
+  const hasGcLayout = STATION_3D_LAYOUTS['GC'] !== undefined && STATION_3D_LAYOUTS['GC'].platforms.length === 5;
+  const hasPnvlLayout = STATION_3D_LAYOUTS['PNVL'] !== undefined && STATION_3D_LAYOUTS['PNVL'].platforms.length === 7;
+  assert(
+    hasGcLayout && hasPnvlLayout,
+    '30.17: STATION_3D_LAYOUTS contains full top-down 2D blueprints for Ghatkopar (GC) and Panvel (PNVL)'
+  );
+
+  // 30.18: Native mobile app defines all 22 transit services matching web ServicesHub directory
+  const serviceIdsFound = ALL_22_SERVICES.every(s => mobileIndexSource.includes(`id: '${s.id}'`));
+  assert(
+    serviceIdsFound && mobileIndexSource.includes('export const NATIVE_22_SERVICES'),
+    '30.18: Native mobile app defines complete registry of all 22 transit services matching web ServicesHub directory'
   );
 }
 

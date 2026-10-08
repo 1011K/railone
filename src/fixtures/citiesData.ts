@@ -249,5 +249,29 @@ export const CITIES_REGISTRY: Record<string, CityCoverageConfig> = {
     representativeJourneys: [
       { id: 'COK-1', fromCode: 'ERS', fromName: 'Ernakulam Junction', toCode: 'AWY', toName: 'Aluva', line: 'SR Main Corridor', trainName: 'Ernakulam - Shoranur MEMU', serviceType: 'MEMU Passenger', defaultClass: 'II', distanceKm: 20.2, typicalDurationMin: 32, fareII: 10, frequency: 'Every 40-50 mins' }
     ]
+  },
+
+  ahmedabad: {
+    id: 'ahmedabad',
+    name: 'Ahmedabad–Gandhinagar',
+    nativeName: 'અમદાવાદ-ગાંધીનગર',
+    state: 'Gujarat',
+    tier: 'REPRESENTATIVE_TIER2',
+    provenanceTag: '[TIMETABLE SCHEDULE]',
+    provenanceExplanation: 'Gujarat Metro Rail Corporation (GMRC) Phase 1 & 2 published timetables + Western Railway Ahmedabad Division MEMU commuter network.',
+    modes: [
+      { id: 'gmrc_metro', name: 'Gujarat Metro (GMRC)', operator: 'Gujarat Metro Rail Corporation', type: 'metro', linesCount: 2, timetableEffective: 'Sept 2026', provenance: '[TIMETABLE SCHEDULE]' },
+      { id: 'wr_ahmedabad', name: 'Western Railway Suburban / MEMU', operator: 'Western Railway (WR)', type: 'suburban', linesCount: 1, timetableEffective: 'Aug 2026', provenance: '[TIMETABLE SCHEDULE]' }
+    ],
+    primaryHubs: [
+      { code: 'ADI', name: 'Ahmedabad Junction (Kalupur)', nativeName: 'અમદાવાદ જંકશન', line: 'WR Main Terminal + Metro East-West Line', isInterchange: true, platformsCount: 12 },
+      { code: 'GNC', name: 'Gandhinagar Capital', nativeName: 'ગાંધીનગર કેપિટલ', line: 'WR Capital Corridor Terminal', isInterchange: false, platformsCount: 3 },
+      { code: 'SBT', name: 'Sabarmati Junction', nativeName: 'સાબરમતી જંકશન', line: 'WR Northbound Junction', isInterchange: true, platformsCount: 5 }
+    ],
+    representativeJourneys: [
+      { id: 'ADI-1', fromCode: 'ADI', fromName: 'Ahmedabad Junction', toCode: 'GNC', toName: 'Gandhinagar Capital', line: 'WR Ahmedabad - Gandhinagar', trainName: 'Ahmedabad - Gandhinagar MEMU', serviceType: 'MEMU', defaultClass: 'II', distanceKm: 27.5, typicalDurationMin: 45, fareII: 10, frequency: 'Every 60 mins' },
+      { id: 'ADI-2', fromCode: 'ADI', fromName: 'Ahmedabad Junction', toCode: 'SBT', toName: 'Sabarmati Junction', line: 'WR Suburban Shuttle', trainName: 'Sabarmati Local Shuttle', serviceType: 'Suburban EMU', defaultClass: 'II', distanceKm: 6.2, typicalDurationMin: 12, fareII: 5, frequency: 'Every 30 mins' }
+    ]
   }
 };
+

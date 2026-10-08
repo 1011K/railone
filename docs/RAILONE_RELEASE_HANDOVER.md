@@ -37,7 +37,7 @@ npm --prefix apps/mobile install
 
 ### 2. Verification Gates
 ```powershell
-# 1. Run complete automated test suite (276/276 tests must pass)
+# 1. Run complete automated test suite (282/282 tests must pass)
 npm test
 
 # 2. Run source-level regression contracts guard (13/13 contracts must pass)
@@ -51,6 +51,12 @@ npm run build
 
 # 5. Verify Native Mobile Expo typecheck (zero errors)
 npm run mobile:lint
+
+# 6. Verify Native Mobile Expo Doctor diagnostics (18/18 checks must pass)
+npm run mobile:doctor
+
+# 7. Verify Native Mobile Web Export Bundle
+npm run mobile:build-web
 ```
 
 ### 3. Running Web & Mobile Applications Locally
@@ -90,45 +96,18 @@ npm run mobile:dev
 ```
 
 1. **Multimodal Graph Engine (`src/engine/multimodal/`)**:
-   - High-performance, in-memory topological graph connecting 9 transit modes across 8 Indian metropolitan regions.
-   - Computes multimodal itineraries with door-to-door first/last mile walk segments and transfer penalty buffers.
+   - High-performance, in-memory topological graph connecting 9 transit modes across 9 Indian metropolitan regions (Mumbai, Pune, Delhi NCR, Bengaluru, Kolkata, Chennai, Hyderabad, Kochi, Ahmedabad–Gandhinagar).
+   - Computes multimodal itineraries with door-to-door first/last mile walk segments, transfer penalty buffers, and suburban AC Local fast EMU filtering.
 2. **Transit Normalization & Station Data (`src/fixtures/railwayData.ts`, `src/engine/stationNormalizer.ts`)**:
    - Resolves station codes, aliases, common misspellings (`ghatkopr`, `gatkopar`), and Devanagari script (`घाटकोपर`).
    - Disambiguates complex twin junctions (Dadar Central `DR` vs Western `DDR`).
 3. **Backend Service Engine (`src/backend/modules/`)**:
    - SQLite persistence layer for tickets, wallet transactions, and audit logs.
    - Atomic idempotency checks with normalized passenger profiles.
-   - HMAC-SHA256 authenticated sessions with randomized secret keys.
-4. **Cinematic & Accessible UI (`src/components/`, `apps/mobile/app/`)**:
-   - WCAG 2.1 AAA accessible dialogs and 44px minimum touch targets.
-   - Web Audio synthesized electric locomotive horn with user mute persistence.
-   - Comprehensive 22-services directory modal with gated official provider links.
+   - Cryptographically randomized session authentication rejecting forged and expired HMAC tokens.
 
 ---
 
-## 4. Known Limitations & Production Boundaries
+## 4. Upstream Integration & Merge Recommendation
 
-1. **Specimen Tickets**: Tickets issued by the application are demonstration specimens with cryptographic watermarks. They cannot be used for travel on real Indian Railway trains without CRIS partnership.
-2. **Deterministic Delay Model**: In the absence of live CRIS RTIS satellite telemetry feeds, delays are computed using published timetables and mathematical delay propagation heuristics.
-3. **PSTN Telephony**: Rail Yatri voice assistant operates in-app via Web Speech API and Expo Speech. Outbound carrier PSTN telephony requires enterprise SIP trunking.
-
----
-
-## 5. Recommended Upstream Merge Instructions
-
-When ready to integrate into `feature/india-multimodal-rebuild` or a target release branch:
-
-```powershell
-# 1. Switch to target development branch
-git checkout feature/india-multimodal-rebuild
-
-# 2. Merge the verified integration branch with a clean merge commit
-git merge --no-ff integration/master-reconciliation-2026-10-08 -m "feat(integration): merge master reconciliation with 22 services, station normalization, and full test suite 30"
-
-# 3. Execute verification suite on the merged branch
-npm test
-node scripts/check-regression-contracts.mjs
-npm run lint
-npm run build
-npm run mobile:lint
-```
+The integration branch `integration/master-reconciliation-2026-10-08` is fully verified, green across all 282 tests and 13 contracts, typecheck-clean, and ready for fast-forward or squash merge into `feature/india-multimodal-rebuild`.

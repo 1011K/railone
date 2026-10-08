@@ -305,8 +305,6 @@ export class MultimodalGraphEngine {
       'ADH': ['METRO_ADH'],
       'METRO_CCG_3': ['CCG'],
       'CCG': ['METRO_CCG_3'],
-      'BUS_BKC': ['METRO_BKC'],
-      'METRO_BKC': ['BUS_BKC'],
       'METRO_CSMT_3': ['CSMT'],
       'CSMT': ['METRO_CSMT_3']
     };
