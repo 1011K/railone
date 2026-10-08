@@ -19,8 +19,8 @@ export function cancelBooking(bookingId: string, reason = 'Passenger requested c
     throw new Error(`Booking ${bookingId} not found.`);
   }
 
-  if (authenticatedPassengerId && booking.passengerProfileId && booking.passengerProfileId !== authenticatedPassengerId) {
-    throw new Error(`Unauthorized: passenger does not own booking ${bookingId}.`);
+  if (authenticatedPassengerId && booking.passengerProfileId !== authenticatedPassengerId) {
+    throw new Error('Unauthorized: passenger does not own this booking.');
   }
 
   if (booking.bookingState === 'CANCELLED_DEMO') {
@@ -39,16 +39,21 @@ export function cancelBooking(bookingId: string, reason = 'Passenger requested c
   clericalDeduction = Math.min(clericalDeduction, totalPaid);
   const refundAmount = Math.max(0, totalPaid - clericalDeduction);
 
-  const voucherCode = 'RAILVOUCHER-' + crypto.randomUUID().slice(0, 8).toUpperCase();
-
+  // In UTS / RailOne mobile booking, cancellations refund to the passenger's RailWallet.
+  // A refund goes to only one simulated instrument (RailWallet by default).
+  const toBank = booking.paymentMethod ? /^(CARD|NETBANKING|BANK_TRANSFER)$/i.test(booking.paymentMethod) : false;
+  const cashRefund = toBank ? refundAmount : 0;
+  const walletRefund = toBank ? 0 : refundAmount;
+  const voucherCredit = 0;
+  const voucherCode = '';
   const refundBreakdown: RefundBreakdown = {
     totalPaid,
-    cashRefund: refundAmount,
-    walletRefund: refundAmount,
-    voucherCredit: refundAmount,
+    cashRefund,
+    walletRefund,
+    voucherCredit,
     clericalDeduction,
-    refundTimeline: 'Instant RailWallet Credit / 3-5 Working Days Bank Gateway Transfer',
-    termsNotice: 'Statutory cancellation rules applied under Railway Passengers (Cancellation of Ticket and Refund of Fare) Rules.'
+    refundTimeline: 'DEMO ONLY: no actual refund or bank transfer takes place.',
+    termsNotice: 'Simulated calculation, not an official cancellation charge or refund quote.'
   };
 
   try {
@@ -85,9 +90,9 @@ export function cancelBooking(bookingId: string, reason = 'Passenger requested c
       now,
       reason,
       totalPaid,
-      refundAmount,
-      refundAmount,
-      refundAmount,
+      cashRefund,
+      walletRefund,
+      voucherCredit,
       clericalDeduction,
       'COMPLETED_SIMULATED',
       refundBreakdown.refundTimeline
@@ -115,7 +120,7 @@ export function cancelBooking(bookingId: string, reason = 'Passenger requested c
     bookingId,
     cancelledAt: now,
     refundBreakdown,
-    railWalletCredited: true,
+    railWalletCredited: !toBank && walletRefund > 0,
     voucherCode
   };
 }

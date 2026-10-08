@@ -1,7 +1,7 @@
 /**
- * Multi-Country Institutional Transport Authority System
+ * Indian passenger transport research context (foreign definitions retained for research only)
  * 
- * Provides official government transport authority definitions, emblems,
+ * Provides illustrative authority metadata, never proof of government affiliation,
  * statutory charters, currencies, stations, corridors, and fare models.
  * 
  * Supported Institutional Authorities:

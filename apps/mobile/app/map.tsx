@@ -29,7 +29,7 @@ export type NetworkScope =
   | 'kolkata'
   | 'chennai'
   | 'hyderabad'
-  | 'kochi';
+  | 'ahmedabad';
 
 type LineFilter = 'all' | 'western' | 'central' | 'harbour' | 'transharbour' | 'metro';
 type MapViewMode = 'topological_svg' | 'schematic_list';
@@ -71,11 +71,28 @@ const FOCUS_CITIES = [
   { id: 'kolkata', name: 'Kolkata', code: 'HWH', state: 'West Bengal', isFlagship: false },
   { id: 'chennai', name: 'Chennai', code: 'MAS', state: 'Tamil Nadu', isFlagship: false },
   { id: 'hyderabad', name: 'Hyderabad', code: 'SC', state: 'Telangana', isFlagship: false },
-  { id: 'kochi', name: 'Kochi', code: 'ERS', state: 'Kerala', isFlagship: false }
+  { id: 'ahmedabad', name: 'Ahmedabad–Gandhinagar', code: 'ADI', state: 'Gujarat', isFlagship: false }
 ];
 
 // Regional City Network Data
 const REGIONAL_CITY_NETWORKS: Record<string, { nodes: StationItem[]; chains: Array<[string, string]> }> = {
+  // Representative schematic only. Links here mirror modeled city-pack edges,
+  // not validated stop-level departure timetables or geographical walk routes.
+  ahmedabad: {
+    nodes: [
+      { id: 'ADI', code: 'ADI', name: 'Ahmedabad Junction', line: 'national', platforms: [], x: 330, y: 630, city: 'Ahmedabad', isMajorHub: true },
+      { id: 'GNC', code: 'GNC', name: 'Gandhinagar Capital', line: 'national', platforms: [], x: 570, y: 200, city: 'Gandhinagar', isMajorHub: true },
+      { id: 'SBT', code: 'SBT', name: 'Sabarmati Junction', line: 'national', platforms: [], x: 360, y: 485, city: 'Ahmedabad' },
+      { id: 'METRO_OLD_HIGH_COURT', code: 'METRO_OLD_HIGH_COURT', name: 'Old High Court Metro', line: 'metro', platforms: [], x: 220, y: 530, city: 'Ahmedabad', isInterchange: true },
+      { id: 'METRO_MOTERA', code: 'METRO_MOTERA', name: 'Motera Metro', line: 'metro', platforms: [], x: 380, y: 365, city: 'Ahmedabad' },
+      { id: 'METRO_GIFT_CITY', code: 'METRO_GIFT_CITY', name: 'GIFT City Metro', line: 'metro', platforms: [], x: 580, y: 275, city: 'Gandhinagar' }
+    ],
+    chains: [
+      ['ADI', 'GNC'],
+      ['METRO_OLD_HIGH_COURT', 'METRO_MOTERA'],
+      ['METRO_MOTERA', 'METRO_GIFT_CITY']
+    ]
+  },
   pune: {
     nodes: [
       { id: 'PUNE_REG', code: 'PUNE', name: 'Pune Junction', hindiName: 'पुणे जंक्शन', line: 'central', platforms: [1, 2, 3, 4, 5, 6], x: 200, y: 550, isMajorHub: true, city: 'Pune' },

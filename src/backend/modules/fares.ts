@@ -13,24 +13,21 @@ export interface FareProvenance {
 export const FARE_PROVENANCE: Record<string, FareProvenance> = {
   mumbai_suburban: {
     tariffName: 'Mumbai Suburban Distance-Slab Passenger Fare Table',
-    authority: 'Ministry of Railways (WR/CR Suburban Tariff)',
-    effectiveDate: '2023-05-01',
-    isOfficialVerified: true,
-    gazetteRef: 'TC-II/2022/Suburban/Fares'
+    authority: 'RailOne Next illustrative suburban model; operator validation pending',
+    effectiveDate: 'UNVERIFIED',
+    isOfficialVerified: false
   },
   mumbai_metro: {
     tariffName: 'Mumbai Metro Fare Matrix (Lines 1, 2A, 7)',
-    authority: 'MMRDA & MMMOCL',
-    effectiveDate: '2022-10-01',
-    isOfficialVerified: true,
-    gazetteRef: 'MMRDA/Transit/Fare/2022'
+    authority: 'RailOne Next illustrative metro model; operator validation pending',
+    effectiveDate: 'UNVERIFIED',
+    isOfficialVerified: false
   },
   national_express: {
     tariffName: 'Indian Railways PRS Telescopic Mail/Express Distance Tariff',
-    authority: 'Railway Board & CRIS PRS Tariff System',
-    effectiveDate: '2020-01-01',
-    isOfficialVerified: true,
-    gazetteRef: 'Commercial Circular 2020/01'
+    authority: 'RailOne Next illustrative express model; operator validation pending',
+    effectiveDate: 'UNVERIFIED',
+    isOfficialVerified: false
   },
   unverified_simulation: {
     tariffName: 'Simulated Estimation Model (Non-Verified)',
@@ -104,7 +101,7 @@ export function calculateSuburbanFare(distanceKm: number, travelClass: TravelCla
     gst: travelClass === 'AC_LOCAL' || travelClass === 'I' ? Math.round(baseFare * 0.05) : 0,
     totalFare: baseFare, // Official round fares include statutory components
     distanceKm: dist,
-    tariffNotice: 'Official Railway Suburban Tariff (Distance-Slab Regulated)',
+    tariffNotice: 'DEMO estimate only: official current fare unverified',
     provenance: prov,
     effectiveDate: prov.effectiveDate,
     isOfficialVerified: prov.isOfficialVerified
@@ -144,7 +141,7 @@ export function calculateMetroFare(distanceKm: number): FareBreakdown {
     gst: 0,
     totalFare: baseFare,
     distanceKm: dist,
-    tariffNotice: 'Official Mumbai Metro Distance-Slab Tariff',
+    tariffNotice: 'DEMO estimate only: each metro operator has its own tariff',
     provenance: prov,
     effectiveDate: prov.effectiveDate,
     isOfficialVerified: prov.isOfficialVerified
@@ -212,7 +209,7 @@ export function calculateExpressFare(distanceKm: number, travelClass: TravelClas
     gst,
     totalFare,
     distanceKm: dist,
-    tariffNotice: 'IRCTC / PRS Telescopic Mail/Express Distance Tariff',
+    tariffNotice: 'DEMO estimate only: not an IRCTC reservation quote',
     provenance: prov,
     effectiveDate: prov.effectiveDate,
     isOfficialVerified: prov.isOfficialVerified

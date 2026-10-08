@@ -77,15 +77,42 @@ export const MUMBAI_COVERAGE_MANIFEST: CoverageManifestEntry[] = [
     permittedUsage: 'Navi Mumbai passenger rapid transit',
     verificationStatus: 'VERIFIED'
   },
+  // Operational metro additions (as of official MMRDA updates, Aug 2026):
+  // Line 9: Dahisar East–Kashigaon, 4 stations, opened 07-Apr-2026.
+  // Line 2B: Mandale–Diamond Garden–Chembur phases opened 07-Apr and 13-Aug 2026.
+  // These corridors are documented but NOT added as routable edges until stop-level
+  // station geometry, valid interchanges, and service calendars are verified.
+  {
+    operator: 'MMRDA / MMMOCL',
+    mode: 'metro',
+    serviceScope: 'Line 9 Phase I Dahisar East–Kashigaon (operational, not yet routable in this city pack)',
+    operationalStatus: 'OPERATIONAL',
+    timetableEffective: '07-Apr-2026',
+    officialSourceUrl: 'https://www.mmrda.maharashtra.gov.in/en/node/1274',
+    publisher: 'MMRDA',
+    permittedUsage: 'Coverage register only; route connections pending validation',
+    verificationStatus: 'PENDING_INTEGRATION'
+  },
+  {
+    operator: 'MMRDA / MMMOCL',
+    mode: 'metro',
+    serviceScope: 'Line 2B Phase I and IA Mandale–Diamond Garden–Chembur (operational portions only; edges pending)',
+    operationalStatus: 'OPERATIONAL',
+    timetableEffective: '13-Aug-2026',
+    officialSourceUrl: 'https://mmrda.maharashtra.gov.in/en/projects/transport/metro-line-2b/overview',
+    publisher: 'MMRDA',
+    permittedUsage: 'Coverage register only; do not route without station and schedule validation',
+    verificationStatus: 'PENDING_INTEGRATION'
+  },
   {
     operator: 'MMMOCL',
     mode: 'monorail',
     serviceScope: 'Mumbai Monorail Line 1 (Chembur–Sant Gadge Maharaj Chowk / Jacob Circle)',
-    operationalStatus: 'OPERATIONAL',
-    timetableEffective: 'September 2026',
-    officialSourceUrl: 'https://mmmocl.co.in/monorail',
-    publisher: 'MMMOCL',
-    permittedUsage: 'Urban elevated monorail transit',
+    operationalStatus: 'SUSPENDED',
+    timetableEffective: 'Suspended since 20 September 2025; recheck for resumption',
+    officialSourceUrl: 'https://mmrda.maharashtra.gov.in/en/projects/transport/mumbai-monorail/overview',
+    publisher: 'MMRDA',
+    permittedUsage: 'Do not recommend for passenger travel while suspended',
     verificationStatus: 'VERIFIED'
   },
   {

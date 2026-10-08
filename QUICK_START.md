@@ -8,10 +8,10 @@ Welcome to **RailOne Next**, a mobile-first multimodal journey application desig
 
 Before starting, ensure your local development workstation meets the engine requirements:
 
-- **Node.js**: `>= 20.0.0` (LTS recommended)
+- **Node.js**: `>= 22.13.0` (needed for the built-in SQLite backend)
 - **npm**: `>= 10.0.0`
 - **Operating System**: Windows (PowerShell/CMD), macOS, or Linux.
-- **SQLite Support**: Built into Node 20+ via `node:sqlite`.
+- **SQLite Support**: Node 22.13+ required. Node 20 does not support this backend.
 
 ---
 
@@ -20,11 +20,11 @@ Before starting, ensure your local development workstation meets the engine requ
 Clone the repository and install dependencies with a single command:
 
 ```bash
-# 1. Install root workspace dependencies
-npm install
+# One command installs both web and native dependencies from lockfiles
+npm run setup
 
-# 2. (Optional) Install native mobile dependencies
-npm --prefix apps/mobile install
+# Web-only computers can omit optional mobile packages
+npm run setup:web
 ```
 
 > **Windows Note**: On systems where PowerShell execution policy restricts script execution, run scripts with `cmd /c npm install` or `cmd /c npm test`.
@@ -84,3 +84,7 @@ npm run mobile:doctor
 
 > **Native SDK Notice**:
 > Running on an Android emulator or building a standalone APK requires the Android SDK, Java 17+, and `ANDROID_HOME` configured. Running on iOS requires macOS and Xcode. Extracting a ZIP does not bypass native operating system and toolchain requirements.
+
+
+## Security and release notice (8 October 2026)
+This branch remains a research demonstration, **not** an authorized ticket issuer or live traffic provider. Use `feature/india-multimodal-rebuild` or the dedicated P0 repair branch when downloading a GitHub ZIP; the repository default branch may lack native app changes. Account sign-in and token recovery require a trusted identity provider. The mock app currently creates a fresh scoped passenger identity per native runtime session; prior ticket history is not yet reliably restorable on a physical phone. Do not deploy to public users or accept actual payments.

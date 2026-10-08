@@ -34,8 +34,8 @@ export const InstitutionalAuthoritySelectorModal: React.FC<InstitutionalAuthorit
     <AccessibleModal
       isOpen={isOpen}
       onClose={onClose}
-      title="National Transport Authority System"
-      subtitle="Select Sovereign Transport Administration & Ticketing Authority"
+      title="Indian Transport Context"
+      subtitle="RailOne Next is an independent passenger research demonstration"
       icon={<Building2 className="w-5 h-5 text-theme-primary" />}
       variant="sheet"
       maxWidthClass="max-w-xl"
@@ -46,16 +46,15 @@ export const InstitutionalAuthoritySelectorModal: React.FC<InstitutionalAuthorit
           <ShieldCheck className="w-5 h-5 text-theme-primary shrink-0 mt-0.5" />
           <div className="space-y-1">
             <span className="font-extrabold uppercase tracking-wider text-[11px] block">
-              Multi-National Transport Administration Framework
+              India-Only Passenger Research Framework
             </span>
             <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
-              Select an institutional rail authority to configure national railway schedules, 
-              statutory ticket issuances, regulatory fare slabs, and official emergency directives.
+              This demonstration is not affiliated with Indian Railways, CRIS, IRCTC or the Government of India. Routes and fares must be checked with their authorized operators.
             </p>
           </div>
         </div>
 
-        {/* List of 5 Institutional Authorities */}
+        {/* India only: foreign authorities are research references, not public products */}
         <div className="space-y-2.5">
           {allAuthorities.map((auth) => {
             const isSelected = auth.id === currentAuthority.id;
@@ -136,8 +135,7 @@ export const InstitutionalAuthoritySelectorModal: React.FC<InstitutionalAuthorit
             Institutional Interoperability Note:
           </div>
           <p>
-            Switching authority automatically updates national departure boards, suburban and high-speed corridors, 
-            statutory fare algorithms, and inspection security tokens according to that country's transport regulations.
+            This screen is informational. RailOne Next does not issue official tickets or provide a government-verified travel credential.
           </p>
         </div>
       </div>

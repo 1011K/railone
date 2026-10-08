@@ -52,6 +52,24 @@ export default function HomeScreen() {
   const [pickerTarget, setPickerTarget] = useState<'from' | 'to'>('from');
   const [searchQuery, setSearchQuery] = useState('');
   const [stationList, setStationList] = useState(currentCity.primaryHubs.map(h => ({ code: h.code, name: h.name })));
+  const [cityGraphStations, setCityGraphStations] = useState<Array<{ code: string; name: string }>>(
+    currentCity.primaryHubs.map(h => ({ code: h.code, name: h.name }))
+  );
+
+  useEffect(() => {
+    let active = true;
+    const initial = currentCity.primaryHubs.map(h => ({ code: h.code, name: h.name }));
+    setCityGraphStations(initial);
+    MobileApiClient.getMultimodalCityStations(selectedCityId).then(stations => {
+      if (!active) return;
+      const byCode = new Map<string, { code: string; name: string }>();
+      [...initial, ...stations].forEach(st => byCode.set(st.code, st));
+      setCityGraphStations([...byCode.values()]);
+    }).catch(() => {
+      if (active) setCityGraphStations(initial);
+    });
+    return () => { active = false; };
+  }, [selectedCityId]);
 
   useEffect(() => {
     try {
@@ -85,14 +103,22 @@ export default function HomeScreen() {
   const openPicker = (target: 'from' | 'to') => {
     setPickerTarget(target);
     setSearchQuery('');
-    setStationList(currentCity.primaryHubs.map(h => ({ code: h.code, name: h.name })));
+    setStationList(cityGraphStations);
     setPickerVisible(true);
   };
 
   const handleStationSearch = async (text: string) => {
     setSearchQuery(text);
     if (!text.trim()) {
-      setStationList(currentCity.primaryHubs.map(h => ({ code: h.code, name: h.name })));
+      setStationList(cityGraphStations);
+      return;
+    }
+    const cityMatches = cityGraphStations.filter(st =>
+      st.name.toLowerCase().includes(text.toLowerCase()) ||
+      st.code.toLowerCase().includes(text.toLowerCase())
+    );
+    if (cityMatches.length > 0) {
+      setStationList(cityMatches);
       return;
     }
     try {
@@ -101,9 +127,9 @@ export default function HomeScreen() {
         setStationList(results.map(s => ({ code: s.code, name: s.name })));
       }
     } catch {
-      const filtered = currentCity.primaryHubs
-        .filter(s => s.name.toLowerCase().includes(text.toLowerCase()) || s.code.toLowerCase().includes(text.toLowerCase()))
-        .map(h => ({ code: h.code, name: h.name }));
+      const filtered = cityGraphStations
+        .filter(st => st.name.toLowerCase().includes(text.toLowerCase()) ||
+          st.code.toLowerCase().includes(text.toLowerCase()));
       setStationList(filtered);
     }
   };
@@ -124,6 +150,8 @@ export default function HomeScreen() {
       params: {
         from: fromStation.code,
         to: toStation.code,
+        city: selectedCityId,
+        dateLabel: journeyDate,
         acOnly: acOnly ? 'true' : 'false'
       }
     });

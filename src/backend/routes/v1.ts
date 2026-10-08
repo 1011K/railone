@@ -230,7 +230,7 @@ v1Router.post('/disruptions/replan', (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // 8. Bookings & Ticketing (Server-Side Transactions & Authorization)
 // ---------------------------------------------------------------------------
-v1Router.post('/bookings', optionalPassengerAuth, (req: AuthenticatedRequest, res: Response) => {
+v1Router.post('/bookings', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
   try {
     const requestedProfileId = req.body.passengerProfileId;
     if (requestedProfileId && (!req.authenticatedPassengerId || req.authenticatedPassengerId !== requestedProfileId)) {
@@ -266,26 +266,17 @@ v1Router.get('/bookings', authenticatePassenger, (req: AuthenticatedRequest, res
   res.json({ count: bookings.length, bookings });
 });
 
-v1Router.get('/bookings/:id', optionalPassengerAuth, (req: AuthenticatedRequest, res: Response) => {
+v1Router.get('/bookings/:id', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
   const booking = getBookingById(req.params.id) || getBookingByPnr(req.params.id);
   if (!booking) {
     return res.status(404).json({ error: 'BOOKING_NOT_FOUND', message: `Booking ${req.params.id} not found.` });
   }
 
-  // Cross-user data exposure protection: if booking is owned by a profile, enforce authentication and ownership
-  if (booking.passengerProfileId) {
-    if (!req.authenticatedPassengerId) {
-      return res.status(401).json({
-        error: 'UNAUTHORIZED',
-        message: 'Authentication required to view this booking record.'
-      });
-    }
-    if (booking.passengerProfileId !== req.authenticatedPassengerId) {
-      return res.status(403).json({
-        error: 'FORBIDDEN_CROSS_USER_ACCESS',
-        message: 'Cross-user data access denied: you do not have authorization to view this booking.'
-      });
-    }
+  if (!booking.passengerProfileId || booking.passengerProfileId !== req.authenticatedPassengerId) {
+    return res.status(403).json({
+      error: 'FORBIDDEN_CROSS_USER_ACCESS',
+      message: 'Unclaimed or other passenger booking records are not accessible.'
+    });
   }
 
   res.json({ booking });
@@ -298,7 +289,7 @@ v1Router.post('/bookings/:id/reconcile', authenticatePassenger, (req: Authentica
       return res.status(404).json({ error: 'BOOKING_NOT_FOUND', message: `Booking ${req.params.id} not found.` });
     }
 
-    if (booking.passengerProfileId && booking.passengerProfileId !== req.authenticatedPassengerId) {
+    if (!booking.passengerProfileId || booking.passengerProfileId !== req.authenticatedPassengerId) {
       return res.status(403).json({
         error: 'FORBIDDEN_CROSS_USER_ACCESS',
         message: 'Cross-user data access denied: you cannot reconcile a transaction belonging to another passenger.'
@@ -326,7 +317,7 @@ v1Router.get('/tickets/:id', authenticatePassenger, (req: AuthenticatedRequest, 
     return res.status(404).json({ error: 'TICKET_NOT_FOUND', message: `Ticket ${req.params.id} not found.` });
   }
 
-  if (booking.passengerProfileId && booking.passengerProfileId !== req.authenticatedPassengerId) {
+  if (!booking.passengerProfileId || booking.passengerProfileId !== req.authenticatedPassengerId) {
     return res.status(403).json({
       error: 'FORBIDDEN_CROSS_USER_ACCESS',
       message: 'Cross-user data access denied: you do not have authorization to view this ticket.'
@@ -343,7 +334,7 @@ v1Router.post('/tickets/:id/cancel', authenticatePassenger, (req: AuthenticatedR
       return res.status(404).json({ error: 'TICKET_NOT_FOUND', message: `Ticket ${req.params.id} not found.` });
     }
 
-    if (booking.passengerProfileId && booking.passengerProfileId !== req.authenticatedPassengerId) {
+    if (!booking.passengerProfileId || booking.passengerProfileId !== req.authenticatedPassengerId) {
       return res.status(403).json({
         error: 'FORBIDDEN_CROSS_USER_ACCESS',
         message: 'Cross-user data access denied: you cannot cancel a ticket belonging to another passenger.'
@@ -443,17 +434,13 @@ v1Router.post('/passengers', (req: Request, res: Response) => {
   }
 });
 
-v1Router.post('/auth/token', (req: Request, res: Response) => {
-  const profileId = req.body.passengerProfileId || req.body.profileId;
-  if (!profileId) {
-    return res.status(400).json({ error: 'INVALID_PARAMS', message: 'passengerProfileId is required.' });
-  }
-  const profile = getPassengerProfile(profileId);
-  if (!profile) {
-    return res.status(404).json({ error: 'PROFILE_NOT_FOUND', message: `Profile ${profileId} not found.` });
-  }
-  const token = issuePassengerToken(profile.id);
-  res.json({ token, profile });
+// Possessing a profile ID proves nothing. Disable ID-only token renewal until a
+// verified sign-in method exists; demo profiles obtain a token at creation.
+v1Router.post('/auth/token', (_req: Request, res: Response) => {
+  res.status(403).json({
+    error: 'IDENTITY_VERIFICATION_REQUIRED',
+    message: 'Profile-ID-only token issuance has been disabled. Create a new demo profile or use a verified sign-in.'
+  });
 });
 
 v1Router.get('/passengers/:id', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
@@ -496,19 +483,21 @@ v1Router.get('/notifications', authenticatePassenger, (req: AuthenticatedRequest
   res.json({ count: notifications.length, notifications });
 });
 
-v1Router.post('/notifications', (req: Request, res: Response) => {
-  const notif = sendNotification(req.body);
+v1Router.post('/notifications', authenticatePassenger, (req: AuthenticatedRequest, res: Response) => {
+  const title = typeof req.body?.title === 'string' ? req.body.title.trim().slice(0, 160) : '';
+  const body = typeof req.body?.body === 'string' ? req.body.body.trim().slice(0, 1500) : '';
+  if (!title || !body) return res.status(400).json({ error: 'INVALID_NOTIFICATION' });
+  // Caller cannot write into a different passenger's notification inbox.
+  const notif = sendNotification({ title, body, passengerProfileId: req.authenticatedPassengerId });
   res.status(201).json({ notification: notif });
 });
 
 // ---------------------------------------------------------------------------
 // 14. Audit Logs & Observability
 // ---------------------------------------------------------------------------
-v1Router.get('/audit/logs', (req: Request, res: Response) => {
-  const eventType = req.query.eventType as string;
-  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
-  const logs = getAuditLogs(limit, eventType);
-  res.json({ count: logs.length, logs });
+// This is administrative data, not a passenger API. Re-enable after admin roles exist.
+v1Router.get('/audit/logs', (_req: Request, res: Response) => {
+  res.status(403).json({ error: 'ADMIN_ACCESS_NOT_CONFIGURED' });
 });
 
 // ---------------------------------------------------------------------------
@@ -587,7 +576,9 @@ v1Router.get('/multimodal/plan', (req: Request, res: Response) => {
       cityId: city,
       origin,
       destination,
-      departureTime: (req.query.departureTime as string) || '08:30',
+      departureTime: (req.query.departureTime as string) ||
+        new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()),
+      serviceDate: req.query.date as string,
       preferences: {
         priority: req.query.priority as any,
         accessibleStepFree,
@@ -602,6 +593,7 @@ v1Router.get('/multimodal/plan', (req: Request, res: Response) => {
       city,
       origin,
       destination,
+      note: 'Research demonstration: travel times and fares are modeled estimates, not guaranteed departures or live availability.',
       count: itineraries.length,
       itineraries
     });

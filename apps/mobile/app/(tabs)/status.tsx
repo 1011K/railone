@@ -59,7 +59,7 @@ export default function TrainStatusScreen() {
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.statusText, { color: colors.textMuted }]}>
-            Aggregating live block-section telemetry...
+            Checking available train observations...
           </Text>
         </View>
       ) : !status ? (
@@ -77,11 +77,13 @@ export default function TrainStatusScreen() {
               <View
                 style={[
                   styles.statusBadge,
-                  { backgroundColor: status.delayMinutes > 5 ? colors.danger : colors.success }
+                  { backgroundColor: status.dataStatus === 'LIVE_VERIFIED' && status.delayMinutes > 5 ? colors.danger : colors.cardBorder }
                 ]}
               >
                 <Text style={styles.statusBadgeText}>
-                  {status.delayMinutes > 0 ? `LATE BY ${status.delayMinutes} MIN` : 'RIGHT TIME'}
+                  {status.dataStatus !== 'LIVE_VERIFIED' || status.delayMinutes == null
+                    ? 'LIVE STATUS UNAVAILABLE'
+                    : status.delayMinutes > 0 ? `REPORTED LATE ${status.delayMinutes} MIN` : 'OBSERVED ON TIME'}
                 </Text>
               </View>
               <View style={styles.provenanceBadge}>
@@ -107,7 +109,8 @@ export default function TrainStatusScreen() {
           </View>
 
           {/* Halts Progression List */}
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Live Corridor Halts</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Station Halts · {status.dataStatus === 'LIVE_VERIFIED' ? 'Observed / Predicted' : 'Schedule only'}</Text>
+          <Text style={{ color: colors.textMuted, marginBottom: 8 }}>Measured coach occupancy is unavailable. Crowding estimates are in Journeys.</Text>
           <View style={[styles.haltsListCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             {(status.stops || []).map((stop: any, index: number) => {
               const isCurrent = stop.stationCode === status.currentStationCode;
@@ -151,10 +154,10 @@ export default function TrainStatusScreen() {
                     >
                       {(stop.delayArrivalMinutes || stop.delayDepartureMinutes || 0) > 0
                         ? `+${stop.delayArrivalMinutes || stop.delayDepartureMinutes}m`
-                        : 'On Time'}
+                        : status.dataStatus === 'LIVE_VERIFIED' ? 'No reported delay' : 'Schedule only'}
                     </Text>
                     <Text style={[styles.platformText, { color: colors.textMuted }]}>
-                      PF {stop.platform || '1'}
+                      {stop.platform ? `PF ${stop.platform}` : 'Platform unverified'}
                     </Text>
                   </View>
                 </View>

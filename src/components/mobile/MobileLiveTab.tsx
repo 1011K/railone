@@ -179,14 +179,14 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
         list.push({
           trainNumber: trip.trainNumber,
           trainName: trip.trainName,
-          platform: stop.platform || '1',
+          platform: stop.platform || 'Unverified',
           scheduledTime: stop.scheduledDeparture || stop.scheduledArrival,
           delayMinutes: delay,
           destination,
           lineType: isFast ? 'Fast' : 'Slow',
           isAc,
           rakeType: trip.rakeType === '15_car' ? '15-car' : '12-car',
-          crowdLevel: delay > 10 ? 'Heavy Rush' : delay > 3 ? 'Moderate' : 'Normal',
+          crowdLevel: 'Occupancy unavailable', // Delay is not proof of passenger density.
           trip
         });
       }
@@ -204,7 +204,7 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
     setIsRefreshing(true);
     setTimeout(() => {
       setIsRefreshing(false);
-      showToast('Live telemetry refreshed from NTES feed');
+      showToast('Demo board refreshed; no authorized NTES live feed connected');
     }, 600);
   };
 

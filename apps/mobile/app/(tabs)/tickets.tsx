@@ -258,7 +258,9 @@ export default function MyTicketsScreen() {
                   </View>
                   <View style={[styles.refundRow, { borderTopWidth: 1, borderTopColor: colors.cardBorder, paddingTop: 6 }]}>
                     <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>Net Refund Amount:</Text>
-                    <Text style={{ color: colors.success, fontWeight: '900', fontSize: 16 }}>₹{cancellationResult.refundBreakdown.walletRefund}</Text>
+                    <Text style={{ color: colors.success, fontWeight: '900', fontSize: 16 }}>
+                  ₹{(cancellationResult.refundBreakdown.cashRefund || 0) + (cancellationResult.refundBreakdown.walletRefund || 0) + (cancellationResult.refundBreakdown.voucherCredit || 0)} (DEMO)
+                </Text>
                   </View>
                 </View>
 

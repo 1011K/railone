@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
-import { getStationExitGuidance, VERIFIED_STATION_EXITS } from '../src/fixtures/stationLayoutsData';
+import { getStationExitGuidance } from '../src/fixtures/stationLayoutsData';
 
 export default function GuideScreen() {
   const { colors } = useMobileTheme();
@@ -40,7 +40,7 @@ export default function GuideScreen() {
   const arrivalTime = params.arrivalTime || '19:20';
   const trainNumber = params.trainNumber || '95112';
   const trainName = params.trainName || 'Fast Local';
-  const initialDeparturePlatform = params.departurePlatform || '5';
+  const initialDeparturePlatform = params.departurePlatform || 'Unknown';
   const arrivalPlatform = params.arrivalPlatform || '4';
   const hasTransfer = params.hasTransfer === 'true';
   const transferStation = params.transferStation || 'DR';
@@ -71,7 +71,7 @@ export default function GuideScreen() {
 
   // Destination Exit Guidance
   const destExitProfile = useMemo(() => {
-    return getStationExitGuidance(toCode) || VERIFIED_STATION_EXITS['CSMT'];
+    return getStationExitGuidance(toCode) || null;
   }, [toCode]);
 
   const [selectedExitId, setSelectedExitId] = useState<string>(
@@ -121,8 +121,8 @@ export default function GuideScreen() {
         <View style={styles.offlineBannerLeft}>
           <Text style={styles.offlineBannerText}>
             {isOffline
-              ? '[OFFLINE SURVIVAL MODE] Last updated: 18:30 · Local timetable cache active'
-              : '[VERIFIED TIMETABLE] Active Navigation Engine'}
+              ? '[OFFLINE DEMO MODE] A cached timetable is not verified live service information'
+              : '[DEMO GUIDANCE] Check service and station details with official sources'}
           </Text>
         </View>
         <TouchableOpacity
@@ -242,13 +242,13 @@ export default function GuideScreen() {
               Step 1: Station Proximity & Entry
             </Text>
             <Text style={[styles.stepDescription, { color: colors.textSecondary }, easyMode && styles.stepDescriptionEasy]}>
-              You are currently near {fromCode} station (approx. 120m away).
+              Starting from {fromCode}. Distance and location have not been measured.
             </Text>
 
             <View style={styles.infoRowBox}>
               <Text style={[styles.infoBoxLabel, { color: colors.textMuted }]}>Recommended Station Entrance:</Text>
               <Text style={[styles.infoBoxValue, { color: colors.textPrimary }]}>
-                {fromCode === 'TNA' ? 'West Concourse SATIS Gate (direct access to PF 3/4/5)' : 'Main Station Road Concourse'}
+                Entrance not verified for your location. Follow station signage.
               </Text>
             </View>
 
@@ -268,7 +268,7 @@ export default function GuideScreen() {
             </Text>
             <View style={styles.ticketStatusCard}>
               <View style={styles.ticketValidPill}>
-                <Text style={styles.ticketValidPillText}>TICKET ACTIVE · UTS VALIDATED</Text>
+                <Text style={styles.ticketValidPillText}>TICKET VALIDITY NOT VERIFIED</Text>
               </View>
               <Text style={styles.ticketDetailText}>
                 Class: {isAc ? 'AC First Class' : 'Second Class (II)'} · Single Journey
@@ -277,7 +277,7 @@ export default function GuideScreen() {
                 Valid from {fromCode} to {toCode}
               </Text>
               <Text style={styles.ticketExpiryText}>
-                Validity: 3 hours from booking time · Section 138 compliant
+                Check validity, class, and travel permission with the ticket issuer before boarding.
               </Text>
             </View>
 

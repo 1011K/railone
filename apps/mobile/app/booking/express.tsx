@@ -63,40 +63,31 @@ export default function ExpressBookingScreen() {
   const tomorrow = new Date(today.getTime() + 86400000);
   const dayAfter = new Date(today.getTime() + 86400000 * 2);
 
-  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const formatDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const [journeyDate, setJourneyDate] = useState(formatDate(today));
 
   // Dynamic Fare
-  const [farePerPassenger, setFarePerPassenger] = useState<number>(() => {
-    return travelClass === '1A' ? 2520 : travelClass === '2A' ? 1480 : travelClass === '3A' ? 1025 : travelClass === 'SL' ? 385 : 210;
-  });
+  const [farePerPassenger, setFarePerPassenger] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     MobileApiClient.getFareQuote('express', undefined, travelClass, true, fromCode, toCode)
       .then(res => {
-        if (isMounted && res?.quote?.totalFare) {
-          setFarePerPassenger(res.quote.totalFare);
-        } else if (isMounted && res?.quote?.baseFare) {
-          setFarePerPassenger(res.quote.baseFare);
+        if (isMounted) {
+          setFarePerPassenger(typeof res?.totalFare === 'number' && res.totalFare > 0
+            ? res.totalFare : null);
         }
       })
       .catch(() => {
-        const fallbackFare =
-          travelClass === '1A' ? 2520 :
-          travelClass === '2A' ? 1480 :
-          travelClass === '3A' ? 1025 :
-          travelClass === 'SL' ? 385 :
-          travelClass === 'CC' ? 890 :
-          travelClass === 'EC' ? 1720 : 210;
-        if (isMounted) setFarePerPassenger(fallbackFare);
+        // No arbitrary class-based price if the distance and quote are unverified.
+        if (isMounted) setFarePerPassenger(null);
       });
     return () => { isMounted = false; };
   }, [travelClass, fromCode, toCode]);
 
   // Passenger state
-  const [passengerName, setPassengerName] = useState('Rohan Sharma');
-  const [passengerAge, setPassengerAge] = useState('32');
+  const [passengerName, setPassengerName] = useState('');
+  const [passengerAge, setPassengerAge] = useState('');
   const [passengerGender, setPassengerGender] = useState<'M' | 'F' | 'O'>('M');
 
   // Confirmation result
@@ -106,6 +97,15 @@ export default function ExpressBookingScreen() {
   const totalFare = farePerPassenger;
 
   const handleAuthorizeBooking = async () => {
+    if (farePerPassenger === null) {
+      Alert.alert('Fare unavailable', 'Cannot issue a specimen booking until a distance-based demo quote is available.');
+      return;
+    }
+    const parsedAge = Number(passengerAge);
+    if (passengerName.trim().length < 2 || !Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120) {
+      Alert.alert('Passenger details', 'Enter a name and valid age before creating a specimen booking.');
+      return;
+    }
     setSubmitting(true);
     try {
       const idempotencyKey = `EXP-MOB-${Date.now()}`;
@@ -116,7 +116,7 @@ export default function ExpressBookingScreen() {
         toStationCode: toCode,
         classBooked: travelClass,
         quota,
-        passengers: [{ name: passengerName.trim(), age: parseInt(passengerAge, 10) || 30, gender: passengerGender }],
+        passengers: [{ name: passengerName.trim(), age: parsedAge, gender: passengerGender }],
         idempotencyKey,
         paymentMethod: 'UPI_SIMULATED'
       });
@@ -232,7 +232,7 @@ export default function ExpressBookingScreen() {
                   {cls}
                 </Text>
                 <Text style={[styles.classBtnSub, { color: travelClass === cls ? '#ffffff' : colors.textMuted }]}>
-                  {cls === '1A' ? '₹2520' : cls === '2A' ? '₹1480' : cls === '3A' ? '₹1025' : cls === 'SL' ? '₹385' : '₹210'}
+                  {travelClass === cls && farePerPassenger !== null ? `Demo est. ₹${farePerPassenger}` : 'Fare pending'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -372,12 +372,12 @@ export default function ExpressBookingScreen() {
             </View>
             <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: colors.cardBorder, paddingTop: 8, marginTop: 6 }]}>
               <Text style={[styles.summaryLabel, { color: colors.textPrimary, fontWeight: '800' }]}>Total Fare:</Text>
-              <Text style={[styles.summaryValue, { color: colors.primary, fontSize: 18, fontWeight: '900' }]}>₹{totalFare}</Text>
+              <Text style={[styles.summaryValue, { color: colors.primary, fontSize: 18, fontWeight: '900' }]}>{totalFare === null ? 'Unavailable' : `Est. ₹${totalFare}`}</Text>
             </View>
           </View>
 
           <Text style={[styles.authNotice, { color: colors.textMuted }]}>
-            Payment will be verified server-side. Educational specimen ticket will be stored in My Tickets.
+            No payment is collected. This creates a demonstration-only ticket that is NOT VALID FOR TRAVEL.
           </Text>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
@@ -391,10 +391,10 @@ export default function ExpressBookingScreen() {
             <TouchableOpacity
               style={[styles.primaryBtn, { flex: 1, backgroundColor: colors.primary }]}
               onPress={handleAuthorizeBooking}
-              disabled={submitting}
+              disabled={submitting || totalFare === null}
             >
               <Text style={styles.primaryBtnText}>
-                {submitting ? 'Authorizing...' : `Authorize & Book (₹${totalFare})`}
+                {submitting ? 'Authorizing...' : totalFare === null ? 'Fare unavailable' : `Issue demo ticket (₹${totalFare})`}
               </Text>
             </TouchableOpacity>
           </View>

@@ -9,12 +9,12 @@ export interface TrainStatusSummary {
   serviceType: string;
   originStation: string;
   destinationStation: string;
-  currentStationCode: string;
-  delayMinutes: number;
+  currentStationCode: string | null;
+  delayMinutes: number | null;
   isCanceled: boolean;
   disruptionReason?: string;
   dataStatus: DataStatus;
-  lastUpdated: string;
+  lastUpdated: string | null;
   stops: PredictedStop[];
 }
 
@@ -31,12 +31,12 @@ export function getTrainStatus(trainNumber: string): TrainStatusSummary | null {
     serviceType: train.serviceType,
     originStation: train.originStation,
     destinationStation: train.destinationStation,
-    currentStationCode: obs?.currentStationCode || train.originStation,
-    delayMinutes: obs?.delayMinutesAtCurrent || 0,
+    currentStationCode: obs?.currentStationCode || null,
+    delayMinutes: obs ? obs.delayMinutesAtCurrent : null,
     isCanceled: !!obs?.isCanceled,
     disruptionReason: obs?.disruptionReason,
     dataStatus: obs?.dataStatus || 'SCHEDULED',
-    lastUpdated: obs?.lastReportedTimestamp || new Date().toISOString(),
+    lastUpdated: obs?.lastReportedTimestamp || null,
     stops
   };
 }
