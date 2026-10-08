@@ -32,6 +32,11 @@ const POPULAR_SUBURBAN_STATIONS = [
   { code: 'PNVL', name: 'Panvel', line: 'Harbour' }
 ];
 
+function localJourneyDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function LocalBookingScreen() {
   const { colors } = useMobileTheme();
   const params = useLocalSearchParams<{
@@ -65,8 +70,8 @@ export default function LocalBookingScreen() {
   const [stationList, setStationList] = useState(POPULAR_SUBURBAN_STATIONS);
 
   // Fare quote state
-  const [distanceKm, setDistanceKm] = useState(34);
-  const [unitFare, setUnitFare] = useState(10);
+  const [distanceKm, setDistanceKm] = useState(0);
+  const [unitFare, setUnitFare] = useState(0);
   const [calculatingFare, setCalculatingFare] = useState(false);
 
   // Issuance state
@@ -98,9 +103,11 @@ export default function LocalBookingScreen() {
           toStation.code
         );
         if (active && quote) {
-          const dist = quote.calculatedDistance || quote.distanceKm || 34;
+          const dist = quote.calculatedDistance ?? quote.distanceKm ?? 0;
+          if (!Number.isFinite(dist) || dist <= 0) throw new Error('Distance unavailable');
           setDistanceKm(dist);
-          let base = quote.totalFare || 10;
+          let base = quote.totalFare ?? 0;
+          if (!Number.isFinite(base) || base <= 0) throw new Error('Fare unavailable');
           if (ticketKind === 'RETURN') base = Math.round(base * 1.9);
           if (ticketKind === 'SEASON_MST') {
             base = suburbanClass === 'AC_LOCAL' ? 1450 : suburbanClass === 'I' ? 670 : 185;
@@ -108,37 +115,8 @@ export default function LocalBookingScreen() {
           setUnitFare(base);
         }
       } catch {
-        // Deterministic station distance calculation fallback
-        const fc = fromStation.code.toUpperCase();
-        const tc = toStation.code.toUpperCase();
-        let estDist = 34;
-        if (fc === tc) estDist = 5;
-        else if ((fc === 'TNA' && tc === 'CCG') || (fc === 'CCG' && tc === 'TNA')) estDist = 35;
-        else if ((fc === 'TNA' && tc === 'CSMT') || (fc === 'CSMT' && tc === 'TNA')) estDist = 34;
-        else if ((fc === 'CCG' && tc === 'BVI') || (fc === 'BVI' && tc === 'CCG')) estDist = 34;
-        else if ((fc === 'DR' && tc === 'KYN') || (fc === 'KYN' && tc === 'DR')) estDist = 44;
-        else if ((fc === 'ADH' && tc === 'CCG') || (fc === 'CCG' && tc === 'ADH')) estDist = 22;
-        else if ((fc === 'TNA' && tc === 'KYN') || (fc === 'KYN' && tc === 'TNA')) estDist = 20;
-        else if ((fc === 'DR' && tc === 'CCG') || (fc === 'CCG' && tc === 'DR')) estDist = 10;
-        else estDist = 28;
-
-        setDistanceKm(estDist);
-
-        let fallback = 10;
-        if (ticketKind === 'METRO_TOKEN') {
-          fallback = estDist <= 12 ? 20 : estDist <= 18 ? 30 : 40;
-        } else if (suburbanClass === 'AC_LOCAL') {
-          fallback = estDist <= 10 ? 35 : estDist <= 25 ? 70 : estDist <= 35 ? 95 : 135;
-        } else if (suburbanClass === 'I') {
-          fallback = estDist <= 10 ? 50 : estDist <= 25 ? 85 : estDist <= 35 ? 105 : 145;
-        } else {
-          fallback = estDist <= 10 ? 5 : estDist <= 25 ? 10 : estDist <= 35 ? 10 : 15;
-        }
-        if (ticketKind === 'RETURN') fallback = Math.round(fallback * 1.9);
-        if (ticketKind === 'SEASON_MST') {
-          fallback = suburbanClass === 'AC_LOCAL' ? 1450 : suburbanClass === 'I' ? 670 : 185;
-        }
-        if (active) setUnitFare(fallback);
+        // Do not manufacture a distance or official fare when the provider is unavailable.
+        if (active) { setDistanceKm(0); setUnitFare(0); }
       } finally {
         if (active) setCalculatingFare(false);
       }
@@ -194,6 +172,10 @@ export default function LocalBookingScreen() {
   };
 
   const handleIssueTicket = async () => {
+    if (ticketKind !== 'PLATFORM' && (!Number.isFinite(totalFare) || totalFare <= 0 || distanceKm <= 0)) {
+      Alert.alert('Fare unavailable', 'No valid demo fare and mapped route distance were returned. Mock booking is disabled.');
+      return;
+    }
     if (ticketKind !== 'PLATFORM' && fromStation.code === toStation.code) {
       Alert.alert('Invalid Journey', 'Origin and destination stations cannot be identical.');
       return;
@@ -237,7 +219,7 @@ export default function LocalBookingScreen() {
           : ticketKind === 'RETURN'
           ? 'RETURN_JOURNEY'
           : 'UNRESERVED_SUBURBAN',
-        journeyDate: new Date().toISOString().split('T')[0],
+        journeyDate: localJourneyDate(),
         fromStationCode: fromStation.code,
         toStationCode: ticketKind === 'PLATFORM' ? fromStation.code : toStation.code,
         classBooked: ticketKind === 'PLATFORM' ? 'II' : suburbanClass,
@@ -260,7 +242,7 @@ export default function LocalBookingScreen() {
         toStation: ticketKind === 'PLATFORM' ? `${fromStation.name} Concourse` : toStation.name,
         toCode: ticketKind === 'PLATFORM' ? fromStation.code : toStation.code,
         distanceKm,
-        totalFare,
+        totalFare: booking.farePaid,
         passengerCount,
         issuedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         validUntil: ticketKind === 'PLATFORM'
@@ -278,9 +260,9 @@ export default function LocalBookingScreen() {
         trainName: resolvedTrainName,
         fromStationName: fromStation.name,
         toStationName: ticketKind === 'PLATFORM' ? `${fromStation.name} Concourse` : toStation.name,
-        journeyDate: new Date().toISOString().split('T')[0],
+        journeyDate: localJourneyDate(),
         classBooked: ticketKind === 'PLATFORM' ? 'II' : suburbanClass,
-        farePaid: totalFare,
+        farePaid: booking.farePaid,
         qrPayload: issued.qrPayload,
         cachedAt: new Date().toISOString()
       });
@@ -580,10 +562,10 @@ export default function LocalBookingScreen() {
           <Text style={[styles.distanceLabel, { color: colors.textMuted }]}>
             {ticketKind === 'PLATFORM' ? 'Platform Validity: ' : 'Rail Distance: '}
             <Text style={{ color: colors.textPrimary, fontWeight: 'bold' }}>
-              {ticketKind === 'PLATFORM' ? '2 Hours' : `${distanceKm} km`}
+              {ticketKind === 'PLATFORM' ? 'Demo permit' : distanceKm > 0 ? `${distanceKm} km` : 'Distance unavailable'}
             </Text>
           </Text>
-          <Text style={[styles.verifiedTag, { color: colors.accent }]}>[OFFICIAL_TIMETABLE]</Text>
+          <Text style={[styles.verifiedTag, { color: colors.accent }]}>[UNVERIFIED DEMO FARE]</Text>
         </View>
       </View>
 
