@@ -114,15 +114,36 @@
 - [x] **Responsive Live Tracker Timeline** (`TrainLiveTracker.tsx`):
   - Added dedicated mobile vertical route timeline for small screens (< md), displaying station nodes, connecting track segments with thermal delay badges, and loco markers without requiring horizontal scrolling.
   - Preserved wide horizontal schematic for desktop/tablet screens (>= md).
-- [x] **Automated Verification Suite 26**:
-  - Added 10 dedicated assertions in `tests/run-all-tests.ts` verifying all 5 rake formations, unmapped platform honesty, dynamic booking dates/PNRs, AI fallback notices, accessible mobile styling, phone navigation, React 19 `renderToString` component rendering, and WCAG dialog semantics.
-  - Expanded test suite to 230/230 passing tests (0 failed).
+### Wave 12: Multi-Country Sovereign Transport Authorities, Dynamic Tariff Resolution & Onboarding
+- [x] **5 Sovereign Transport Authorities** (`src/models/authorities.ts` & `src/components/AuthorityContext.tsx`):
+  - Republic of India (Flagship): Ministry of Railways / CRIS & IRCTC (`₹`, Mumbai Suburban & Pan-India networks).
+  - United Kingdom: Department for Transport / National Rail (`£`, South Western Main Line `WAT` ➔ `WOK`).
+  - Japan: MLIT / JR East (`¥`, Yamanote & Tokaido Line `TYO` ➔ `YKH`, Ordinary/Green/Gran Class, Teikiken 定期券).
+  - Swiss Confederation: Federal Dept. of Transport / SBB CFF FFS (`CHF`, Swiss Federal Trunk `ZRH` ➔ `BRN`, 1./2. Klasse, General-Abonnement).
+  - Federal Republic of Germany: BMDV / Deutsche Bahn (`€`, Berlin-Hamburg Trunk `BER` ➔ `HAM`, ICE Sprinter/Regio, Deutschlandticket).
+- [x] **Deterministic Multi-Country Engines**:
+  - `src/engine/stationNormalizer.ts`: CJK 1- and 2-glyph Kanji recognition (e.g. `東京` ➔ `TYO`, `新宿` ➔ `SJK`), Devanagari script matching, and multi-country registry resolution.
+  - `src/engine/journeyEngine.ts`: `generateAuthorityTrips` generates 16 bidirectional trunk corridors with native cadence and tariffs.
+  - `src/types/railway.ts` & `src/components/ItineraryCard.tsx`: Expanded `TravelClass` union with 16 international class codes (`STD`, `1ST`, `ORD`, `GRN`, `2CL`, `1CL`, `2KL`, etc.).
+- [x] **Passenger UI & Visual Hygiene**:
+  - `src/components/PassengerMobileApp.tsx`: Sovereign authority bar, dynamic station synchronization upon authority change, and statutory platform permit issuance.
+  - `src/components/mobile/MobileJourneysTab.tsx`: One-tap verified trunk corridor chips (`[VERIFIED TRUNK]`), dynamic class selection, and localized fare display.
+  - `src/components/mobile/MobileTicketsTab.tsx`: Sovereign pass cards (MST, Travelcard, Teikiken, GA, D-Ticket) and citizen wallet formatting.
+  - `src/components/mobile/MobileHelpTab.tsx`: Sovereign statutory acts and helplines (139 for India, 61016 for UK, 050-2016-1603 for Japan, 0848 44 66 88 for Switzerland, 030 2970 for Germany).
+  - UI hygiene scrubbed clean of raw code, test execution logs, and internal developer jargon in passenger viewports.
+- [x] **Automated Verification Suites 27 & 28**:
+  - Added 18 dedicated assertions in `tests/run-all-tests.ts` verifying all 5 authorities, insignia vectors, currency formatters, helplines, 360px viewport drag thresholds, and multi-country itineraries.
+  - Expanded test suite to **248/248 passing tests (0 failed, 100% pass rate)**.
+- [x] **Team Onboarding & Documentation**:
+  - Updated `README.md` and `RUNNING.md` with complete environment matrices (Google Antigravity, GitHub Codespaces, Codex, Windows, macOS, Linux), single-block installation commands, and complete skills directory.
 
 ## Active State & Next Steps
 - **Branch:** `feature/mobile-rebuild`
-- **Verification Evidence:** All 230 automated tests passing cleanly (100% pass rate) across Suites 1–26 and G1–G18.
-- **Typecheck & Lint Status:** 0 errors via `npm run lint` (`tsc --noEmit`).
-- **Production Build:** Clean bundle via `npm run build` (`vite build`).
-- **Local Preview:** Full mobile responsiveness verified across 360px–430px phone viewports and desktop.
+- **Current HEAD Commit:** `0b58ac1`
+- **Verification Evidence:** All 248 automated tests passing cleanly (100% pass rate) across Suites 1–28.
+- **Typecheck & Lint Status:** 0 errors via `npm run lint` (`tsc --noEmit`) and mobile lint.
+- **Production Build:** Clean bundle via `npm run build` (`vite build`, 1703 modules transformed).
+- **Remote Sync:** Fully pushed to `origin feature/mobile-rebuild` with `[skip ci]`.
+
 
 
