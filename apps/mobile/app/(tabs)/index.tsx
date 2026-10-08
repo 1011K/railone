@@ -124,6 +124,8 @@ export default function HomeScreen() {
       params: {
         from: fromStation.code,
         to: toStation.code,
+        city: selectedCityId,
+        dateLabel: journeyDate,
         acOnly: acOnly ? 'true' : 'false'
       }
     });
