@@ -122,6 +122,25 @@ export const MobileApiClient = {
     return data.itineraries;
   },
 
+  // Prototype multimodal routes: returned fares and journey timing are model estimates.
+  async searchMultimodalRoutes(params: {
+    city: string;
+    origin: string;
+    destination: string;
+    date?: string;
+    departureTime?: string;
+  }): Promise<any[]> {
+    const q = new URLSearchParams({
+      city: params.city,
+      origin: params.origin,
+      destination: params.destination
+    });
+    if (params.date) q.append('date', params.date);
+    if (params.departureTime) q.append('departureTime', params.departureTime);
+    const data = await fetchJson<{ itineraries: any[] }>(`/multimodal/plan?${q.toString()}`);
+    return data.itineraries || [];
+  },
+
   // 3. Train Status
   async getTrainStatus(trainNumber: string): Promise<any> {
     const data = await fetchJson<{ status: any }>(`/trains/${encodeURIComponent(trainNumber)}/status`);
