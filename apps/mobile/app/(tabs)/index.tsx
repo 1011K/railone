@@ -9,7 +9,8 @@ import {
   Modal,
   FlatList,
   Alert,
-  Switch
+  Switch,
+  Linking
 } from 'react-native';
 import { router } from 'expo-router';
 import { useMobileTheme, THEME_PALETTES, ColorTheme, AppLanguage } from '../../src/theme/ThemeContext';
@@ -17,6 +18,190 @@ import { MobileApiClient } from '../../src/api/client';
 import { OfflineStorage } from '../../src/storage/offlineStorage';
 import { CITIES_REGISTRY, CityCoverageConfig } from '../../src/fixtures/citiesData';
 import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
+
+export interface NativeServiceItem {
+  id: string;
+  name: string;
+  category: 'ticketing' | 'navigation' | 'assistance' | 'insights';
+  description: string;
+  badge?: string;
+  isExternalLink?: boolean;
+  externalUrl?: string;
+  route?: string;
+  routeParams?: Record<string, string>;
+}
+
+export const NATIVE_22_SERVICES: NativeServiceItem[] = [
+  {
+    id: 'unreserved_tickets',
+    name: 'Unreserved Tickets (UTS)',
+    category: 'ticketing',
+    description: 'Book unreserved suburban and Mail/Express general 2nd class tickets.',
+    badge: 'Specimen',
+    route: '/booking/local'
+  },
+  {
+    id: 'reserved_tickets',
+    name: 'Reserved Tickets (PRS)',
+    category: 'ticketing',
+    description: 'Reserved Sleeper, 3A, 2A, 1A, CC and Vande Bharat demo.',
+    badge: 'Demo PRS',
+    route: '/booking/express'
+  },
+  {
+    id: 'platform_permits',
+    name: 'Platform Permits',
+    category: 'ticketing',
+    description: 'Issue 2-hour platform access permit for station concourses.',
+    badge: '₹10 Demo',
+    route: '/booking/local',
+    routeParams: { type: 'platform' }
+  },
+  {
+    id: 'season_passes',
+    name: 'Season Passes (MST / QST)',
+    category: 'ticketing',
+    description: 'Monthly and quarterly commuter season passes across verified suburban corridors.',
+    badge: 'Suburban',
+    route: '/booking/local',
+    routeParams: { type: 'season' }
+  },
+  {
+    id: 'metro_ticketing',
+    name: 'Metro Ticketing',
+    category: 'ticketing',
+    description: 'QR tokens and single journey passes for Mumbai Metro Lines 1, 2A, 7, and 3.',
+    badge: 'MMRDA/MMRC',
+    route: '/map'
+  },
+  {
+    id: 'my_tickets_qr',
+    name: 'My Tickets & Specimen QR',
+    category: 'ticketing',
+    description: 'View active, past, and cancelled specimen tickets with cryptographic watermarks.',
+    route: '/(tabs)/tickets'
+  },
+  {
+    id: 'wallet_recharge',
+    name: 'RailWallet & Recharge',
+    category: 'ticketing',
+    description: 'Passenger transit wallet balance, mock recharge, and instant refund credits.',
+    badge: 'Simulated',
+    route: '/(tabs)/tickets'
+  },
+  {
+    id: 'cancellation_refunds',
+    name: 'Cancellation & Refunds',
+    category: 'ticketing',
+    description: 'Cancel bookings with statutory clerical deductions and simulated RailWallet credits.',
+    route: '/(tabs)/tickets'
+  },
+  {
+    id: 'journey_planning',
+    name: 'Door-to-Door Journey Planning',
+    category: 'navigation',
+    description: 'Multimodal door-to-door itinerary search across suburban rail, metro, bus, and walk legs.',
+    route: '/(tabs)/journeys'
+  },
+  {
+    id: 'train_running_status',
+    name: 'Train Running Status',
+    category: 'insights',
+    description: 'Live departure boards, platform assignments, and verified station telemetry.',
+    badge: 'Live Board',
+    route: '/(tabs)/status'
+  },
+  {
+    id: 'crowd_delay_insights',
+    name: 'Historical Crowd & Delays',
+    category: 'insights',
+    description: 'Empirical delay histograms, corridor bunching, and peak direction crowd estimates.',
+    badge: 'Statistical',
+    route: '/(tabs)/status'
+  },
+  {
+    id: 'station_navigation_2d',
+    name: '2D Station Navigation',
+    category: 'navigation',
+    description: 'Top-down station layouts, Foot-Over-Bridges, step-free lifts, and platform transfers.',
+    badge: "God's Eye",
+    route: '/wayfinding'
+  },
+  {
+    id: 'coach_positioning',
+    name: 'Coach Positioning Guide',
+    category: 'navigation',
+    description: '12-car/15-car suburban and 16-car Vande Bharat coach alignments relative to FOB stairs.',
+    route: '/guide'
+  },
+  {
+    id: 'railyatri_voice_chat',
+    name: 'Rail Yatri Voice & Chat',
+    category: 'assistance',
+    description: 'Multilingual conversational assistant (English, Hindi, Marathi) for trains and bookings.',
+    badge: 'Multilingual',
+    route: '/(tabs)/railsathi'
+  },
+  {
+    id: 'railmadad_help',
+    name: 'RailMadad & Passenger Help',
+    category: 'assistance',
+    description: 'Integrated 139 passenger helpline, security RPF assistance, and official grievance tracking.',
+    isExternalLink: true,
+    externalUrl: 'https://railmadad.indianrailways.gov.in'
+  },
+  {
+    id: 'food_station_amenities',
+    name: 'Food & Station Amenities',
+    category: 'assistance',
+    description: 'Official IRCTC e-Catering portal, water ATMs, cloak rooms, and waiting halls.',
+    isExternalLink: true,
+    externalUrl: 'https://ecatering.irctc.co.in'
+  },
+  {
+    id: 'nearest_station',
+    name: 'Nearest Station Locator',
+    category: 'navigation',
+    description: 'Find nearest suburban or metro terminal based on verified coordinates and lines.',
+    route: '/wayfinding'
+  },
+  {
+    id: 'network_maps',
+    name: 'Network Maps & Interchanges',
+    category: 'navigation',
+    description: 'Schematic network diagrams and WGS-84 geographic maps across all 8 Indian metro regions.',
+    route: '/map'
+  },
+  {
+    id: 'cab_auto_shared',
+    name: 'Cab, Auto & Shared Rickshaw',
+    category: 'navigation',
+    description: 'First/last mile station feeder alternatives with regulated prepaid auto tariffs.',
+    route: '/guide'
+  },
+  {
+    id: 'accessibility_assistance',
+    name: 'Divyangjan Accessibility',
+    category: 'assistance',
+    description: 'Wheelchair step-free paths, tactile paving guide, and elevator status at major hubs.',
+    badge: 'Step-Free',
+    route: '/wayfinding'
+  },
+  {
+    id: 'disruption_weather',
+    name: 'Weather & Disruption Context',
+    category: 'insights',
+    description: 'Monsoon flooding alerts, Sunday mega-blocks, jumbo-blocks, and corridor track work.',
+    route: '/(tabs)/status'
+  },
+  {
+    id: 'saved_journeys',
+    name: 'Saved Journeys & Commute Alerts',
+    category: 'insights',
+    description: 'Quick-access daily routes, morning/evening office alerts, and favorite corridors.',
+    route: '/(tabs)/journeys'
+  }
+];
 
 export default function HomeScreen() {
   const { colors, language, setLanguage, isDarkMode, toggleDarkMode, colorTheme, setColorTheme } = useMobileTheme();
@@ -37,10 +222,15 @@ export default function HomeScreen() {
 
   // Modals state
   const [showLaunchModal, setShowLaunchModal] = useState<boolean>(() => !OfflineStorage.getHasSeenLaunch());
+  const [isLaunchMuted, setIsLaunchMuted] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(() => !OfflineStorage.getHasCompletedOnboarding());
   const [showCityModal, setShowCityModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
+  const [servicesSearch, setServicesSearch] = useState('');
+  const [servicesCategory, setServicesCategory] = useState<'all' | 'ticketing' | 'navigation' | 'assistance' | 'insights'>('all');
+  const [servicesExternalNotice, setServicesExternalNotice] = useState<string | null>(null);
 
   // Onboarding form state
   const [userName, setUserName] = useState('');
@@ -173,6 +363,45 @@ export default function HomeScreen() {
     setShowLaunchModal(false);
   };
 
+  const handleServiceSelect = (service: NativeServiceItem) => {
+    if (service.isExternalLink) {
+      setServicesExternalNotice(service.name);
+      Alert.alert(
+        'Official External Provider Notice',
+        `${service.name} is operated directly by Indian Railways / IRCTC.\n\nOpen official external portal?`,
+        [
+          { text: 'Dismiss', style: 'cancel', onPress: () => setServicesExternalNotice(null) },
+          {
+            text: 'Open Official Portal',
+            onPress: () => {
+              if (service.externalUrl) {
+                Linking.openURL(service.externalUrl).catch(() => {});
+              }
+              setServicesExternalNotice(null);
+            }
+          }
+        ]
+      );
+    } else if (service.route) {
+      setShowServicesModal(false);
+      if (service.routeParams) {
+        router.push({ pathname: service.route as any, params: service.routeParams });
+      } else {
+        router.push(service.route as any);
+      }
+    }
+  };
+
+  const filteredNativeServices = NATIVE_22_SERVICES.filter(item => {
+    const matchesCategory = servicesCategory === 'all' || item.category === servicesCategory;
+    const q = servicesSearch.toLowerCase().trim();
+    const matchesQuery = !q ||
+      item.name.toLowerCase().includes(q) ||
+      item.description.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q);
+    return matchesCategory && matchesQuery;
+  });
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* 1. Top Identity Bar: City Picker, Language Toggle & Theme */}
@@ -274,28 +503,39 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* 4. Prominent Call RailSathi Card */}
-      <TouchableOpacity
-        style={[styles.callBanner, { backgroundColor: colors.primary }]}
-        activeOpacity={0.88}
-        onPress={() => router.push('/call')}
-        accessibilityRole="button"
-        accessibilityLabel="Call RailSathi voice booking assistant"
-      >
+      {/* 4. Prominent Call & Chat Rail Yatri Assistant Card */}
+      <View style={[styles.callBanner, { backgroundColor: colors.primary }]}>
         <View style={styles.callBannerContent}>
           <View style={styles.callBannerBadge}>
             <View style={styles.liveDot} />
-            <Text style={styles.callBannerBadgeText}>VOICE BOOKING</Text>
+            <Text style={styles.callBannerBadgeText}>VOICE & CHAT ASSISTANT</Text>
           </View>
-          <Text style={styles.callBannerTitle}>Call RailSathi</Text>
+          <Text style={styles.callBannerTitle}>Rail Yatri AI</Text>
           <Text style={styles.callBannerSubtitle}>
             "Book me a First-Class local from {fromStation.name} to {toStation.name}"
           </Text>
         </View>
-        <View style={styles.callButtonCircle}>
-          <Text style={styles.callButtonText}>CALL</Text>
+        <View style={styles.assistantButtonsRow}>
+          <TouchableOpacity
+            style={styles.callButtonCircle}
+            activeOpacity={0.85}
+            onPress={() => router.push('/call')}
+            accessibilityRole="button"
+            accessibilityLabel="Call Rail Yatri voice assistant"
+          >
+            <Text style={styles.callButtonText}>CALL</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.callButtonCircle, { backgroundColor: '#ffffff26' }]}
+            activeOpacity={0.85}
+            onPress={() => router.push('/(tabs)/railsathi')}
+            accessibilityRole="button"
+            accessibilityLabel="Chat with Rail Yatri assistant"
+          >
+            <Text style={styles.callButtonText}>CHAT</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
 
       {/* 5. Journey Search Container */}
       <View style={[styles.searchCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
@@ -395,24 +635,59 @@ export default function HomeScreen() {
           <Text style={styles.searchButtonText}>Search Trains</Text>
         </TouchableOpacity>
 
-        {/* Fast Booking Secondary Workflows */}
-        <View style={styles.secondaryActionsRow}>
+        {/* Fast Booking Secondary Workflows: 4 Primary Categories */}
+        <View style={styles.bookingGrid}>
           <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.cardBorder }]}
+            style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
             onPress={() => router.push('/booking/local')}
             activeOpacity={0.8}
           >
-            <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>Book Local Ticket</Text>
+            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Local Unreserved</Text>
+            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>UTS Single & Return</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.cardBorder }]}
+            style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
             onPress={() => router.push('/booking/express')}
             activeOpacity={0.8}
           >
-            <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>Book Express Ticket</Text>
+            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Reserved Express</Text>
+            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Mail / Express Demo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
+            onPress={() => router.push({ pathname: '/booking/local', params: { type: 'platform' } })}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Platform Permit</Text>
+            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>₹10 Station Access</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
+            onPress={() => router.push({ pathname: '/booking/local', params: { type: 'season' } })}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Season Pass</Text>
+            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Monthly MST Pass</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Services Hub Entry Point */}
+        <TouchableOpacity
+          style={[styles.servicesHubBanner, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '40' }]}
+          onPress={() => setShowServicesModal(true)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.servicesHubContent}>
+            <Text style={[styles.servicesHubTitle, { color: colors.primary }]}>Explore All 22 Transit Services</Text>
+            <Text style={[styles.servicesHubSubtitle, { color: colors.textMuted }]}>Metro, FOB Navigation, RailMadad, TTE Demo, Amenity guides</Text>
+          </View>
+          <View style={[styles.servicesHubBadge, { backgroundColor: colors.primary }]}>
+            <Text style={styles.servicesHubBadgeText}>HUB</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* 6. Saved Journeys */}
@@ -719,6 +994,95 @@ export default function HomeScreen() {
               </TouchableOpacity>
             )}
           />
+        </View>
+      </Modal>
+
+      {/* ============================================================== */}
+      {/* MODAL 6: 22-Services Directory Modal                           */}
+      {/* ============================================================== */}
+      <Modal visible={showServicesModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.cityModalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, maxHeight: '90%' }]}>
+            <View style={styles.cityModalHeader}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={[styles.cityModalTitle, { color: colors.textPrimary }]}>All 22 Transit Services</Text>
+                <Text style={[styles.cityModalSubtitle, { color: colors.textMuted }]}>
+                  Directory of Official & Intelligent Features
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowServicesModal(false)} style={styles.closeBtn}>
+                <Text style={[styles.closeBtnText, { color: colors.textMuted }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Input */}
+            <View style={[styles.searchBox, { backgroundColor: colors.background, borderColor: colors.cardBorder, marginVertical: 8 }]}>
+              <TextInput
+                style={[styles.searchInput, { color: colors.textPrimary }]}
+                placeholder="Search all 22 services..."
+                placeholderTextColor={colors.textMuted}
+                value={servicesSearch}
+                onChangeText={setServicesSearch}
+              />
+            </View>
+
+            {/* Category Filter Pills */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.servicesCategoryRow}>
+              {[
+                { id: 'all', label: 'All (22)' },
+                { id: 'ticketing', label: 'Ticketing (8)' },
+                { id: 'navigation', label: 'Navigation (5)' },
+                { id: 'assistance', label: 'Assistance (4)' },
+                { id: 'insights', label: 'Insights (5)' }
+              ].map(cat => (
+                <TouchableOpacity
+                  key={cat.id}
+                  onPress={() => setServicesCategory(cat.id as any)}
+                  style={[
+                    styles.servicesCategoryPill,
+                    {
+                      backgroundColor: servicesCategory === cat.id ? colors.primary : colors.background,
+                      borderColor: servicesCategory === cat.id ? colors.primary : colors.cardBorder
+                    }
+                  ]}
+                >
+                  <Text style={[styles.servicesCategoryPillText, { color: servicesCategory === cat.id ? '#ffffff' : colors.textPrimary }]}>
+                    {cat.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Services List */}
+            <ScrollView style={{ marginTop: 8 }}>
+              {filteredNativeServices.map(item => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.serviceModalItem, { borderColor: colors.cardBorder, backgroundColor: colors.background }]}
+                  onPress={() => handleServiceSelect(item)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.serviceModalHeader}>
+                    <Text style={[styles.serviceModalItemTitle, { color: colors.textPrimary }]}>{item.name}</Text>
+                    {item.badge && (
+                      <View style={[styles.serviceModalBadge, { backgroundColor: colors.primary + '20' }]}>
+                        <Text style={[styles.serviceModalBadgeText, { color: colors.primary }]}>{item.badge}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.serviceModalItemDesc, { color: colors.textMuted }]}>{item.description}</Text>
+                  <View style={styles.serviceModalItemFooter}>
+                    <Text style={[styles.serviceModalCategoryTag, { color: colors.textSecondary }]}>
+                      {item.category.toUpperCase()}
+                    </Text>
+                    <Text style={[styles.serviceModalItemAction, { color: colors.primary }]}>
+                      {item.isExternalLink ? 'Official External ↗' : 'Open Feature →'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
         </View>
       </Modal>
     </ScrollView>
@@ -1353,5 +1717,124 @@ const styles = StyleSheet.create({
   guestBtnText: {
     fontSize: 13,
     fontWeight: '700'
+  },
+  assistantButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  bookingGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 12
+  },
+  bookingGridItem: {
+    flex: 1,
+    minWidth: '47%',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1
+  },
+  bookingGridTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 2
+  },
+  bookingGridSub: {
+    fontSize: 10
+  },
+  servicesHubBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 6
+  },
+  servicesHubContent: {
+    flex: 1,
+    paddingRight: 10
+  },
+  servicesHubTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 2
+  },
+  servicesHubSubtitle: {
+    fontSize: 10
+  },
+  servicesHubBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8
+  },
+  servicesHubBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '900'
+  },
+  servicesCategoryRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    maxHeight: 36
+  },
+  servicesCategoryPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 8
+  },
+  servicesCategoryPillText: {
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  serviceModalItem: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8
+  },
+  serviceModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  serviceModalItemTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    flex: 1
+  },
+  serviceModalBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6
+  },
+  serviceModalBadgeText: {
+    fontSize: 9,
+    fontWeight: '800'
+  },
+  serviceModalItemDesc: {
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 6
+  },
+  serviceModalItemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  serviceModalCategoryTag: {
+    fontSize: 9,
+    fontWeight: '700'
+  },
+  serviceModalItemAction: {
+    fontSize: 11,
+    fontWeight: '800'
   }
 });
