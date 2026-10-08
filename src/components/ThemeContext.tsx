@@ -183,6 +183,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) throw new Error('useTheme must be used within ThemeProvider');
+  if (!context) {
+    return {
+      theme: 'ocean' as ColorTheme,
+      setTheme: () => {},
+      language: 'en' as AppLanguage,
+      setLanguage: () => {},
+      isDark: false,
+      setIsDark: () => {},
+      toggleDarkMode: () => {}
+    };
+  }
   return context;
 }

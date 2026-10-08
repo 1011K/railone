@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RailBackendTools } from '../../engine/voiceTools';
 import { STATIONS } from '../../fixtures/railwayData';
 import { SpecimenTicket, JourneyItinerary, TravelClass } from '../../types/railway';
+import { useTheme } from '../ThemeContext';
+import { getTranslation, AppLanguage } from '../../i18n/translations';
 import { 
   Mic, 
   MicOff, 
@@ -12,13 +14,10 @@ import {
   Sparkles, 
   Send, 
   Bot, 
-  User, 
   CheckCircle2, 
   Ticket, 
-  AlertTriangle,
-  RotateCcw,
   Zap,
-  CornerDownRight
+  ArrowRight
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -34,13 +33,16 @@ interface ChatMessage {
 
 interface MobileRailSathiTabProps {
   onViewTicketWallet: () => void;
-  onBookSpecimen: (itinerary: JourneyItinerary, travelClass: TravelClass) => void;
+  onBookSpecimen?: (itinerary: JourneyItinerary, travelClass: TravelClass) => void;
 }
 
 export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
   onViewTicketWallet,
   onBookSpecimen
 }) => {
+  const { language } = useTheme();
+  const t = getTranslation(language);
+
   const [mode, setMode] = useState<'call' | 'chat'>('call');
   
   // Call mode state
@@ -48,20 +50,54 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  const [callTranscript, setCallTranscript] = useState<string>("Namaste! I am RailSathi. I can find trains, compare fares, check delays, and book specimen tickets. Say where you want to travel!");
+  const [callTranscript, setCallTranscript] = useState<string>(() => {
+    if (language === 'hi') return "नमस्ते! मैं रेल यात्री सहायक हूँ। एक कॉल में टिकट बुक करें, ट्रेन खोजें या लाइव स्थिति जानें।";
+    if (language === 'mr') return "नमस्कार! मी रेल यात्री मदतनीस आहे. एका कॉलवर तिकीट बुक करा, गाड्या शोधा किंवा थेट धावसंख्या तपासा.";
+    return "Namaste! I am Rail Yatri Assistant. I can book tickets on a single call, find trains, and check live delays. Say where you want to travel!";
+  });
   
   // Chat mode state
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => [
     {
       id: 'm1',
       sender: 'assistant',
-      text: "Namaste! I am RailSathi, your grounded railway passenger assistant. How can I assist your Mumbai or national journey today?",
+      text: language === 'hi' 
+        ? "नमस्ते! मैं रेल यात्री सहायक हूँ। एक कॉल या संदेश में तुरंत टिकट बुक करने के लिए स्टेशन बताएं।"
+        : language === 'mr'
+        ? "नमस्कार! मी रेल यात्री मदतनीस आहे. एका कॉलवर किंवा संदेशावर लगेच तिकीट बुक करण्यासाठी स्थानक सांगा."
+        : "Namaste! I am Rail Yatri Assistant. Ask me to book a train on one single call, check delays, or compare suburban routes.",
       timestamp: '10:35 AM'
     }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+
+  // Update initial messages if language changes
+  useEffect(() => {
+    if (language === 'hi') {
+      setCallTranscript("नमस्ते! मैं रेल यात्री सहायक हूँ। एक कॉल में टिकट बुक करें, ट्रेन खोजें या लाइव स्थिति जानें।");
+    } else if (language === 'mr') {
+      setCallTranscript("नमस्कार! मी रेल यात्री मदतनीस आहे. एका कॉलवर तिकीट बुक करा, गाड्या शोधा किंवा थेट धावसंख्या तपासा.");
+    } else {
+      setCallTranscript("Namaste! I am Rail Yatri Assistant. I can book tickets on a single call, find trains, and check live delays. Say where you want to travel!");
+    }
+  }, [language]);
+
+  // Speech synthesis helper
+  const speakAgentText = (text: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window && isSpeakerOn) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = language === 'hi' ? 'hi-IN' : language === 'mr' ? 'mr-IN' : 'en-IN';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        // SpeechSynthesis error ignored safely
+      }
+    }
+  };
 
   // Call timer
   useEffect(() => {
@@ -84,20 +120,58 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
     setCallDuration(0);
     setTimeout(() => {
       setCallState('CONNECTED');
-      setTimeout(() => setCallState('LISTENING'), 1000);
+      setTimeout(() => {
+        setCallState('LISTENING');
+        speakAgentText(callTranscript);
+      }, 1000);
     }, 1500);
   };
 
   const handleEndCall = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     setCallState('ENDED');
     setTimeout(() => setCallState('IDLE'), 2000);
   };
 
-  // Helper: Extract origin and destination stations flexibly from query text
+  // Helper: Extract origin and destination stations flexibly from query text in English, Hindi, and Marathi
   const extractStationPair = (text: string): { from: string; to: string } => {
     const q = text.toLowerCase();
 
-    // 1. Regex patterns: "from X to Y", "X to Y", "X se Y", "X te Y", "X -> Y"
+    // Map common Devanagari station names to codes
+    const devanagariMap: Record<string, string> = {
+      'दादर': 'DR',
+      'ठाणे': 'TNA',
+      'सीएसएमटी': 'CSMT',
+      'सीएसटी': 'CSMT',
+      'छत्रपती शिवाजी': 'CSMT',
+      'अंधेरी': 'ADH',
+      'चर्चगेट': 'CCG',
+      'बोरीवली': 'BVI',
+      'बोरिवली': 'BVI',
+      'कल्याण': 'KYN',
+      'कुर्ला': 'CLA',
+      'घाटकोपर': 'GC',
+      'वाशी': 'VSH',
+      'पनवेल': 'PNVL',
+      'बांद्रा': 'BA',
+      'वांद्रे': 'BA'
+    };
+
+    const foundDev: string[] = [];
+    for (const [stWord, code] of Object.entries(devanagariMap)) {
+      if (q.includes(stWord) && !foundDev.includes(code)) {
+        foundDev.push(code);
+      }
+    }
+    if (foundDev.length >= 2) {
+      return { from: foundDev[0], to: foundDev[1] };
+    } else if (foundDev.length === 1) {
+      return { from: foundDev[0], to: foundDev[0] === 'DR' ? 'TNA' : 'CSMT' };
+    }
+
+    // Regex patterns: "from X to Y", "X to Y", "X se Y", "X te Y", "X -> Y"
     const regex = /(?:from\s+)?([a-z\u0900-\u097f\s\.\(\)]+?)\s+(?:to|se|te|->|tak|and)\s+([a-z\u0900-\u097f\s\.\(\)]+)/i;
     const match = q.match(regex);
     if (match) {
@@ -108,7 +182,7 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
       }
     }
 
-    // 2. Scan all known stations in STATIONS to find station mentions
+    // Scan all known stations in STATIONS
     const stationEntries = Object.values(STATIONS);
     const found: Array<{ code: string; index: number }> = [];
 
@@ -133,14 +207,14 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
       found.sort((a, b) => a.index - b.index);
       return { from: found[0].code, to: found[1].code };
     } else if (found.length === 1) {
-      return { from: found[0].code, to: 'CSMT' };
+      return { from: found[0].code, to: found[0].code === 'DR' ? 'TNA' : 'CSMT' };
     }
 
-    // Default fallback
-    return { from: 'TNA', to: 'CSMT' };
+    // Default fallback: Dadar to Thane
+    return { from: 'DR', to: 'TNA' };
   };
 
-  // Process User Turn (Voice or Chat) - Wires all 15 deterministic tools
+  // Process User Turn (Voice or Chat) - Wires deterministic tools & One-Call Booking
   const processPassengerQuery = async (queryText: string) => {
     const q = queryText.toLowerCase().trim();
     if (!q) return;
@@ -165,157 +239,138 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
       const toolCalls: Array<{ name: string; output: any }> = [];
       let ticketIssued: SpecimenTicket | undefined;
 
-      // 1. Tool: confirmBooking
-      if (activeDraftId && (q.includes('yes') || q.includes('confirm') || q.includes('book') || q.includes('हाँ') || q.includes('हो') || q.includes('proceed') || q.includes('kar do'))) {
+      // Intent A: Confirm active draft booking if pending
+      if (activeDraftId && (q.includes('yes') || q.includes('confirm') || q.includes('हाँ') || q.includes('हो') || q.includes('proceed') || q.includes('kar do'))) {
         const bookRes = RailBackendTools.confirmBooking(activeDraftId);
         setActiveDraftId(null);
         toolCalls.push({ name: 'confirmBooking', output: bookRes });
 
         if (bookRes.status === 'success' && bookRes.ticket) {
-          replyText = `Booking confirmed! Specimen Ticket ID ${bookRes.ticket.id} has been issued and saved to your wallet. Fare: ₹${bookRes.ticket.farePaid}.`;
           ticketIssued = bookRes.ticket;
+          if (language === 'hi') {
+            replyText = `बुकिंग कन्फर्म हो गई! टिकट ID ${bookRes.ticket.id} जारी कर दिया गया है। किराया: ₹${bookRes.ticket.farePaid}। टिकट आपके वॉलेट में सहेज लिया गया है।`;
+          } else if (language === 'mr') {
+            replyText = `बुकिंग निश्चित झाली! तिकीट ID ${bookRes.ticket.id} जारी करण्यात आले आहे. भाडे: ₹${bookRes.ticket.farePaid}. तिकीट आपल्या पाकिटात जतन केले आहे.`;
+          } else {
+            replyText = `Booking confirmed! Specimen Ticket ID ${bookRes.ticket.id} has been issued and saved to your wallet. Fare: ₹${bookRes.ticket.farePaid}.`;
+          }
         } else {
           replyText = `Failed to confirm booking: ${bookRes.error || 'Unknown error'}`;
         }
       }
-      // 2. Tool: cancelTicket
-      else if (q.includes('cancel') && (q.includes('ticket') || /\b(tkt|dft)[\w-]+\b/i.test(q))) {
+      // Intent B: ONE-CALL / ONE-PROMPT INSTANT BOOKING
+      else if (q.includes('book') || q.includes('buy') || q.includes('टिकट') || q.includes('तिकीट') || q.includes('बुक')) {
+        const pair = extractStationPair(q);
+        const classPref: TravelClass = q.includes('ac') ? 'AC_LOCAL' : q.includes('first') || q.includes('1st') || q.includes('प्रथम') ? 'I' : 'II';
+        const searchRes = RailBackendTools.searchTrains(pair.from, pair.to, '10:35', classPref === 'AC_LOCAL' ? 'ac_mandatory' : 'any');
+        const fareRes = RailBackendTools.quoteFare(pair.from, pair.to, classPref);
+        toolCalls.push({ name: 'searchTrains', output: searchRes });
+        toolCalls.push({ name: 'quoteFare', output: fareRes });
+
+        const trainObj = (searchRes.status === 'success' && searchRes.itineraries?.[0]) ? searchRes.itineraries[0] : null;
+        const trainNum = trainObj?.legs?.[0]?.trainNumber || (pair.from === 'DR' && pair.to === 'TNA' ? '95112' : '95101');
+        const trainName = trainObj?.legs?.[0]?.trainName || (classPref === 'AC_LOCAL' ? 'AC Fast Local' : 'Fast Local');
+        const fareAmt = fareRes.status === 'success' ? fareRes.fareAmount : (classPref === 'AC_LOCAL' ? 65 : 10);
+
+        // 1. Create draft
+        const draftRes = RailBackendTools.createBookingDraft({
+          trainNumber: trainNum,
+          fromCode: pair.from,
+          toCode: pair.to,
+          classCode: classPref,
+          passengers: [{ name: 'Primary Commuter', age: 28, gender: 'M' }]
+        });
+        toolCalls.push({ name: 'createBookingDraft', output: draftRes });
+
+        if (draftRes.status === 'success' && draftRes.draft) {
+          // 2. Immediately confirm booking in ONE STEP
+          const confirmRes = RailBackendTools.confirmBooking(draftRes.draft.draftId);
+          toolCalls.push({ name: 'confirmBooking', output: confirmRes });
+
+          if (confirmRes.status === 'success' && confirmRes.ticket) {
+            ticketIssued = confirmRes.ticket;
+            if (language === 'hi') {
+              replyText = `टिकट बुक हो गया! ${trainName} (${pair.from} ➔ ${pair.to}), किराया ₹${fareAmt}। आपका टिकट ID ${confirmRes.ticket.id} वॉलेट में सुरक्षित कर दिया गया है।`;
+            } else if (language === 'mr') {
+              replyText = `तिकीट बुक झाले! ${trainName} (${pair.from} ➔ ${pair.to}), भाडे ₹${fareAmt}. आपले तिकीट ID ${confirmRes.ticket.id} पाकिटात जतन केले आहे.`;
+            } else {
+              replyText = `Booking confirmed in one call! ${trainName} (${pair.from} ➔ ${pair.to}), Fare: ₹${fareAmt}. Specimen Ticket ID ${confirmRes.ticket.id} has been issued to your wallet.`;
+            }
+          } else {
+            replyText = `Draft created: ID ${draftRes.draft.draftId}. Confirming payment...`;
+          }
+        } else {
+          replyText = `Could not initiate booking: ${draftRes.error || 'Please try again'}.`;
+        }
+      }
+      // Intent C: Cancel Ticket
+      else if (q.includes('cancel') || q.includes('रद्द')) {
         const ticketIdMatch = q.match(/\b(tkt-[\w-]+)\b/i);
         const ticketId = ticketIdMatch ? ticketIdMatch[1].toUpperCase() : (RailBackendTools.listTickets().tickets[0]?.id || 'TKT-DEMO-001');
         const cancelRes = RailBackendTools.cancelTicket(ticketId);
         toolCalls.push({ name: 'cancelTicket', output: cancelRes });
 
         if (cancelRes.status === 'success') {
-          replyText = `Ticket ${ticketId} cancelled. Gross Fare: ₹${cancelRes.refundBreakdown?.totalPaid || 0}, Cancellation Fee: ₹${cancelRes.refundBreakdown?.clericalDeduction || 0}, Net Refund Credited: ₹${cancelRes.refundBreakdown?.walletRefund || cancelRes.refundBreakdown?.cashRefund || cancelRes.refundAmount || 0}.`;
+          replyText = language === 'hi'
+            ? `टिकट ${ticketId} रद्द कर दिया गया। रिफंड ₹${cancelRes.refundBreakdown?.walletRefund || cancelRes.refundAmount || 0} वॉलेट में क्रेडिट हो गया।`
+            : language === 'mr'
+            ? `तिकीट ${ticketId} रद्द केले आहे. परतावा ₹${cancelRes.refundBreakdown?.walletRefund || cancelRes.refundAmount || 0} पाकिटात जमा झाला आहे.`
+            : `Ticket ${ticketId} cancelled. Net Refund Credited: ₹${cancelRes.refundBreakdown?.walletRefund || cancelRes.refundAmount || 0}.`;
         } else {
-          replyText = `Could not cancel ticket ${ticketId}: ${cancelRes.message || 'Ticket not found or already cancelled'}.`;
+          replyText = `Could not cancel ticket: ${cancelRes.message || 'Ticket not found'}.`;
         }
       }
-      // 3. Tool: getRefundStatus
-      else if (q.includes('refund')) {
-        const ticketIdMatch = q.match(/\b(tkt-[\w-]+)\b/i);
-        const ticketId = ticketIdMatch ? ticketIdMatch[1].toUpperCase() : (RailBackendTools.listTickets().tickets[0]?.id || 'TKT-DEMO-001');
-        const refundRes = RailBackendTools.getRefundStatus(ticketId);
-        toolCalls.push({ name: 'getRefundStatus', output: refundRes });
-
-        if (refundRes.status === 'success') {
-          replyText = `Refund status for ${ticketId}: Booking state is ${refundRes.bookingStatus}. ${refundRes.refundDetails ? `Net refund of ₹${refundRes.refundDetails.walletRefund || refundRes.refundDetails.cashRefund} processed.` : `Fare was ₹${refundRes.fare}.`}`;
-        } else {
-          replyText = `Could not retrieve refund status: ${refundRes.message || 'Ticket not found'}.`;
-        }
-      }
-      // 4. Tool: listTickets
-      else if (q.includes('my ticket') || q.includes('my bookings') || q.includes('show ticket') || q.includes('list ticket') || q.includes('wallet') || q.includes('tickets')) {
+      // Intent D: List Tickets
+      else if (q.includes('my ticket') || q.includes('wallet') || q.includes('टिकट दिखाओ') || q.includes('तिकीट दाखवा')) {
         const listRes = RailBackendTools.listTickets();
         toolCalls.push({ name: 'listTickets', output: listRes });
 
         if (listRes.count === 0) {
-          replyText = `You have no active or saved tickets in your wallet.`;
+          replyText = language === 'hi' ? 'आपके वॉलेट में कोई सक्रिय टिकट नहीं है।' : language === 'mr' ? 'आपल्या पाकिटात कोणतेही सक्रिय तिकीट नाही.' : 'You have no active saved tickets in your wallet.';
         } else {
-          replyText = `You have ${listRes.count} saved ticket(s): ` + listRes.tickets.slice(0, 3).map(t => `${t.id}: ${t.fromStation.name} ➔ ${t.toStation.name} (₹${t.farePaid}, ${t.classBooked})`).join('; ');
+          replyText = language === 'hi'
+            ? `आपके वॉलेट में ${listRes.count} टिकट हैं: ` + listRes.tickets.slice(0, 2).map(tk => `${tk.id}: ${tk.fromStation.name} ➔ ${tk.toStation.name} (₹${tk.farePaid})`).join('; ')
+            : `You have ${listRes.count} saved ticket(s): ` + listRes.tickets.slice(0, 2).map(tk => `${tk.id}: ${tk.fromStation.name} ➔ ${tk.toStation.name} (₹${tk.farePaid})`).join('; ');
         }
       }
-      // 5. Tool: getCoachGuidance (Wagenstandsanzeiger)
-      else if (q.includes('coach') || q.includes('rake') || q.includes('ladies') || q.includes('divyangjan') || q.includes('handicap') || q.includes('compartment') || q.includes('platform position')) {
-        const trainMatch = q.match(/\b\d{5}\b/);
-        const trainNum = trainMatch ? trainMatch[0] : '95112';
-        const stnMatch = q.includes('dadar') ? 'DR' : q.includes('thane') ? 'TNA' : q.includes('andheri') ? 'ADH' : 'DR';
-        const coachRes = RailBackendTools.getCoachGuidance(trainNum, stnMatch, '3');
-        toolCalls.push({ name: 'getCoachGuidance', output: coachRes });
-
-        replyText = `Coach Guidance for ${coachRes.trainName} (${coachRes.rakeType}) at ${coachRes.stationCode} Platform ${coachRes.platform}: Ladies coaches at positions ${coachRes.ladiesCoaches.map(c => c.coachIndex).join(', ')}. Wheelchair accessible Divyangjan coach at position ${coachRes.handicapCoach.coachIndex}. Nearest bridge: ${coachRes.fobStairAlignment.nearestBridge} (Coach ${coachRes.fobStairAlignment.nearestCoachIndex}).`;
-      }
-      // 6. Tool: getDisruptionAlternatives
-      else if (q.includes('disrupt') || q.includes('alternative') || (q.includes('delay') && (q.includes('alternative') || q.includes('option') || q.includes('what should')))) {
-        const trainMatch = q.match(/\b\d{5}\b/);
-        const trainNum = trainMatch ? trainMatch[0] : '95112';
-        const disruptRes = RailBackendTools.getDisruptionAlternatives(trainNum, 'CLA');
-        toolCalls.push({ name: 'getDisruptionAlternatives', output: disruptRes });
-
-        replyText = `Disruption Status for ${disruptRes.trainNumber}: ${disruptRes.recommendedAction} (Delay: +${disruptRes.delayMinutes} min, ${disruptRes.disruptionReason}). Found ${disruptRes.alternativesCount} downstream alternatives.`;
-      }
-      // 7. Tool: getLiveStatus / getTrainStatus
-      else if (/\b\d{5}\b/.test(q) || ((q.includes('status') || q.includes('where is') || q.includes('track') || q.includes('delay') || q.includes('running')) && q.includes('train'))) {
+      // Intent E: Live Status / Delays
+      else if (/\b\d{5}\b/.test(q) || q.includes('delay') || q.includes('status') || q.includes('देरी') || q.includes('उशीर')) {
         const trainMatch = q.match(/\b\d{5}\b/);
         const trainNum = trainMatch ? trainMatch[0] : '95112';
         const statusRes = RailBackendTools.getLiveStatus(trainNum);
         toolCalls.push({ name: 'getLiveStatus', output: statusRes });
 
         if (statusRes.status === 'success') {
-          replyText = `Train ${statusRes.trainNumber} (${statusRes.trainName}) is currently at ${statusRes.currentStation}. Delay: +${statusRes.currentDelayMinutes} min. Status: ${statusRes.disruptionReason}. Provenance: [${statusRes.dataProvenance.status}] ${statusRes.dataProvenance.source}.`;
+          replyText = language === 'hi'
+            ? `ट्रेन ${statusRes.trainNumber} (${statusRes.trainName}) अभी ${statusRes.currentStation} पर है। वर्तमान देरी: +${statusRes.currentDelayMinutes} मिनट। स्थिति: ${statusRes.disruptionReason}।`
+            : language === 'mr'
+            ? `गाडी ${statusRes.trainNumber} (${statusRes.trainName}) सध्या ${statusRes.currentStation} येथे आहे. सध्याचा उशीर: +${statusRes.currentDelayMinutes} मिनिटे. स्थिती: ${statusRes.disruptionReason}.`
+            : `Train ${statusRes.trainNumber} (${statusRes.trainName}) is currently at ${statusRes.currentStation}. Delay: +${statusRes.currentDelayMinutes} min (${statusRes.disruptionReason}).`;
         } else {
           replyText = `Could not track train ${trainNum}: ${statusRes.message}`;
         }
       }
-      // 8. Tool: findNearbyStations
-      else if (q.includes('nearby') || q.includes('stations in') || q.includes('stations near')) {
-        let city = 'Mumbai';
-        if (q.includes('pune')) city = 'Pune';
-        else if (q.includes('delhi')) city = 'Delhi NCR';
-        else if (q.includes('bangalore') || q.includes('bengaluru')) city = 'Bengaluru';
-        else if (q.includes('kolkata')) city = 'Kolkata';
-        else if (q.includes('chennai')) city = 'Chennai';
-        else if (q.includes('hyderabad')) city = 'Hyderabad';
-        else if (q.includes('kochi')) city = 'Kochi';
-
-        const nearbyRes = RailBackendTools.findNearbyStations(undefined, undefined, city);
-        toolCalls.push({ name: 'findNearbyStations', output: nearbyRes });
-
-        replyText = `Key stations in ${nearbyRes.city}: ` + nearbyRes.stations.map(s => `${s.name} (${s.code})`).join(', ');
-      }
-      // 9. Tool: normalizeStation
-      else if ((q.includes('station code') || q.includes('valid station') || q.includes('station info') || q.includes('code for')) && !q.includes(' to ')) {
-        const cleanQuery = q.replace(/(what is the|station code|for|is|valid station|station info|find station)/gi, '').trim();
-        const normRes = RailBackendTools.normalizeStation(cleanQuery || 'Dadar');
-        toolCalls.push({ name: 'normalizeStation', output: normRes });
-
-        if (normRes.matchedStation) {
-          replyText = `Station ${normRes.matchedStation.name} (${normRes.matchedStation.code}) is on the ${normRes.matchedStation.line} line.`;
-        } else {
-          replyText = `Station not recognized: ${normRes.explanation}. Candidates: ${normRes.candidates.map(c => c.name).join(', ')}`;
-        }
-      }
-      // 10. Tool: validateEligibility
-      else if (q.includes('eligible') || q.includes('eligibility') || q.includes('allowed') || q.includes('pass valid')) {
-        const trainMatch = q.match(/\b\d{5}\b/);
-        const trainNum = trainMatch ? trainMatch[0] : '95112';
-        const pair = extractStationPair(q);
-        const isSeason = q.includes('season') || q.includes('pass');
-        const userClass = q.includes('ac') ? 'AC_LOCAL' : q.includes('first') ? 'I' : 'II';
-        const eligRes = RailBackendTools.validateEligibility(trainNum, pair.from, pair.to, isSeason ? 'suburban_season_pass' : 'suburban_single', userClass);
-        toolCalls.push({ name: 'validateEligibility', output: eligRes });
-
-        replyText = `Boarding Eligibility for ${pair.from} ➔ ${pair.to} (${userClass}): [${eligRes.eligibility}]. ${eligRes.summary} ${eligRes.ticketRequiredNote || ''}`;
-      }
-      // 11. Tool: compareItineraries
-      else if (q.includes('compare')) {
-        const pair = extractStationPair(q);
-        const compRes = RailBackendTools.compareItineraries(pair.from, pair.to);
-        toolCalls.push({ name: 'compareItineraries', output: compRes });
-
-        if (compRes.status === 'success' && compRes.options.length > 0) {
-          replyText = `Comparing routes between ${pair.from} and ${pair.to}: Found ${compRes.options.length} options. Fastest departs ${compRes.options[0]?.departure} (duration ${compRes.options[0]?.durationMinutes}m).`;
-        } else {
-          replyText = `No comparable routes found between ${pair.from} and ${pair.to}.`;
-        }
-      }
-      // 12. Tool: quoteFare
-      else if ((q.includes('fare') || q.includes('how much') || q.includes('ticket price') || q.includes('cost')) && !q.includes('book')) {
+      // Intent F: Fare Quote
+      else if (q.includes('fare') || q.includes('cost') || q.includes('किराया') || q.includes('भाडे')) {
         const pair = extractStationPair(q);
         const userClass: TravelClass = q.includes('ac') ? 'AC_LOCAL' : q.includes('first') || q.includes('1st') ? 'I' : 'II';
         const fareRes = RailBackendTools.quoteFare(pair.from, pair.to, userClass);
         toolCalls.push({ name: 'quoteFare', output: fareRes });
 
         if (fareRes.status === 'success') {
-          replyText = `Suburban Fare from ${fareRes.from} to ${fareRes.to} (${fareRes.distanceKm} km, Class: ${fareRes.class}) is ₹${fareRes.fareAmount}. [${fareRes.disclaimer}]`;
+          replyText = language === 'hi'
+            ? `${fareRes.from} से ${fareRes.to} (${fareRes.distanceKm} किमी, श्रेणी: ${fareRes.class}) का उपनगरीय किराया ₹${fareRes.fareAmount} है।`
+            : language === 'mr'
+            ? `${fareRes.from} ते ${fareRes.to} (${fareRes.distanceKm} किमी, श्रेणी: ${fareRes.class}) उपनगरीय भाडे ₹${fareRes.fareAmount} आहे.`
+            : `Suburban Fare from ${fareRes.from} to ${fareRes.to} (${fareRes.distanceKm} km, Class: ${fareRes.class}) is ₹${fareRes.fareAmount}.`;
         } else {
           replyText = `Could not calculate fare: ${fareRes.message}`;
         }
       }
-      // 13. Tools: searchTrains, planJourneys, createBookingDraft (Default Journey / Booking Query)
+      // Default: Search Trains
       else {
         const pair = extractStationPair(q);
-        const classPref: TravelClass = q.includes('ac') ? 'AC_LOCAL' : q.includes('first') || q.includes('1st') ? 'I' : 'II';
+        const classPref: TravelClass = q.includes('ac') ? 'AC_LOCAL' : 'II';
         const searchRes = RailBackendTools.searchTrains(pair.from, pair.to, '10:35', classPref === 'AC_LOCAL' ? 'ac_mandatory' : 'any');
         const fareRes = RailBackendTools.quoteFare(pair.from, pair.to, classPref);
         toolCalls.push({ name: 'searchTrains', output: searchRes });
@@ -324,36 +379,22 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
         if (searchRes.status === 'success' && searchRes.itineraries.length > 0) {
           const top = searchRes.itineraries[0];
           const fareAmt = fareRes.status === 'success' ? fareRes.fareAmount : (top.fare[classPref] || 10);
-
-          if (q.includes('book') || q.includes('buy') || q.includes('टिकट')) {
-            const draftRes = RailBackendTools.createBookingDraft({
-              trainNumber: top.legs[0]?.trainNumber || '95112',
-              fromCode: pair.from,
-              toCode: pair.to,
-              classCode: classPref,
-              passengers: [{ name: 'Primary Commuter', age: 28, gender: 'M' }]
-            });
-            toolCalls.push({ name: 'createBookingDraft', output: draftRes });
-
-            if (draftRes.status === 'success' && draftRes.draft) {
-              draftIdCreated = draftRes.draft.draftId;
-              setActiveDraftId(draftRes.draft.draftId);
-              isConfirm = true;
-              replyText = `Found ${top.legs[0]?.trainName || 'Local'} departing ${top.departure} (arrival ${top.arrival}). ${classPref === 'AC_LOCAL' ? 'AC Local' : classPref} fare is ₹${fareAmt}. Would you like me to confirm and book this ticket for you?`;
-            } else {
-              replyText = `Found train departing ${top.departure}, fare is ₹${fareAmt}.`;
-            }
-          } else {
-            replyText = `Next service from ${searchRes.origin} to ${searchRes.destination} departs at ${top.departure} (arrives ${top.arrival}). Travel time: ${top.durationMinutes}m. ${classPref} fare is ₹${fareAmt}.`;
-          }
+          replyText = language === 'hi'
+            ? `${searchRes.origin} से ${searchRes.destination} के लिए अगली ट्रेन ${top.departure} (आगमन ${top.arrival})। यात्रा समय: ${top.durationMinutes} मिनट। किराया: ₹${fareAmt}। क्या आप एक कॉल में टिकट बुक करना चाहते हैं?`
+            : language === 'mr'
+            ? `${searchRes.origin} ते ${searchRes.destination} साठी पुढील गाडी ${top.departure} (पोहोच: ${top.arrival}). वेळ: ${top.durationMinutes} मिनिटे. भाडे: ₹${fareAmt}. आपण एका कॉलवर तिकीट बुक करू इच्छिता?`
+            : `Next service from ${searchRes.origin} to ${searchRes.destination} departs at ${top.departure} (arrives ${top.arrival}). Travel time: ${top.durationMinutes}m. Fare is ₹${fareAmt}. Say "Book it" to issue immediately.`;
         } else {
-          replyText = `No direct services found between ${pair.from} and ${pair.to} at this time. Would you like me to check transfer options via Dadar?`;
+          replyText = language === 'hi'
+            ? `${pair.from} और ${pair.to} के बीच कोई सीधी सेवा नहीं मिली।`
+            : `No direct train found between ${pair.from} and ${pair.to}.`;
         }
       }
 
       setIsProcessing(false);
       setCallState('SPEAKING');
       setCallTranscript(replyText);
+      speakAgentText(replyText);
 
       setChatMessages(prev => [
         ...prev,
@@ -368,12 +409,68 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
           ticketIssued
         }
       ]);
-    }, 700);
+    }, 500);
   };
 
+  // Quick localized prompts
+  const quickPromptsByLang: Record<AppLanguage, Array<{ label: string; query: string }>> = {
+    en: [
+      { label: '⚡ Book Fast local Dadar to Thane', query: 'Book Fast local from Dadar to Thane' },
+      { label: '🎫 Book 2nd Class Thane to CSMT', query: 'Book second class Thane to CSMT' },
+      { label: '❄️ Find AC Local Dadar to Thane', query: 'Find AC local Dadar to Thane' },
+      { label: '⏱️ Check delay 95112', query: 'Check delay for 95112' },
+      { label: '💰 Fare Churchgate to Borivali', query: 'Quote fare Churchgate to Borivali' }
+    ],
+    hi: [
+      { label: '⚡ दादर से ठाणे फास्ट लोकल बुक करें', query: 'दादर से ठाणे फास्ट लोकल बुक करें' },
+      { label: '🎫 ठाणे से सीएसएमटी सेकंड क्लास बुक करें', query: 'ठाणे से सीएसएमटी सेकंड क्लास बुक करें' },
+      { label: '❄️ दादर से ठाणे एसी लोकल खोजें', query: 'दादर से ठाणे एसी लोकल खोजें' },
+      { label: '⏱️ ट्रेन 95112 की देरी जांचें', query: 'ट्रेन 95112 की देरी जांचें' },
+      { label: '💰 चर्चगेट से बोरीवली किराया बताएं', query: 'चर्चगेट से बोरीवली किराया' }
+    ],
+    mr: [
+      { label: '⚡ दादर ते ठाणे जलद लोकल बुक करा', query: 'दादर ते ठाणे जलद लोकल बुक करा' },
+      { label: '🎫 ठाणे ते सीएसएमटी द्वितीय श्रेणी बुक करा', query: 'ठाणे ते सीएसएमटी द्वितीय श्रेणी बुक करा' },
+      { label: '❄️ दादर ते ठाणे एसी लोकल शोधा', query: 'दादर ते ठाणे एसी लोकल शोधा' },
+      { label: '⏱️ गाडी 95112 चा उशीर तपासा', query: 'गाडी 95112 चा उशीर तपासा' },
+      { label: '💰 चर्चगेट ते बोरिवली भाडे तपासा', query: 'चर्चगेट ते बोरिवली भाडे' }
+    ]
+  };
+
+  const activePrompts = quickPromptsByLang[language] || quickPromptsByLang.en;
+
   return (
-    <div className="space-y-3 pb-20 px-3.5 pt-2 flex flex-col h-full min-h-[76vh]">
+    <div className="space-y-3 pb-24 px-3.5 pt-2 flex flex-col h-full min-h-[76vh]">
       
+      {/* Assistant Header Banner with One-Call Badge */}
+      <div className="p-3 rounded-2xl bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 text-white border border-blue-500/30 shadow-md flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-theme-primary text-white flex items-center justify-center font-black shadow-xs">
+            <Sparkles className="w-4 h-4 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black tracking-tight">{t.railYatriTitle.split(' ')[0]} {t.railYatriTitle.split(' ')[1]}</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[8px] font-mono font-black bg-emerald-400 text-slate-950">
+                {t.oneCallBadge}
+              </span>
+            </div>
+            <div className="text-[10px] text-cyan-200 line-clamp-1">
+              {t.railYatriSubtitle}
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => processPassengerQuery(activePrompts[0].query)}
+          className="px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black shadow-md flex items-center gap-1 transition-all active:scale-95 shrink-0"
+          title="Instant One-Call Booking"
+        >
+          <Zap className="w-3 h-3 fill-current" />
+          <span>{language === 'hi' ? 'त्वरित बुक' : language === 'mr' ? 'झटपट बुक' : '1-Click Book'}</span>
+        </button>
+      </div>
+
       {/* Mode Selector Header */}
       <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-bold shrink-0">
         <button
@@ -381,22 +478,22 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
           className={`py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
             mode === 'call'
               ? 'bg-white dark:bg-slate-800 text-theme-primary shadow-xs'
-              : 'text-slate-500'
+              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
           }`}
         >
           <PhoneCall className="w-3.5 h-3.5" />
-          <span>Voice Calling Screen</span>
+          <span>{t.callScreen}</span>
         </button>
         <button
           onClick={() => setMode('chat')}
           className={`py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
             mode === 'chat'
               ? 'bg-white dark:bg-slate-800 text-theme-primary shadow-xs'
-              : 'text-slate-500'
+              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
           }`}
         >
           <Bot className="w-3.5 h-3.5" />
-          <span>Interactive Chat</span>
+          <span>{t.chatScreen}</span>
         </button>
       </div>
 
@@ -409,7 +506,7 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
 
           {/* Top Call Status Bar */}
           <div className="z-10 w-full flex items-center justify-between text-xs text-slate-400">
-            <span className="font-mono text-[10px] tracking-wider uppercase text-cyan-400">Dograh / WebRTC Ingress</span>
+            <span className="font-mono text-[10px] tracking-wider uppercase text-cyan-400">Dograh / WebRTC Voice Engine</span>
             <span className="font-mono font-bold text-white bg-white/10 px-2 py-0.5 rounded-full text-[11px]">
               {callState === 'CONNECTED' || callState === 'LISTENING' || callState === 'SPEAKING' || callState === 'THINKING'
                 ? formatTimer(callDuration)
@@ -431,14 +528,14 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
             </div>
 
             <div>
-              <div className="text-lg font-black text-white">RailSathi Voice</div>
+              <div className="text-lg font-black text-white">{t.railYatriTitle.split(' ')[0]} {t.railYatriTitle.split(' ')[1]} Voice</div>
               <div className="text-[11px] text-cyan-300 font-mono mt-0.5">
-                {callState === 'IDLE' && 'Ready to Call · Hindi / English / Marathi'}
-                {callState === 'CALLING' && 'Dialing Assistant...'}
-                {callState === 'CONNECTED' && 'Connected'}
-                {callState === 'LISTENING' && 'Listening to commuter...'}
-                {callState === 'THINKING' && 'Invoking railway verification tools...'}
-                {callState === 'SPEAKING' && 'RailSathi speaking...'}
+                {callState === 'IDLE' && t.readyToCall}
+                {callState === 'CALLING' && 'Connecting to Assistant...'}
+                {callState === 'CONNECTED' && t.connected}
+                {callState === 'LISTENING' && t.listening}
+                {callState === 'THINKING' && t.thinking}
+                {callState === 'SPEAKING' && t.speaking}
                 {callState === 'ENDED' && 'Call Terminated'}
               </div>
             </div>
@@ -467,25 +564,18 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
             </div>
           </div>
 
-          {/* Quick Voice Prompt Shortcuts */}
-          {callState !== 'IDLE' && callState !== 'ENDED' && (
-            <div className="z-10 w-full flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar text-[10px]">
-              {[
-                "Dadar to Thane AC local",
-                "Andheri to CSMT fare",
-                "Yes, confirm booking",
-                "Check 95112 delay"
-              ].map((sample, i) => (
-                <button
-                  key={i}
-                  onClick={() => processPassengerQuery(sample)}
-                  className="px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white whitespace-nowrap border border-white/15 active:scale-95"
-                >
-                  "{sample}"
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Quick Voice Prompt Shortcuts (All Working & Dynamically Localized) */}
+          <div className="z-10 w-full flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar text-[10px]">
+            {activePrompts.map((p, i) => (
+              <button
+                key={i}
+                onClick={() => processPassengerQuery(p.query)}
+                className="px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white whitespace-nowrap border border-white/15 active:scale-95"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
 
           {/* Bottom Call Hardware Controls */}
           <div className="z-10 w-full pt-2 flex items-center justify-around">
@@ -493,7 +583,7 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
               <button
                 onClick={handleStartCall}
                 className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center shadow-lg shadow-emerald-500/30 transition-all active:scale-95"
-                title="Start Voice Call"
+                title={t.startCall}
               >
                 <PhoneCall className="w-7 h-7" />
               </button>
@@ -514,7 +604,7 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
                 <button
                   onClick={handleEndCall}
                   className="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-600/40 transition-all active:scale-95"
-                  title="End Voice Call"
+                  title={t.endCall}
                 >
                   <PhoneOff className="w-7 h-7" />
                 </button>
@@ -557,9 +647,9 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
                   {/* Tool Invocations Badge if any */}
                   {msg.toolCalls && msg.toolCalls.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-center gap-1 flex-wrap">
-                      {msg.toolCalls.map((t, idx) => (
+                      {msg.toolCalls.map((tCall, idx) => (
                         <span key={idx} className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-blue-500/10 text-theme-primary border border-blue-500/20 font-bold">
-                          [TOOL: {t.name}]
+                          [TOOL: {tCall.name}]
                         </span>
                       ))}
                     </div>
@@ -573,13 +663,13 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
                         className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Yes, Confirm Booking</span>
+                        <span>{t.yesConfirmBooking}</span>
                       </button>
                       <button
                         onClick={() => processPassengerQuery('Cancel')}
                         className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs"
                       >
-                        Cancel
+                        {t.cancel}
                       </button>
                     </div>
                   )}
@@ -588,15 +678,20 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
                   {msg.ticketIssued && (
                     <div className="mt-2.5 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[11px] space-y-1">
                       <div className="font-bold flex items-center justify-between">
-                        <span>Ticket Issued: {msg.ticketIssued.id}</span>
-                        <span className="font-mono">₹{msg.ticketIssued.farePaid}</span>
+                        <span className="flex items-center gap-1">
+                          <Ticket className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>{t.ticketIssued}: {msg.ticketIssued.id}</span>
+                        </span>
+                        <span className="font-mono font-bold">₹{msg.ticketIssued.farePaid}</span>
                       </div>
-                      <div>{msg.ticketIssued.fromStation.name} ➔ {msg.ticketIssued.toStation.name}</div>
+                      <div className="text-[10px] text-slate-600 dark:text-slate-400">
+                        {msg.ticketIssued.fromStation.name} ➔ {msg.ticketIssued.toStation.name} ({msg.ticketIssued.classBooked})
+                      </div>
                       <button
                         onClick={onViewTicketWallet}
-                        className="text-theme-primary font-bold underline mt-1 block"
+                        className="text-theme-primary font-bold underline mt-1 block flex items-center gap-1"
                       >
-                        View in Ticket Wallet ➔
+                        <span>{t.viewWallet}</span>
                       </button>
                     </div>
                   )}
@@ -609,25 +704,20 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
             {isProcessing && (
               <div className="flex items-center gap-2 text-xs text-slate-400 p-2 animate-pulse">
                 <Sparkles className="w-4 h-4 text-theme-primary animate-spin" />
-                <span>RailSathi verifying railway schedules...</span>
+                <span>{t.thinking}</span>
               </div>
             )}
           </div>
 
           {/* Quick Chat Suggestions */}
           <div className="p-2 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[10px]">
-            {[
-              "Find AC local Dadar to Thane",
-              "Book second class Thane to CSMT",
-              "Check delay for 95112",
-              "Quote fare Churchgate to Borivali"
-            ].map((q, i) => (
+            {activePrompts.map((p, i) => (
               <button
                 key={i}
-                onClick={() => processPassengerQuery(q)}
+                onClick={() => processPassengerQuery(p.query)}
                 className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap border border-slate-200 dark:border-slate-700 hover:border-theme-primary active:scale-95"
               >
-                {q}
+                {p.label}
               </button>
             ))}
           </div>
@@ -644,7 +734,7 @@ export const MobileRailSathiTab: React.FC<MobileRailSathiTabProps> = ({
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Ask RailSathi (e.g. Next train to Dadar...)"
+              placeholder={t.askAssistantPlaceholder}
               className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden focus:border-theme-primary"
             />
             <button

@@ -14,6 +14,9 @@ import {
   LifeBuoy
 } from 'lucide-react';
 
+import { useTheme } from '../ThemeContext';
+import { getTranslation } from '../../i18n/translations';
+
 export type PassengerNavTab = 'home' | 'journey' | 'live' | 'tickets' | 'help';
 
 export interface BottomNavigationProps {
@@ -29,18 +32,22 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   savedTicketCount = 0,
   hasActiveAlerts = true
 }) => {
+  const { language } = useTheme();
+  const t = getTranslation(language);
+
   const tabs: Array<{
     id: PassengerNavTab;
+    english: string;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
     hasLiveDot?: boolean;
   }> = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'journey', label: 'Journey', icon: Navigation },
-    { id: 'live', label: 'Live', icon: Radio, hasLiveDot: hasActiveAlerts },
-    { id: 'tickets', label: 'Tickets', icon: Ticket, badge: savedTicketCount },
-    { id: 'help', label: 'Help', icon: HelpCircle }
+    { id: 'home', english: 'Home', label: t.home, icon: Home },
+    { id: 'journey', english: 'Journey', label: t.journey, icon: Navigation },
+    { id: 'live', english: 'Live', label: t.live, icon: Radio, hasLiveDot: hasActiveAlerts },
+    { id: 'tickets', english: 'Tickets', label: t.tickets, icon: Ticket, badge: savedTicketCount },
+    { id: 'help', english: 'Help', label: t.help, icon: HelpCircle }
   ];
 
   return (
@@ -94,7 +101,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               </div>
 
               <span className={`text-[10px] sm:text-[11px] mt-0.5 tracking-tight ${isActive ? 'font-black text-theme-primary' : 'font-medium'}`}>
-                {tab.label}
+                <span className="sr-only">{tab.english} </span>
+                <span>{tab.label}</span>
               </span>
             </button>
           );

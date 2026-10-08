@@ -29,19 +29,7 @@ interface AuthorityContextType {
 const AuthorityContext = createContext<AuthorityContextType | undefined>(undefined);
 
 export const AuthorityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authorityId, setAuthorityIdState] = useState<AuthorityId>(() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('railone_active_authority');
-        if (saved && saved in INSTITUTIONAL_AUTHORITIES) {
-          return saved as AuthorityId;
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return 'india';
-  });
+  const [authorityId, setAuthorityIdState] = useState<AuthorityId>('india');
 
   const authority = getAuthorityById(authorityId);
 

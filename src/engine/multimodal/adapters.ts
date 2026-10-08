@@ -67,7 +67,7 @@ export class SuburbanRailAdapter implements ITransportProviderAdapter {
 
   getCoverageDossier() {
     return {
-      operator: 'Centre for Railway Information Systems (CRIS) / Indian Railways',
+      operator: 'Ministry of Railways / Indian Railways',
       sourceUrl: 'https://indianrailways.gov.in',
       publisher: 'Ministry of Railways, Govt of India',
       tariffEffective: 'June 2026 Passenger Fare Revision',
@@ -106,7 +106,7 @@ export class ExpressRailAdapter implements ITransportProviderAdapter {
     return {
       operator: 'Indian Railway Catering and Tourism Corporation (IRCTC)',
       sourceUrl: 'https://www.irctc.co.in',
-      publisher: 'IRCTC / CRIS',
+      publisher: 'IRCTC / Indian Railways',
       tariffEffective: 'June 2026 Gazette Tariff',
       notes: 'PRS Passenger Reservation System class and quota tariff tables.'
     };

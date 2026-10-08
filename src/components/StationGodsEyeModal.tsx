@@ -60,8 +60,8 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
   );
   const layout = STATION_3D_LAYOUTS[stationCode] || STATION_3D_LAYOUTS['DR'];
 
-  // View modes: 'gods_eye_3d' | 'top_down_plan' | 'pathfinder'
-  const [viewMode, setViewMode] = useState<'gods_eye_3d' | 'top_down_plan' | 'pathfinder'>('gods_eye_3d');
+  // View modes: 2D mobile-native top_down_plan by default
+  const [viewMode, setViewMode] = useState<'gods_eye_3d' | 'top_down_plan' | 'pathfinder'>('top_down_plan');
   
   // Selected level: 'all' | 0 | 1 | 2
   const [selectedLevel, setSelectedLevel] = useState<'all' | number>('all');
@@ -248,29 +248,29 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div 
-        className="bg-slate-900 border-0 sm:border border-slate-700/80 rounded-none sm:rounded-3xl w-full max-w-6xl h-full sm:h-auto sm:max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-slate-100 pt-safe pb-safe"
+        className="bg-slate-900 border-0 sm:border border-slate-700/80 rounded-none sm:rounded-3xl w-full max-w-3xl h-full sm:h-auto sm:max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-slate-100 pt-safe pb-safe"
         role="dialog"
         aria-modal="true"
-        aria-label="3D Station Navigation and God's Eye Viewer"
+        aria-label="Station Navigation and Platform Guide"
       >
         
         {/* Modal Header */}
         <div className="px-5 py-4 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-theme-primary flex items-center justify-center text-white shadow-md">
-              <Eye className="w-5 h-5" />
+              <Compass className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-extrabold text-base sm:text-lg text-white">
-                  God's Eye Station 3D Navigation
+                  Station Navigation & Guide
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-theme-light text-theme-primary border border-theme-primary/30">
                   {layout.zone} Division
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                {layout.stationName} ({layout.hindiName}) · Multi-Level FOB & Track Model
+                {layout.stationName} ({layout.hindiName}) · Platform Directions, FOB Bridges & Exits
               </p>
             </div>
           </div>
@@ -316,18 +316,6 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
           {/* Mode Toggles */}
           <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
             <button
-              onClick={() => setViewMode('gods_eye_3d')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold transition-colors ${
-                viewMode === 'gods_eye_3d' 
-                  ? 'bg-theme-primary text-white shadow-xs' 
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>God's Eye 3D</span>
-            </button>
-
-            <button
               onClick={() => setViewMode('top_down_plan')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold transition-colors ${
                 viewMode === 'top_down_plan' 
@@ -336,7 +324,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>2D Ortho Plan</span>
+              <span>2D Station Guide</span>
             </button>
 
             <button
@@ -349,6 +337,18 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
             >
               <Footprints className="w-3.5 h-3.5" />
               <span>FOB Pathfinder</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('gods_eye_3d')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold transition-colors ${
+                viewMode === 'gods_eye_3d' 
+                  ? 'bg-theme-primary text-white shadow-xs' 
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>3D Overview</span>
             </button>
           </div>
 

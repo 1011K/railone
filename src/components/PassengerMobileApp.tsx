@@ -24,6 +24,7 @@ import { ThemeSelectorModal } from './ThemeSelectorModal';
 import { useAuthority } from './AuthorityContext';
 import { InstitutionalAuthoritySelectorModal } from './InstitutionalAuthoritySelectorModal';
 import { InstitutionalInsignia } from './common/InstitutionalInsignia';
+import { getTranslation } from '../i18n/translations';
 
 import {
   Compass,
@@ -63,6 +64,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
 }) => {
   const { theme, language, setLanguage, isDark, toggleDarkMode } = useTheme();
   const { authority } = useAuthority();
+  const t = getTranslation(language);
 
   // App Navigation & Selection State
   const [activeTab, setActiveTab] = useState<PassengerNavTab>('home');
@@ -326,9 +328,9 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         </div>
       </div>
 
-      {/* 2. APP COMPACT HEADER (Clean Transit Brand, Sovereign Authority & Tools) */}
+      {/* 2. APP COMPACT HEADER (Clean Transit Brand, India-Only & Tools) */}
       <header className="shrink-0 px-3 py-2 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between z-10 shadow-xs">
-        {/* Brand & Authority Selector Button */}
+        {/* Brand & Indian Railways Badge */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-theme-primary text-white flex items-center justify-center font-black shadow-sm shrink-0">
             <Train className="w-4 h-4" />
@@ -336,28 +338,23 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-sm font-black tracking-tight text-slate-900 dark:text-white">
-                RailOne
+                {t.appName}
               </span>
-              <button
-                onClick={() => setShowAuthorityModal(true)}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 text-[10px] font-bold transition-all active:scale-95 touch-target min-h-[28px]"
-                title="Switch Sovereign Transport Authority"
-              >
-                <InstitutionalInsignia authorityId={authority.id} size={15} />
-                <span className="truncate max-w-[85px] sm:max-w-none">{authority.shortTitle.split(' ')[0]}</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 text-[10px] font-bold">
+                <InstitutionalInsignia authorityId="india" size={14} />
+                <span>Indian Railways</span>
                 <span className="px-1 rounded text-[8px] font-mono bg-theme-primary/10 text-theme-primary font-black">
-                  {authority.countryCode}
+                  IN
                 </span>
-                <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
-              </button>
+              </div>
             </div>
-            {/* Provenance Micro-Pill & Authority Attribution */}
+            {/* Provenance Micro-Pill & Authority Attribution (Zero CRIS) */}
             <div className="flex items-center gap-1 text-[9px] font-mono mt-0.5">
               <span className="px-1 rounded text-[8px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                [STATUTORY ACTIVE]
+                [{t.statutoryActive}]
               </span>
               <span className="text-slate-500 dark:text-slate-400 truncate max-w-[130px] sm:max-w-none text-[8px]">
-                {authority.operatingAgency.split('·')[0].trim()}
+                {t.ministryName}
               </span>
             </div>
           </div>
@@ -365,15 +362,6 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
 
         {/* Right Header Actions */}
         <div className="flex items-center gap-1">
-          {/* Authority Flag / Insignia Quick Button */}
-          <button
-            onClick={() => setShowAuthorityModal(true)}
-            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[36px] min-w-[36px] flex items-center justify-center"
-            title="Sovereign Authority System"
-          >
-            <InstitutionalInsignia authorityId={authority.id} size={18} />
-          </button>
-
           {/* Language Toggle */}
           <button
             onClick={cycleLanguage}
@@ -403,19 +391,19 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         </div>
       </header>
 
-      {/* Sovereign Authority Bar */}
+      {/* Indian Railways Suburban Network Bar (India Only) */}
       <div className="shrink-0 px-3.5 py-1 bg-slate-900 text-slate-100 border-b border-slate-800 flex items-center justify-between text-[10px]">
         <div className="flex items-center gap-1.5 truncate">
-          <InstitutionalInsignia authorityId={authority.id} size={13} />
+          <InstitutionalInsignia authorityId="india" size={13} />
           <span className="font-extrabold uppercase tracking-wider text-slate-300 truncate">
-            {authority.governmentBody}
+            {t.ministryName}
           </span>
         </div>
         <button
-          onClick={() => setShowAuthorityModal(true)}
-          className="text-[9px] font-bold text-theme-primary hover:underline shrink-0 ml-2 font-mono uppercase"
+          onClick={() => setShowCityPicker(true)}
+          className="text-[9px] font-bold text-theme-primary hover:underline shrink-0 ml-2 font-mono"
         >
-          {authority.countryCode} ➔
+          {currentCity.name} ({currentCity.nativeName}) ▼
         </button>
       </div>
 
@@ -432,6 +420,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
             }}
             onOpenActionModal={handleActionModal}
             onSwitchTab={setActiveTab}
+            onOpenRailSathi={() => setActiveTab('help')}
           />
         )}
 
@@ -472,6 +461,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
           <MobileHelpTab
             onOpenInstitutionalDossier={() => setShowInstitutionalDossier(true)}
             onOpen3DStation={() => handleOpenGodsEye('DR')}
+            onViewTicketWallet={() => setActiveTab('tickets')}
           />
         )}
       </main>
