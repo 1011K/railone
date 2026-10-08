@@ -37,6 +37,27 @@ export function resolveApiBaseUrl(): string {
   return 'http://localhost:3000/api/v1';
 }
 
+// A new demo profile gets its own scoped token. This is not verified user sign-in.
+// Native storage of this token requires a separate secure-storage integration.
+let demoToken: string | null = null;
+let tokenPending: Promise<string> | null = null;
+async function demoAuth(): Promise<Record<string, string>> {
+  if (!demoToken) {
+    if (!tokenPending) {
+      tokenPending = fetchJson<{ token: string }>('/passengers', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Demo Commuter', preferredLanguage: 'en' })
+      }).then(response => {
+        if (!response.token) throw new Error('Demo passenger session unavailable.');
+        demoToken = response.token;
+        return demoToken;
+      }).finally(() => { tokenPending = null; });
+    }
+    await tokenPending;
+  }
+  return { Authorization: `Bearer ${demoToken}` };
+}
+
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const baseUrl = resolveApiBaseUrl();
   const url = `${baseUrl}${endpoint}`;
@@ -83,6 +104,7 @@ export const MobileApiClient = {
     acOnly?: boolean;
     classPreference?: string;
     transitModeFilter?: string;
+    priority?: 'fastest' | 'least_crowded' | 'lowest_fare' | 'fewest_transfers';
   }): Promise<any[]> {
     const q = new URLSearchParams({
       from: params.from,
@@ -94,6 +116,7 @@ export const MobileApiClient = {
     if (params.acOnly) q.append('acOnly', 'true');
     if (params.classPreference) q.append('classPreference', params.classPreference);
     if (params.transitModeFilter) q.append('transitModeFilter', params.transitModeFilter);
+    if (params.priority) q.append('priority', params.priority);
 
     const data = await fetchJson<{ count: number; itineraries: any[] }>(`/routes/search?${q.toString()}`);
     return data.itineraries;
@@ -124,7 +147,7 @@ export const MobileApiClient = {
     paymentMethod?: string;
     idempotencyKey?: string;
   }): Promise<any> {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = await demoAuth();
     if (bookingData.idempotencyKey) {
       headers['X-Idempotency-Key'] = bookingData.idempotencyKey;
     }
@@ -138,7 +161,8 @@ export const MobileApiClient = {
 
   async reconcileBooking(bookingId: string): Promise<any> {
     const data = await fetchJson<{ booking: any }>(`/bookings/${encodeURIComponent(bookingId)}/reconcile`, {
-      method: 'POST'
+      method: 'POST',
+      headers: await demoAuth()
     });
     return data.booking;
   },
@@ -148,13 +172,14 @@ export const MobileApiClient = {
     const q = new URLSearchParams();
     if (category) q.append('category', category);
     if (passengerProfileId) q.append('passengerProfileId', passengerProfileId);
-    const data = await fetchJson<{ count: number; tickets: any[] }>(`/tickets?${q.toString()}`);
+    const data = await fetchJson<{ count: number; tickets: any[] }>(`/tickets?${q.toString()}`, { headers: await demoAuth() });
     return data.tickets;
   },
 
   async cancelTicket(bookingId: string, reason?: string): Promise<any> {
     const data = await fetchJson<{ cancellation: any }>(`/tickets/${encodeURIComponent(bookingId)}/cancel`, {
       method: 'POST',
+      headers: await demoAuth(),
       body: JSON.stringify({ reason })
     });
     return data.cancellation;
