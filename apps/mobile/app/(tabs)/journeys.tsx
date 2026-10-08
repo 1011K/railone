@@ -25,10 +25,11 @@ export default function JourneysScreen() {
   const [timeWindow, setTimeWindow] = useState<number>(30); // 30, 60, 120 min
   const [categoryTab, setCategoryTab] = useState<'NEXT' | 'SLOW' | 'FAST' | 'AC' | 'EXPRESS'>('NEXT');
   const [easyMode, setEasyMode] = useState<boolean>(false);
+  const [preferLessCrowded, setPreferLessCrowded] = useState<boolean>(false);
 
   useEffect(() => {
     loadRoutes();
-  }, [fromCode, toCode, isAcOnly, timeWindow]);
+  }, [fromCode, toCode, isAcOnly, timeWindow, categoryTab, preferLessCrowded]);
 
   const loadRoutes = async () => {
     setLoading(true);
@@ -37,7 +38,8 @@ export default function JourneysScreen() {
         from: fromCode,
         to: toCode,
         timeWindowMinutes: timeWindow,
-        acOnly: isAcOnly || categoryTab === 'AC'
+        acOnly: isAcOnly || categoryTab === 'AC',
+        priority: preferLessCrowded ? 'least_crowded' : 'fastest'
       });
       setItineraries(routes);
     } catch {
@@ -83,17 +85,17 @@ export default function JourneysScreen() {
         arrivalTime: itinerary.predictedArrival,
         trainNumber: firstLeg.train.trainNumber,
         trainName: firstLeg.train.trainName,
-        departurePlatform: firstLeg.departurePlatform || '1',
-        arrivalPlatform: lastLeg.arrivalPlatform || '1',
+        departurePlatform: firstLeg.departurePlatform || 'Unknown',
+        arrivalPlatform: lastLeg.arrivalPlatform || 'Unknown',
         duration: String(itinerary.totalDurationMinutes),
         hasTransfer: hasTransfer ? 'true' : 'false',
         transferStation: transfer ? transfer.station.code : '',
         transferStationName: transfer ? transfer.station.name : '',
-        transferPlatformFrom: transfer ? (transfer.fromPlatform || '3') : '',
-        transferPlatformTo: transfer ? (transfer.toPlatform || '5') : '',
+        transferPlatformFrom: transfer ? (transfer.fromPlatform || 'Unknown') : '',
+        transferPlatformTo: transfer ? (transfer.toPlatform || 'Unknown') : '',
         transferWalkMinutes: transfer ? String(transfer.walkTimeMinutes || transfer.walkMinutes || 7) : '0',
         isAc: itinerary.isAcService ? 'true' : 'false',
-        fare: String(itinerary.totalFareByClass[itinerary.recommendedClass] || 10)
+        fare: String(itinerary.totalFareByClass?.[itinerary.recommendedClass] ?? 'Unavailable')
       }
     });
   };
@@ -141,7 +143,7 @@ export default function JourneysScreen() {
               <Text style={[styles.routeHeaderStation, { color: colors.textPrimary }]}>{toCode}</Text>
             </View>
             <Text style={[styles.liveWindowLabel, { color: colors.textMuted }]}>
-              All-Trains Live Departure Board · {timeWindow}m Window
+              Timetable-based departures · Next {timeWindow} minutes
             </Text>
           </View>
 
@@ -157,6 +159,13 @@ export default function JourneysScreen() {
               thumbColor="#FFFFFF"
             />
           </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+          <Text style={{ color: colors.textSecondary, flex: 1 }}>Prefer less crowded (estimate)</Text>
+          <Switch value={preferLessCrowded} onValueChange={setPreferLessCrowded}
+            trackColor={{ false: colors.cardBorder, true: colors.primary }}
+            accessibilityLabel="Prefer less crowded services using rule-based estimates" />
         </View>
 
         {/* 1. Time Window Selector (30m / 60m / 120m) */}
@@ -246,7 +255,10 @@ export default function JourneysScreen() {
           {displayedRoutes.map((itinerary, index) => {
             const firstLeg = itinerary.legs[0];
             const hasTransfer = itinerary.transfers && itinerary.transfers.length > 0;
-            const fare = itinerary.totalFareByClass[itinerary.recommendedClass] || 10;
+            const fare = itinerary.totalFareByClass?.[itinerary.recommendedClass];
+            const crowdInfo = firstLeg?.crowding;
+            const crowdLevel = crowdInfo?.level?.replace('_', ' ') || 'Unavailable';
+            const crowdConfidence = crowdInfo?.confidence || 'DATA_SPARSE';
             const badges: string[] = itinerary.recommendationBadges || (itinerary.isRecommended ? ['⭐ BEST'] : []);
 
             return (
@@ -318,7 +330,7 @@ export default function JourneysScreen() {
                       {itinerary.predictedDeparture}
                     </Text>
                     <Text style={[styles.stationSubLabel, { color: colors.textMuted }, easyMode && styles.stationSubLabelEasy]}>
-                      {fromCode} (PF {firstLeg.departurePlatform || '1'})
+                      {fromCode} ({firstLeg.departurePlatform ? `PF ${firstLeg.departurePlatform}` : 'Platform unverified'})
                     </Text>
                   </View>
 
@@ -343,18 +355,23 @@ export default function JourneysScreen() {
                       {itinerary.predictedArrival}
                     </Text>
                     <Text style={[styles.stationSubLabel, { color: colors.textMuted }, easyMode && styles.stationSubLabelEasy]}>
-                      {toCode} (PF {itinerary.legs[itinerary.legs.length - 1].arrivalPlatform || '1'})
+                      {toCode} ({itinerary.legs[itinerary.legs.length - 1].arrivalPlatform ? `PF ${itinerary.legs[itinerary.legs.length - 1].arrivalPlatform}` : 'Platform unverified'})
                     </Text>
                   </View>
                 </View>
 
+                <Text style={{ color: colors.textSecondary, marginTop: 4, marginBottom: 6, fontSize: 12 }}>
+                  Crowding: {crowdLevel} · {crowdInfo
+                    ? `Rule-based estimate (${crowdConfidence.toLowerCase()} confidence), not observed occupancy`
+                    : 'No crowd estimate available'}
+                </Text>
                 {/* Train Name & Stopping Pattern */}
                 <View style={[styles.trainInfoRow, { borderTopColor: colors.cardBorder }]}>
                   <Text style={[styles.trainNameText, { color: colors.textSecondary }]} numberOfLines={1}>
                     {firstLeg.train.trainNumber} · {firstLeg.train.trainName}
                   </Text>
                   <Text style={[styles.fareAmountText, { color: colors.primary }]}>
-                    ₹{fare}
+                    {typeof fare === 'number' ? `Est. ₹${fare}` : 'Fare unavailable'}
                   </Text>
                 </View>
 
