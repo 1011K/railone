@@ -1,5 +1,20 @@
 import { Station } from '../types/railway';
 import { STATIONS } from '../fixtures/railwayData';
+import { INSTITUTIONAL_AUTHORITIES } from '../models/authorities';
+
+function authorityStationToStation(authStn: any): Station {
+  return {
+    id: `auth-${authStn.code.toLowerCase()}`,
+    code: authStn.code,
+    name: authStn.name,
+    hindiName: authStn.nativeName,
+    marathiName: authStn.nativeName,
+    line: 'national',
+    city: authStn.city,
+    platforms: authStn.platforms,
+    aliases: [authStn.name, authStn.code, ...(authStn.nativeName ? [authStn.nativeName] : [])]
+  };
+}
 
 export interface StationNormalizationResult {
   query: string;
@@ -57,7 +72,7 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
   const cleaned = cleanText(query);
   const upper = query.toUpperCase();
 
-  // 1. Direct Station Code Match (e.g. "TNA", "DR", "KYN", "CSMT")
+  // 1. Direct Station Code Match (e.g. "TNA", "DR", "KYN", "CSMT", "WAT", "TYO", "BER", "ZRH")
   if (STATIONS[upper]) {
     return {
       query,
@@ -67,6 +82,21 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
       confidence: 'EXACT',
       explanation: `Exact station code match: ${STATIONS[upper].name} (${STATIONS[upper].code})`
     };
+  }
+
+  for (const auth of Object.values(INSTITUTIONAL_AUTHORITIES)) {
+    const authStn = auth.stations.find(s => s.code.toUpperCase() === upper);
+    if (authStn) {
+      const stn = authorityStationToStation(authStn);
+      return {
+        query,
+        matchedStation: stn,
+        candidates: [stn],
+        isAmbiguous: false,
+        confidence: 'EXACT',
+        explanation: `Exact station code match: ${stn.name} (${stn.code})`
+      };
+    }
   }
 
   const isDevanagariQuery = /[\u0900-\u097F]/.test(query);
@@ -129,6 +159,16 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
     }
   }
 
+  if (exactMatches.length === 0) {
+    for (const auth of Object.values(INSTITUTIONAL_AUTHORITIES)) {
+      for (const s of auth.stations) {
+        if (cleanText(s.name) === cleaned || (s.nativeName && cleanText(s.nativeName) === cleaned)) {
+          exactMatches.push(authorityStationToStation(s));
+        }
+      }
+    }
+  }
+
   // Ambiguity check: e.g. "Dadar" matches DR (Central) and DDR (Western)
   if (exactMatches.length === 1) {
     return {
@@ -151,10 +191,20 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
   }
 
   // 5. Substring / Prefix Match in Aliases and Names (requires at least 3 chars)
-  const substringMatches = cleaned.length >= 3 ? Object.values(STATIONS).filter(s => 
+  let substringMatches = cleaned.length >= 3 ? Object.values(STATIONS).filter(s => 
     cleanText(s.name).includes(cleaned) ||
     s.aliases.some(a => cleanText(a).includes(cleaned) || (cleaned.length >= 4 && cleanText(a).length >= 4 && cleaned.includes(cleanText(a))))
   ) : [];
+
+  if (substringMatches.length === 0 && cleaned.length >= 3) {
+    for (const auth of Object.values(INSTITUTIONAL_AUTHORITIES)) {
+      for (const s of auth.stations) {
+        if (cleanText(s.name).includes(cleaned) || (s.nativeName && cleanText(s.nativeName).includes(cleaned))) {
+          substringMatches.push(authorityStationToStation(s));
+        }
+      }
+    }
+  }
 
   if (substringMatches.length === 1) {
     return {

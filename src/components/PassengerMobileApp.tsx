@@ -19,6 +19,7 @@ import { SpecimenTicketModal } from './SpecimenTicketModal';
 import { CoachPositionGuide, RakeModelType } from './CoachPositionGuide';
 import { TRAIN_TRIPS, STATIONS } from '../fixtures/railwayData';
 import { PAN_INDIA_TRAINS } from '../fixtures/panIndiaTrainsData';
+import { resolveStation } from '../engine/journeyEngine';
 import { ThemeSelectorModal } from './ThemeSelectorModal';
 import { useAuthority } from './AuthorityContext';
 import { InstitutionalAuthoritySelectorModal } from './InstitutionalAuthoritySelectorModal';
@@ -127,6 +128,12 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
     if (presetDest) setJourneyDest(presetDest);
   }, [presetOrigin, presetDest]);
 
+  // Synchronize stations when sovereign authority changes
+  useEffect(() => {
+    setJourneyOrigin(authority.defaultOriginCode);
+    setJourneyDest(authority.defaultDestCode);
+  }, [authority.id, authority.defaultOriginCode, authority.defaultDestCode]);
+
   const handleLaunchComplete = () => {
     sessionStorage.setItem('railone_launch_seen', 'true');
     setShowLaunchSequence(false);
@@ -180,7 +187,9 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         setActiveTab('journey');
         break;
       case 'platform_ticket': {
-        const fromStationObj = STATIONS[journeyOrigin] || STATIONS['DR'];
+        const fromStationObj = resolveStation(journeyOrigin) || resolveStation(authority.defaultOriginCode) || STATIONS['DR'];
+        const platClass = (authority.classes[0]?.code as TravelClass) || 'II';
+        const platFare = authority.id === 'japan' ? 160 : authority.id === 'uk' ? 2.5 : authority.id === 'switzerland' ? 3.0 : authority.id === 'germany' ? 2.0 : 10;
         const platformItinerary: JourneyItinerary = {
           id: `platform-${Date.now()}`,
           legs: [{
@@ -201,7 +210,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
                 distanceKm: 0,
                 isHalt: true
               }],
-              availableClasses: ['II'],
+              availableClasses: [platClass],
               rakeType: '12_car'
             },
             fromStation: fromStationObj,
@@ -231,15 +240,15 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
           predictedDeparture: 'Immediate',
           scheduledArrival: '+2 hrs',
           predictedArrival: '+2 hrs',
-          totalFareByClass: { II: 10 },
-          recommendedClass: 'II',
+          totalFareByClass: { [platClass]: platFare },
+          recommendedClass: platClass,
           eligibility: {
             status: 'ELIGIBLE',
-            summary: 'Valid Platform Permit',
-            rulesApplied: ['Statutory UTS Platform Access Rule'],
-            validClasses: ['II'],
+            summary: 'Valid Statutory Platform Entry Permit',
+            rulesApplied: [authority.regulatoryCharter],
+            validClasses: [platClass],
             passPermitted: false,
-            ticketRequiredNote: 'Valid for 2 hours only'
+            ticketRequiredNote: 'Valid for 2 hours platform concourse access only'
           },
           score: 100,
           rankReason: 'Statutory Platform Permit',

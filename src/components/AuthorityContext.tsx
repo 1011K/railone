@@ -57,19 +57,16 @@ export const AuthorityProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const formatCurrency = (amount: number): string => {
     const sym = authority.currency.symbol;
     if (authority.id === 'japan') {
-      return `${sym}${Math.round(amount * 150).toLocaleString('ja-JP')}`;
+      return `${sym}${Math.round(amount).toLocaleString('ja-JP')}`;
     }
     if (authority.id === 'uk') {
-      const gbp = (amount * 0.1).toFixed(2);
-      return `${sym}${gbp}`;
+      return `${sym}${amount.toFixed(2)}`;
     }
     if (authority.id === 'switzerland') {
-      const chf = (amount * 0.12).toFixed(2);
-      return `${sym}${chf}`;
+      return `${sym}${amount.toFixed(2)}`;
     }
     if (authority.id === 'germany') {
-      const eur = (amount * 0.11).toFixed(2);
-      return `${sym}${eur}`;
+      return `${sym}${amount.toFixed(2)}`;
     }
     // India default
     return `${sym}${Math.round(amount)}`;

@@ -205,7 +205,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
             {(Object.keys(itinerary.totalFareByClass) as TravelClass[]).map((cls) => {
               const fare = itinerary.totalFareByClass[cls];
               const isSelected = selectedClass === cls;
-              const classLabel = {
+              const classLabel = ({
                 II: 'II (2nd)',
                 I: 'I (1st)',
                 AC_LOCAL: 'AC Local',
@@ -215,8 +215,24 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
                 SL: 'Sleeper',
                 '3A': '3A',
                 '2A': '2A',
-                '1A': '1A'
-              }[cls] || cls;
+                '1A': '1A',
+                STD: 'Standard',
+                '1ST': '1st Class',
+                OFF: 'Off-Peak',
+                ANY: 'Anytime',
+                ORD: 'Ordinary (普通)',
+                GRN: 'Green (グリーン)',
+                GRC: 'Gran Class',
+                SHK: 'Shinkansen',
+                '2CL': '2. Klasse',
+                '1CL': '1. Klasse',
+                HAL: 'Half Fare',
+                PAN: 'Panorama',
+                '2KL': '2. Klasse',
+                '1KL': '1. Klasse',
+                SPR: 'ICE Sprinter',
+                REG: 'Regio / D-Ticket'
+              } as Record<string, string>)[cls] || cls;
 
               return (
                 <button

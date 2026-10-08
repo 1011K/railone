@@ -7,7 +7,8 @@ import {
   PassengerPreferences, 
   UserTravelContext, 
   TravelClass, 
-  TrainRunningObservation 
+  TrainRunningObservation,
+  TrainServiceType 
 } from '../types/railway';
 import { STATIONS, TRAIN_TRIPS, INITIAL_OBSERVATIONS, calculateSuburbanFare } from '../fixtures/railwayData';
 import { METRO_STATIONS, METRO_LINES, calculateMetroFare } from '../fixtures/metroData';
@@ -37,7 +38,9 @@ export interface PlanJourneyParams {
   transitModeFilter?: 'all' | 'suburban' | 'metro' | 'national' | 'combined';
 }
 
-// Unified station lookup across Suburban Rail, Pan-India National Rail, and Mumbai Metro
+import { INSTITUTIONAL_AUTHORITIES, AuthorityId } from '../models/authorities';
+
+// Unified station lookup across Suburban Rail, Pan-India National Rail, Mumbai Metro, and Sovereign Authorities
 export function resolveStation(code: string): Station | null {
   if (STATIONS[code]) return STATIONS[code];
   const ms = METRO_STATIONS[code];
@@ -56,6 +59,31 @@ export function resolveStation(code: string): Station | null {
       aliases: [ms.name, ms.code]
     };
   }
+
+  const upper = code.toUpperCase();
+  for (const auth of Object.values(INSTITUTIONAL_AUTHORITIES)) {
+    const s = auth.stations.find(st => 
+      st.code.toUpperCase() === upper || 
+      st.name.toLowerCase() === code.toLowerCase() || 
+      (st.nativeName && st.nativeName.toLowerCase() === code.toLowerCase())
+    );
+    if (s) {
+      return {
+        id: `auth-${auth.id}-${s.code.toLowerCase()}`,
+        code: s.code,
+        name: s.name,
+        hindiName: s.nativeName,
+        marathiName: s.nativeName,
+        line: 'national',
+        city: s.city,
+        platforms: s.platforms,
+        interchangeWalkMinutes: s.isMajorHub ? 4 : undefined,
+        isInterchange: s.isMajorHub,
+        aliases: [s.name, s.code, ...(s.nativeName ? [s.nativeName] : [])]
+      };
+    }
+  }
+
   return null;
 }
 
@@ -434,6 +462,334 @@ export function generateSuburbanCadenceTrips(depTime: string): TrainTrip[] {
   return trips;
 }
 
+export interface AuthorityTripConfig {
+  authorityId: AuthorityId;
+  trainPrefix: string;
+  trainName: string;
+  rakeType: string;
+  serviceType: TrainServiceType;
+  classes: TravelClass[];
+  baseFares: Partial<Record<TravelClass, number>>;
+  stations: Array<{ code: string; name: string; min: number; pf: string; km: number }>;
+}
+
+export const AUTHORITY_CORRIDOR_CONFIGS: AuthorityTripConfig[] = [
+  // 1. UK (National Rail · DfT)
+  {
+    authorityId: 'uk',
+    trainPrefix: 'LNER',
+    trainName: 'LNER Azuma Intercity (London ➔ Edinburgh)',
+    rakeType: '9-Car Class 800/801 Bi-mode',
+    serviceType: 'superfast',
+    classes: ['STD', '1ST', 'OFF', 'ANY'],
+    baseFares: { STD: 42.00, '1ST': 100.80, OFF: 33.60, ANY: 58.80 },
+    stations: [
+      { code: 'KGX', name: "London King's Cross", min: 0, pf: '4', km: 0 },
+      { code: 'LDS', name: 'Leeds City Station', min: 135, pf: '8', km: 299 },
+      { code: 'EDB', name: 'Edinburgh Waverley', min: 260, pf: '11', km: 632 }
+    ]
+  },
+  {
+    authorityId: 'uk',
+    trainPrefix: 'AVANTI',
+    trainName: 'Avanti West Coast Pendolino (London ➔ Manchester)',
+    rakeType: '11-Car Class 390 Pendolino',
+    serviceType: 'superfast',
+    classes: ['STD', '1ST', 'OFF', 'ANY'],
+    baseFares: { STD: 36.00, '1ST': 86.40, OFF: 28.80, ANY: 50.40 },
+    stations: [
+      { code: 'EUS', name: 'London Euston', min: 0, pf: '1', km: 0 },
+      { code: 'BHM', name: 'Birmingham New Street', min: 78, pf: '5', km: 182 },
+      { code: 'MAN', name: 'Manchester Piccadilly', min: 126, pf: '7', km: 296 }
+    ]
+  },
+  {
+    authorityId: 'uk',
+    trainPrefix: 'ELIZ',
+    trainName: 'Elizabeth Line Cross-London (Paddington ➔ Waterloo)',
+    rakeType: '9-Car Class 345 Aventra',
+    serviceType: 'suburban_fast',
+    classes: ['STD', 'OFF', 'ANY'],
+    baseFares: { STD: 4.50, OFF: 3.60, ANY: 6.30 },
+    stations: [
+      { code: 'PAD', name: 'London Paddington', min: 0, pf: '8', km: 0 },
+      { code: 'WAT', name: 'London Waterloo', min: 18, pf: '12', km: 8 }
+    ]
+  },
+  {
+    authorityId: 'uk',
+    trainPrefix: 'GWR',
+    trainName: 'Great Western Intercity (Paddington ➔ Birmingham)',
+    rakeType: '10-Car Class 800 IET',
+    serviceType: 'superfast',
+    classes: ['STD', '1ST', 'OFF', 'ANY'],
+    baseFares: { STD: 28.00, '1ST': 67.20, OFF: 22.40, ANY: 39.20 },
+    stations: [
+      { code: 'PAD', name: 'London Paddington', min: 0, pf: '3', km: 0 },
+      { code: 'BHM', name: 'Birmingham New Street', min: 95, pf: '6', km: 190 }
+    ]
+  },
+
+  // 2. Japan (JR East · MLIT)
+  {
+    authorityId: 'japan',
+    trainPrefix: 'JY',
+    trainName: 'Yamanote Line (Inner Loop Circular)',
+    rakeType: '11-Car E235 Series',
+    serviceType: 'suburban_fast',
+    classes: ['ORD', 'GRN'],
+    baseFares: { ORD: 210, GRN: 800 },
+    stations: [
+      { code: 'TYO', name: 'Tokyo Station (東京)', min: 0, pf: '4', km: 0 },
+      { code: 'UEN', name: 'Ueno (上野)', min: 7, pf: '3', km: 3.6 },
+      { code: 'SJK', name: 'Shinjuku (新宿)', min: 24, pf: '14', km: 14.2 },
+      { code: 'SBY', name: 'Shibuya (渋谷)', min: 31, pf: '2', km: 17.6 },
+      { code: 'SGW', name: 'Shinagawa (品川)', min: 44, pf: '1', km: 24.8 },
+      { code: 'TYO', name: 'Tokyo Station (東京)', min: 60, pf: '4', km: 34.5 }
+    ]
+  },
+  {
+    authorityId: 'japan',
+    trainPrefix: 'SHK',
+    trainName: 'Nozomi 225 Shinkansen (Tokyo ➔ Shin-Osaka)',
+    rakeType: '16-Car N700S Series',
+    serviceType: 'superfast',
+    classes: ['ORD', 'GRN', 'GRC', 'SHK'],
+    baseFares: { ORD: 8910, GRN: 14750, GRC: 19800, SHK: 14920 },
+    stations: [
+      { code: 'TYO', name: 'Tokyo Station (東京)', min: 0, pf: '14', km: 0 },
+      { code: 'SGW', name: 'Shinagawa (品川)', min: 6, pf: '12', km: 6.8 },
+      { code: 'YKH', name: 'Yokohama (横浜)', min: 17, pf: '3', km: 28.8 },
+      { code: 'KYO', name: 'Kyoto Station (京都)', min: 132, pf: '11', km: 513.6 },
+      { code: 'OSA', name: 'Shin-Osaka (新大阪)', min: 148, pf: '24', km: 552.6 }
+    ]
+  },
+  {
+    authorityId: 'japan',
+    trainPrefix: 'JC',
+    trainName: 'Chūō Rapid Express (Tokyo ➔ Shinjuku)',
+    rakeType: '10+2 Car E233 Series',
+    serviceType: 'suburban_fast',
+    classes: ['ORD', 'GRN'],
+    baseFares: { ORD: 200, GRN: 780 },
+    stations: [
+      { code: 'TYO', name: 'Tokyo Station (東京)', min: 0, pf: '1', km: 0 },
+      { code: 'SJK', name: 'Shinjuku (新宿)', min: 14, pf: '7', km: 10.3 }
+    ]
+  },
+  {
+    authorityId: 'japan',
+    trainPrefix: 'E5',
+    trainName: 'Hayabusa 19 Shinkansen (Tokyo ➔ Ueno)',
+    rakeType: '10-Car E5 Series',
+    serviceType: 'superfast',
+    classes: ['ORD', 'GRN', 'GRC', 'SHK'],
+    baseFares: { ORD: 1040, GRN: 2180, GRC: 3200, SHK: 1680 },
+    stations: [
+      { code: 'TYO', name: 'Tokyo Station (東京)', min: 0, pf: '21', km: 0 },
+      { code: 'UEN', name: 'Ueno (上野)', min: 5, pf: '19', km: 3.6 }
+    ]
+  },
+
+  // 3. Switzerland (SBB CFF FFS · DATEC)
+  {
+    authorityId: 'switzerland',
+    trainPrefix: 'IC1',
+    trainName: 'SBB InterCity IC 1 (Genève ➔ Zürich HB)',
+    rakeType: '8-Car FV-Dosto Twindexx',
+    serviceType: 'superfast',
+    classes: ['2CL', '1CL', 'HAL'],
+    baseFares: { '2CL': 48.00, '1CL': 84.00, HAL: 24.00 },
+    stations: [
+      { code: 'GVA', name: 'Genève-Cornavin', min: 0, pf: '3', km: 0 },
+      { code: 'LAU', name: 'Lausanne', min: 36, pf: '2', km: 61 },
+      { code: 'BN', name: 'Bern Hauptbahnhof', min: 102, pf: '4', km: 158 },
+      { code: 'ZRH', name: 'Zürich Hauptbahnhof', min: 158, pf: '31', km: 280 }
+    ]
+  },
+  {
+    authorityId: 'switzerland',
+    trainPrefix: 'EC',
+    trainName: 'EuroCity Giruno EC 250 (Zürich HB ➔ Bern)',
+    rakeType: '11-Car Giruno EC 250',
+    serviceType: 'superfast',
+    classes: ['2CL', '1CL', 'HAL', 'PAN'],
+    baseFares: { '2CL': 34.00, '1CL': 59.50, HAL: 17.00, PAN: 74.80 },
+    stations: [
+      { code: 'ZRH', name: 'Zürich Hauptbahnhof', min: 0, pf: '8', km: 0 },
+      { code: 'LUZ', name: 'Luzern', min: 41, pf: '5', km: 58 },
+      { code: 'BN', name: 'Bern Hauptbahnhof', min: 105, pf: '7', km: 150 }
+    ]
+  },
+  {
+    authorityId: 'switzerland',
+    trainPrefix: 'IR',
+    trainName: 'InterRegio IR 36 (Zürich HB ➔ Basel SBB)',
+    rakeType: '6-Car Regio Dosto',
+    serviceType: 'suburban_fast',
+    classes: ['2CL', '1CL', 'HAL'],
+    baseFares: { '2CL': 22.00, '1CL': 38.50, HAL: 11.00 },
+    stations: [
+      { code: 'ZRH', name: 'Zürich Hauptbahnhof', min: 0, pf: '12', km: 0 },
+      { code: 'BSL', name: 'Basel SBB', min: 53, pf: '4', km: 88 }
+    ]
+  },
+  {
+    authorityId: 'switzerland',
+    trainPrefix: 'GEX',
+    trainName: 'Glacier Express Alpine Panorama (Zermatt ➔ Luzern)',
+    rakeType: '6-Car Panoramic Rake',
+    serviceType: 'superfast',
+    classes: ['2CL', '1CL', 'PAN'],
+    baseFares: { '2CL': 65.00, '1CL': 113.75, PAN: 143.00 },
+    stations: [
+      { code: 'ZMT', name: 'Zermatt', min: 0, pf: '2', km: 0 },
+      { code: 'INT', name: 'Interlaken Ost', min: 115, pf: '3', km: 95 },
+      { code: 'LUZ', name: 'Luzern', min: 195, pf: '9', km: 170 }
+    ]
+  },
+
+  // 4. Germany (Deutsche Bahn AG · BMDV)
+  {
+    authorityId: 'germany',
+    trainPrefix: 'ICE1',
+    trainName: 'ICE 1005 Sprinter (Berlin Hbf ➔ München Hbf)',
+    rakeType: '12-Car ICE 4 / ICE 3neo',
+    serviceType: 'superfast',
+    classes: ['2KL', '1KL', 'SPR', 'REG'],
+    baseFares: { '2KL': 79.00, '1KL': 142.20, SPR: 110.60, REG: 49.00 },
+    stations: [
+      { code: 'BER', name: 'Berlin Hauptbahnhof', min: 0, pf: '1', km: 0 },
+      { code: 'LEI', name: 'Leipzig Hauptbahnhof', min: 72, pf: '10', km: 162 },
+      { code: 'MUN', name: 'München Hauptbahnhof', min: 235, pf: '18', km: 623 }
+    ]
+  },
+  {
+    authorityId: 'germany',
+    trainPrefix: 'ICE5',
+    trainName: 'ICE 517 Rhine Corridor (Köln Hbf ➔ Stuttgart Hbf)',
+    rakeType: '8-Car ICE 3 (Baureihe 403)',
+    serviceType: 'superfast',
+    classes: ['2KL', '1KL', 'SPR'],
+    baseFares: { '2KL': 52.00, '1KL': 93.60, SPR: 72.80 },
+    stations: [
+      { code: 'CGN', name: 'Köln Hauptbahnhof', min: 0, pf: '6', km: 0 },
+      { code: 'DUS', name: 'Düsseldorf Hauptbahnhof', min: 22, pf: '10', km: 40 },
+      { code: 'FRA', name: 'Frankfurt(Main) Hauptbahnhof', min: 78, pf: '4', km: 220 },
+      { code: 'STR', name: 'Stuttgart Hauptbahnhof', min: 138, pf: '8', km: 350 }
+    ]
+  },
+  {
+    authorityId: 'germany',
+    trainPrefix: 'RE1',
+    trainName: 'RE 1 Regional-Express (Berlin Hbf ➔ Leipzig Hbf)',
+    rakeType: '8-Car Baureihe 483/484',
+    serviceType: 'suburban_fast',
+    classes: ['2KL', '1KL', 'REG'],
+    baseFares: { '2KL': 24.00, '1KL': 43.20, REG: 18.00 },
+    stations: [
+      { code: 'BER', name: 'Berlin Hauptbahnhof', min: 0, pf: '15', km: 0 },
+      { code: 'LEI', name: 'Leipzig Hauptbahnhof', min: 95, pf: '6', km: 162 }
+    ]
+  },
+  {
+    authorityId: 'germany',
+    trainPrefix: 'ICE8',
+    trainName: 'ICE 800 Nord-Süd (Hamburg Hbf ➔ Frankfurt Hbf)',
+    rakeType: '13-Car ICE 4 XXL',
+    serviceType: 'superfast',
+    classes: ['2KL', '1KL', 'SPR'],
+    baseFares: { '2KL': 68.00, '1KL': 122.40, SPR: 95.20 },
+    stations: [
+      { code: 'HAM', name: 'Hamburg Hauptbahnhof', min: 0, pf: '7', km: 0 },
+      { code: 'FRA', name: 'Frankfurt(Main) Hauptbahnhof', min: 215, pf: '9', km: 500 }
+    ]
+  }
+];
+
+// Synthetic high-frequency Sovereign Authority trips generator
+export function generateAuthorityTrips(depTime: string): TrainTrip[] {
+  const trips: TrainTrip[] = [];
+  const baseOffsets = [-60, -35, -15, 0, 15, 30, 45, 60, 75, 90, 120, 150];
+
+  baseOffsets.forEach((offset, idx) => {
+    const tDep = addMinutesToTimeString(depTime, offset);
+
+    AUTHORITY_CORRIDOR_CONFIGS.forEach((cfg, cfgIdx) => {
+      const totalKm = Math.abs(cfg.stations[cfg.stations.length - 1].km - cfg.stations[0].km) || 100;
+      
+      // 1. Forward Trip
+      const forwardStops = cfg.stations.map(s => {
+        const hArr = addMinutesToTimeString(tDep, s.min);
+        const hDep = addMinutesToTimeString(tDep, s.min + (s.min === 0 ? 0 : 2));
+        return {
+          stationCode: s.code,
+          stationName: s.name,
+          scheduledArrival: hArr,
+          scheduledDeparture: hDep,
+          platform: s.pf,
+          distanceKm: s.km,
+          isHalt: true
+        };
+      });
+
+      const forwardTrip: TrainTrip = {
+        trainNumber: `${cfg.trainPrefix}-${100 + idx * 4 + cfgIdx}`,
+        trainName: cfg.trainName,
+        originStation: cfg.stations[0].code,
+        destinationStation: cfg.stations[cfg.stations.length - 1].code,
+        serviceType: cfg.serviceType,
+        runningDays: [0, 1, 2, 3, 4, 5, 6],
+        rakeType: cfg.rakeType as any,
+        availableClasses: cfg.classes,
+        stops: forwardStops
+      };
+      (forwardTrip as any).isAuthorityTrain = true;
+      (forwardTrip as any).authorityId = cfg.authorityId;
+      (forwardTrip as any).faresByClass = cfg.baseFares;
+      (forwardTrip as any).totalTripDistanceKm = totalKm;
+      trips.push(forwardTrip);
+
+      // 2. Reverse Trip
+      const reversedStations = [...cfg.stations].reverse();
+      const lastMin = cfg.stations[cfg.stations.length - 1].min;
+      const reverseStops = reversedStations.map(s => {
+        const relMin = lastMin - s.min;
+        const hArr = addMinutesToTimeString(tDep, relMin);
+        const hDep = addMinutesToTimeString(tDep, relMin + (relMin === 0 ? 0 : 2));
+        return {
+          stationCode: s.code,
+          stationName: s.name,
+          scheduledArrival: hArr,
+          scheduledDeparture: hDep,
+          platform: s.pf,
+          distanceKm: Number(Math.abs(totalKm - s.km).toFixed(1)),
+          isHalt: true
+        };
+      });
+
+      const reverseTrip: TrainTrip = {
+        trainNumber: `${cfg.trainPrefix}-R-${101 + idx * 4 + cfgIdx}`,
+        trainName: `${cfg.trainName.replace('➔', '⮂')}`,
+        originStation: reversedStations[0].code,
+        destinationStation: reversedStations[reversedStations.length - 1].code,
+        serviceType: cfg.serviceType,
+        runningDays: [0, 1, 2, 3, 4, 5, 6],
+        rakeType: cfg.rakeType as any,
+        availableClasses: cfg.classes,
+        stops: reverseStops
+      };
+      (reverseTrip as any).isAuthorityTrain = true;
+      (reverseTrip as any).authorityId = cfg.authorityId;
+      (reverseTrip as any).faresByClass = cfg.baseFares;
+      (reverseTrip as any).totalTripDistanceKm = totalKm;
+      trips.push(reverseTrip);
+    });
+  });
+
+  return trips;
+}
+
 export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
   const {
     originCode: rawOriginCode,
@@ -496,10 +852,11 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
     return [];
   }
 
-  // Combined train catalog including suburban services, active metro services, and Pan-India national trains
+  // Combined train catalog including suburban services, active metro services, Pan-India national trains, and Sovereign Authorities
   const metroTrips = generateMetroTrips(departureTime);
   const suburbanTrips = generateSuburbanCadenceTrips(departureTime);
-  const allAvailableTrains = [...TRAIN_TRIPS, ...suburbanTrips, ...metroTrips, ...PAN_INDIA_TRAINS];
+  const authorityTrips = generateAuthorityTrips(departureTime);
+  const allAvailableTrains = [...TRAIN_TRIPS, ...suburbanTrips, ...metroTrips, ...PAN_INDIA_TRAINS, ...authorityTrips];
 
   let candidateItineraries: JourneyItinerary[] = [];
 
@@ -539,8 +896,11 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
     const stopsTraversed = toIdx - fromIdx;
     const isMetro = train.trainNumber.startsWith('M1') || train.trainNumber.startsWith('M2') || train.trainNumber.startsWith('M7');
+    const isAuthTrain = Boolean((train as any).isAuthorityTrain);
     const stoppingPatternLabel = isMetro
       ? `Mumbai Metro Rapid Transit (${stopsTraversed} halts)`
+      : isAuthTrain
+      ? `${train.trainName.split('(')[0].trim()} (${stopsTraversed} halts)`
       : train.serviceType.includes('fast') 
       ? `Fast Service (${stopsTraversed} halts)` 
       : train.serviceType.includes('slow')
@@ -616,6 +976,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         : (train.serviceType.includes('ac') ? 'AC_LOCAL' : 'II');
 
       const isMetro = train.trainNumber.startsWith('M1') || train.trainNumber.startsWith('M2') || train.trainNumber.startsWith('M7');
+      const isAuthTrain = Boolean((train as any).isAuthorityTrain);
 
       let eligibility = evaluateJourneyEligibility({
         train,
@@ -635,6 +996,15 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
           passPermitted: true,
           ticketRequiredNote: 'Standard Metro paper QR token or NCMC smart card.'
         };
+      } else if (isAuthTrain) {
+        eligibility = {
+          status: 'ELIGIBLE',
+          summary: 'Authorized for transit under statutory authority operating framework.',
+          rulesApplied: ['National Passenger Transit Authority Charter'],
+          validClasses: train.availableClasses,
+          passPermitted: true,
+          ticketRequiredNote: 'Valid electronic or statutory travel document.'
+        };
       }
 
       // Strict Exclusion: Prohibited trains are NEVER recommended or shown as bookable passenger journeys
@@ -651,6 +1021,16 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
 
       if (isMetro) {
         totalFareByClass['II'] = calculateMetroFare(segmentDistance);
+      } else if (isAuthTrain && (train as any).faresByClass) {
+        const totalTripKm = (train as any).totalTripDistanceKm || 100;
+        const ratio = Math.max(0.15, Math.min(1, segmentDistance / totalTripKm));
+        const authId = (train as any).authorityId;
+        for (const cls of train.availableClasses) {
+          const fullFare = (train as any).faresByClass[cls] || 10;
+          totalFareByClass[cls] = authId === 'japan' 
+            ? Math.round(fullFare * ratio) 
+            : Number((fullFare * ratio).toFixed(2));
+        }
       } else {
         for (const cls of train.availableClasses) {
           totalFareByClass[cls] = calculateSuburbanFare(segmentDistance, cls);
@@ -664,6 +1044,15 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         leg.arrDayOffset || 0
       ));
       const isAc = train.serviceType.includes('ac');
+
+      const defaultRecClass: TravelClass = 
+        train.availableClasses.includes('STD') ? 'STD'
+        : train.availableClasses.includes('ORD') ? 'ORD'
+        : train.availableClasses.includes('2CL') ? '2CL'
+        : train.availableClasses.includes('2KL') ? '2KL'
+        : isAc ? 'AC_LOCAL'
+        : preferences.classPreference === 'first' ? 'I'
+        : 'II';
 
       // Leave-home calculation
       const walkMargin = preferences.walkToStationMinutes || 15;
@@ -690,7 +1079,7 @@ export function planJourneys(params: PlanJourneyParams): JourneyItinerary[] {
         scheduledArrival: leg.scheduledArr,
         predictedArrival: leg.predictedArr,
         totalFareByClass,
-        recommendedClass: isAc ? 'AC_LOCAL' : preferences.classPreference === 'first' ? 'I' : 'II',
+        recommendedClass: defaultRecClass,
         eligibility,
         score: 0,
         rankReason: '',

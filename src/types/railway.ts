@@ -55,7 +55,23 @@ export type TravelClass =
   | '2A'        // 2nd AC
   | '1A'        // 1st AC
   | 'CC'        // AC Chair Car
-  | 'EC';       // Executive Chair Car
+  | 'EC'        // Executive Chair Car
+  | 'STD'       // UK Standard Class
+  | '1ST'       // UK First Class
+  | 'OFF'       // UK Off-Peak Day Return
+  | 'ANY'       // UK Anytime Open Single
+  | 'ORD'       // Japan Ordinary Car
+  | 'GRN'       // Japan Green Car
+  | 'GRC'       // Japan Gran Class
+  | 'SHK'       // Japan Shinkansen Reserved
+  | '2CL'       // Switzerland 2. Klasse
+  | '1CL'       // Switzerland 1. Klasse
+  | 'HAL'       // Switzerland Half Fare
+  | 'PAN'       // Switzerland Panorama Alpine
+  | '2KL'       // Germany 2. Klasse
+  | '1KL'       // Germany 1. Klasse
+  | 'SPR'       // Germany ICE Sprinter
+  | 'REG';      // Germany Regio / D-Ticket
 
 export interface StopEntry {
   stationCode: string;
