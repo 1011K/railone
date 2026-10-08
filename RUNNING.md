@@ -4,21 +4,24 @@ This document is the definitive operational manual for running, testing, and dev
 
 ---
 
-## 1. Prerequisites & Environment Requirements
+## 1. Prerequisites & Environment Matrix
 
-| Requirement | Minimum Version | Recommended | Notes |
+| Environment / Tool | Minimum Version | Recommended | Notes |
 | :--- | :--- | :--- | :--- |
-| **Node.js** | `>= 20.x` | `22.x LTS` | Node 22 includes built-in SQLite engine and high-performance V8. |
+| **Node.js** | `>= 20.x` | `22.x LTS` | Node 22 includes built-in SQLite engine and high-performance V8 engine. |
 | **npm** | `>= 10.x` | `10.9.x+` | Standard Node package manager. |
-| **Git** | `>= 2.30` | Latest | For version control. |
+| **Git** | `>= 2.30` | Latest | Version control system. |
+| **Google Antigravity** | Any | Active Agent Workspace | Works natively; agents inherit bash/powershell run commands and MCP tools. |
+| **GitHub Codespaces / Cloud Shell** | Node 20+ base image | Default container | Fully compatible out of the box with port forwarding for `3000` and `8081`. |
+| **Codex / VS Code / Cursor** | Latest | With TS 5.8+ | Native TypeScript language server support across monorepo packages. |
 | **Operating System** | Any | Windows / macOS / Linux | Fully cross-platform compatible. |
-| **Expo Go (Optional)**| Latest | iOS App Store / Google Play | For running the native app directly on a physical smartphone. |
+| **Expo Go (Optional)**| Latest | iOS App Store / Google Play | For running the native app directly on a physical smartphone over local Wi-Fi. |
 
 ---
 
 ## 2. One-Time Setup (New Teammate Quickstart)
 
-Clone the repository and install all required root and native mobile dependencies:
+Clone the repository and install all required root and native mobile dependencies in one step:
 
 ```bash
 # 1. Clone the repository
@@ -35,11 +38,14 @@ npm install
 npm --prefix apps/mobile install
 ```
 
+> **Single-line Quick Command (All Platforms)**:  
+> `npm install && npm --prefix apps/mobile install`
+
 > **Windows PowerShell Note**: If executing `npm` or `npx` in PowerShell with strict script policies, invoke `npm.cmd` or `npx.cmd`.
 
 ---
 
-## 3. Running the Test Suite (240/240 Passing)
+## 3. Running the Test Suite (248/248 Passing, 0 Failures)
 
 Run the full automated verification suite locally without triggering remote CI:
 
@@ -47,7 +53,7 @@ Run the full automated verification suite locally without triggering remote CI:
 npm test
 ```
 
-### Verification Scope (27 Test Suites, 240 Assertions)
+### Verification Scope (28 Test Suites, 248 Assertions)
 - **Suites 1–18**: Station normalization, fare tariffs, multimodal routing, congestion modeling, 2D/3D map engines, and God's Eye layouts.
 - **Suites 19–21**: Mumbai Metro Lines (1, 2A, 7, 3), PWA caching, coach alignment, and institutional charters.
 - **Suite 22**: SQLite persistence, station aliasing, and RailSathi voice engine.
@@ -56,6 +62,7 @@ npm test
 - **Suite 25**: EAS cloud configuration, Hermes engine, vector geometry caching, and TTE Section 137/138 validator.
 - **Suite 26**: Decoupled Coach Guide domain models, dynamic booking timestamps, and accessible modal primitives.
 - **Suite 27**: Multi-country sovereign authorities (India, UK, Japan, Switzerland, Germany) and 360px viewport resilience.
+- **Suite 28**: Multi-country sovereign journey planning, dynamic tariff resolution, CJK/Devanagari normalization, and UI hygiene.
 
 ---
 
@@ -159,18 +166,20 @@ railone/
 │   ├── fixtures/                # Verified station catalogs & timetable datasets
 │   └── models/                  # Domain contracts (authorities, coachGuide)
 ├── tests/
-│   └── run-all-tests.ts         # 240 automated unit, integration, and SSR assertions
+│   └── run-all-tests.ts         # 248 automated unit, integration, and SSR assertions
 ├── server.ts                    # Express REST API & SQLite persistence
 └── package.json                 # Project dependencies & build scripts
 ```
 
 ---
 
-## 7. Integrated Development Principles & Skills
+## 7. Integrated Development Principles & Skills Directory
 
-The repository integrates five operational charters:
+The repository integrates five operational charters and a full agentic skill suite in `.agents/skills/`:
 - **Ponytail (`.agents/skills/ponytail`)**: Strict YAGNI, standard library first, zero unrequested dependencies, shortest working diffs.
 - **Caveman (`.agents/skills/caveman`)**: Answer-first technical communication with zero fluff.
 - **Superpowers (`.agents/skills/superpowers`)**: Rigorous Test-Driven Development (failing test first, then implementation, then zero regressions).
 - **UI UX Pro Max (`.agents/skills/ui-ux-pro-max`)**: High contrast, thumb-friendly 48px touch targets, WCAG AA/AAA compliance, safe-area awareness (`pb-safe`, `pt-safe`).
 - **Railway Integrity**: Zero data fabrication. Unverified feeds are explicitly tagged `[TIMETABLE SCHEDULE]`, `[SIMULATED DATASET]`, or `[DEMO]`.
+- **GSD Lifecycle (`.agents/skills/gsd-*`)**: Structured wave execution, context preservation, and state recovery.
+- **Systematic Debugging & Verification (`.agents/skills/systematic-debugging`, `verification-before-completion`)**: Evidence-backed defect diagnosis and zero-speculation verification.

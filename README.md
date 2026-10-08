@@ -3,7 +3,7 @@
 **Official Institutional Transport Authority & Journey Decision Support Platform**  
 **Flagship Authority**: Republic of India — Ministry of Railways / CRIS & IRCTC  
 **International Authorities**: UK National Rail, Japan JR East, Switzerland SBB CFF FFS, Germany Deutsche Bahn  
-**Branch**: `feature/mobile-rebuild` | **Quality Gate**: 240/240 Automated Tests Passing (100% Green)
+**Branch**: `feature/mobile-rebuild` | **Quality Gate**: 248/248 Automated Tests Passing (100% Green, 0 Failures)
 
 ---
 
@@ -63,48 +63,76 @@ RailOne Next incorporates five national passenger transport authorities with sta
 ### G. TTE / TC Inspector Demonstration Mode
 - Dedicated ticket examiner validation interface with statutory Railways Act Section 137 (fraudulent intent) and Section 138 (irregular travel) tariff recovery calculations.
 
+### H. Multi-Country Sovereign Journey Planning & Dynamic Tariff Resolution
+- Real-time station normalization for multilingual scripts (Devanagari, CJK Kanji, Latin).
+- Authentic sovereign tariffs, classes (e.g. Standard/1st, Ordinary/Green, 2./1. Klasse), and season passes (MST, Travelcard, Teikiken 定期券, General-Abonnement, Deutschlandticket).
+
 ---
 
-## 4. Teammate Quickstart & Running Instructions
+## 4. Teammate Quickstart & Environment Setup Guide
 
-### Clone & Install
+### Supported Platforms & Environments
+RailOne Next is engineered to run seamlessly across all major developer environments:
+- **Google Antigravity**: Clone, checkout `feature/mobile-rebuild`, run `npm install && npm --prefix apps/mobile install`, execute tests with `npm test`.
+- **GitHub Codespaces / Cloud Shell / Linux Containers**: Fully supported with standard Node.js 20+ runtime.
+- **Codex / VS Code / Cursor / JetBrains**: Full TypeScript language server integration, root and native monorepo workspace configurations.
+- **Windows (PowerShell/CMD)**: Native `.cmd` script support (`npm.cmd test`, `npm.cmd run dev`).
+- **macOS / Linux**: POSIX-compliant script paths and file permissions.
+
+### Clone & Install (Single-Block Command)
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/1011K/railone.git
 cd railone
 
-# Checkout the active implementation branch
+# 2. Switch to active implementation branch
 git checkout feature/mobile-rebuild
 
-# Install dependencies (root + mobile)
-npm install
-npm --prefix apps/mobile install
+# 3. Install all dependencies (root web/API + native mobile Expo monorepo)
+npm install && npm --prefix apps/mobile install
 ```
 
-### Run Tests (240 Tests Passing)
+### Run Automated Tests (248/248 Passing, 0 Failures)
 ```bash
 npm test
 ```
 
 ### Launch Applications
 ```bash
-# 1. Desktop Web & API Server (http://localhost:3000)
+# Mode 1: Desktop Web & Express API Server (http://localhost:3000)
 npm run dev
 
-# 2. Native Mobile Web Preview (http://localhost:8081)
+# Mode 2: Native Mobile Web Preview (http://localhost:8081)
 npm run mobile:web
 
-# 3. Native Mobile Expo Development Server
+# Mode 3: Native Mobile Expo Development Server (QR code for Expo Go on iOS/Android)
 npm run mobile:dev
+
+# Mode 4: Verify Expo native dependency health
+npm run mobile:doctor
 ```
 
 ---
 
-## 5. Engineering Quality Gates
+## 5. Engineering Quality Gates & Verification Evidence
 
-- **Test Suite**: **240/240 Tests Passing (0 Failed, 100% Pass Rate)** across 27 suites.
+- **Automated Test Suite**: **248/248 Tests Passing (0 Failed, 100% Pass Rate)** across 28 test suites.
 - **Root Typecheck**: `tsc --noEmit` exits with 0 errors.
 - **Mobile Typecheck**: `npm --prefix apps/mobile run lint` exits with 0 errors.
-- **Expo Doctor**: `npx expo-doctor` passes 18/18 checks with zero issues.
-- **Production Bundle**: Vite production build transforms 1703 modules with zero build errors.
-- **Data Provenance**: Zero fabricated delays or hallucinated platform assignments; all data strictly tagged `LIVE_VERIFIED`, `SCHEDULED`, `SIMULATED DATASET`, or `DEMO`.
+- **Expo Doctor**: `npx expo-doctor` passes 18/18 checks with zero warnings.
+- **Production Bundle**: Vite production build transforms 1703 modules with zero errors (`npm run build`).
+- **Data Provenance**: Zero fabricated delays or hallucinated platform assignments; all data strictly tagged `LIVE_VERIFIED`, `SCHEDULED`, `[VERIFIED TRUNK]`, `SIMULATED DATASET`, or `DEMO`.
+- **Passenger UI Hygiene**: 100% clean of raw code, test execution logs, and internal developer jargon in commuter viewports.
+
+---
+
+## 6. Integrated Agentic Skills & Technical Charters
+
+The repository includes a comprehensive set of operational skills located in `.agents/skills/`:
+- **Ponytail (`.agents/skills/ponytail`)**: Enforces YAGNI, standard library first, zero unrequested abstractions or dependencies, shortest working diffs.
+- **Caveman (`.agents/skills/caveman`)**: Token efficiency and answer-first communication while preserving 100% technical facts, paths, and code.
+- **Superpowers (`.agents/skills/superpowers`)**: Rigorous Test-Driven Development (TDD: failing test first, verify failure, write minimal code, verify zero regressions).
+- **UI UX Pro Max (`.agents/skills/ui-ux-pro-max`)**: Thumb-reachable 48px touch targets, WCAG 2.1 AA/AAA compliance, safe-area insets (`pb-safe`), and SVG iconography with zero emojis.
+- **GSD Core (`.agents/skills/gsd-*`)**: Structured wave execution, context preservation, and state recovery.
+- **Railway Data Verification (`.agents/skills/railway-data-verification`)**: Validates stop patterns, fare calculation, delay propagation, and statutory passenger legalities.
+- **Investigation & Refactoring (`.agents/skills/investigate-first`, `safe-refactor`, `surgical-patch`)**: Evidence-ranked debugging, safe structural transforms, and regression-proof patches.
