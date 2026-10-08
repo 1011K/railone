@@ -187,6 +187,12 @@ export class MultimodalGraphEngine {
 
     const originNode = resolvedOrigin.node;
     const destNode = resolvedDest.node;
+
+    // If origin and destination resolve to the identical node with no door-to-door offset, return empty
+    if (originNode.id === destNode.id && resolvedOrigin.walkAccessMinutes === 0 && resolvedDest.walkAccessMinutes === 0) {
+      return [];
+    }
+
     const prefs = params.preferences || {};
     const expressThreshold = prefs.expressAdvantageThresholdMinutes ?? 15;
     const depTime = params.departureTime || '08:30';
@@ -233,6 +239,10 @@ export class MultimodalGraphEngine {
     prefs: MultimodalRoutingPreferences,
     liveObservations?: Record<string, { delayMinutes: number; status: 'ON_TIME' | 'DELAYED' | 'CANCELLED' }>
   ): MultimodalEdge[][] {
+    if (startNodeId === targetNodeId || this.isTargetReached(startNodeId, targetNodeId)) {
+      return [];
+    }
+
     const results: MultimodalEdge[][] = [];
     const queue: Array<{ currentNodeId: string; edges: MultimodalEdge[]; visited: Set<string> }> = [];
 
@@ -293,7 +303,7 @@ export class MultimodalGraphEngine {
       'BUS_BKC': ['METRO_BKC'],
       'METRO_BKC': ['BUS_BKC'],
       'METRO_CSMT_3': ['CSMT'],
-      'CSMT': ['METRO_CSMT_3', 'BUS_NARIMAN']
+      'CSMT': ['METRO_CSMT_3']
     };
 
     if (equivalenceMap[targetNodeId]?.includes(currentNodeId)) return true;

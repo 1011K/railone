@@ -256,6 +256,14 @@ app.get('/api/health', (req, res) => {
   res.json(health);
 });
 
+// Express global error handler
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Express Error Handler caught:', err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: 'INTERNAL_SERVER_ERROR', message: err?.message || 'Server encountered an internal error' });
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Server Frontend / Vite Middlewares Mount
 // ---------------------------------------------------------------------------
@@ -269,6 +277,23 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    // Fallback for HTML navigation in dev mode
+    app.use('*', async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api/')) {
+        return next();
+      }
+      try {
+        const fs = await import('fs');
+        const url = req.originalUrl;
+        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        vite.ssrFixStacktrace?.(e);
+        next(e);
+      }
+    });
   } else {
     const distPath = path.resolve(process.cwd(), 'dist');
     app.use(express.static(distPath));
@@ -277,12 +302,29 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`RailOne Next server running at http://0.0.0.0:${PORT} (Gemini AI: ${aiClient ? 'Active' : 'Deterministic Mode'})`);
   });
+
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT, shutting down cleanly...');
+    server.close(() => process.exit(0));
+  });
+  process.on('SIGTERM', () => {
+    console.log('Received SIGTERM, shutting down cleanly...');
+    server.close(() => process.exit(0));
+  });
 }
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
 
 startServer().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
 });
+

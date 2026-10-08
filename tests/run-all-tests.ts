@@ -2417,6 +2417,29 @@ console.log('\nTest Suite 29: India Multimodal Architecture, MMR Scenarios, P0 S
     hasFirstMileWalk && d2dItins[0].totalWalkMinutes >= 5,
     '29.13: Door-to-door journey planning creates concrete first-mile/last-mile walking legs and instructions in itinerary'
   );
+
+  // 29.14: Identical origin and destination returns 0 itineraries without looping
+  const sameNodeItins = mmrEngine.planJourney({
+    origin: 'CSMT',
+    destination: 'CSMT'
+  });
+  assert(
+    sameNodeItins.length === 0,
+    '29.14: Identical origin and destination (CSMT -> CSMT) returns 0 itineraries without erroneous bus loop diversion'
+  );
+
+  // 29.15: Multimodal equivalence map isolates Nariman Point bus terminal from CSMT railway junction
+  const tnaCsmtItins = mmrEngine.planJourney({
+    origin: 'TNA',
+    destination: 'CSMT'
+  });
+  const arrivesAtNariman = tnaCsmtItins.some(itin => 
+    itin.legs.some(l => l.toNode.code === 'BUS_NARIMAN')
+  );
+  assert(
+    tnaCsmtItins.length > 0 && !arrivesAtNariman,
+    '29.15: Multimodal equivalence map strictly isolates Nariman Point bus terminus from CSMT railway terminus'
+  );
 }
 
 console.log('\n====================================================');
