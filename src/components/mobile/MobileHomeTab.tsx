@@ -20,7 +20,9 @@ import {
   Zap,
   Radio,
   FileText,
-  PhoneCall
+  PhoneCall,
+  MessageSquare,
+  Grid
 } from 'lucide-react';
 
 import { PassengerNavTab } from '../common/BottomNavigation';
@@ -132,7 +134,7 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
           </div>
         </div>
 
-        {/* One-Call Action Chips */}
+        {/* Rail Yatri One-Call and Chat Action Chips */}
         <div className="flex items-center gap-2 pt-1">
           <button
             onClick={() => {
@@ -141,18 +143,18 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
             }}
             className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[11px] font-black shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95"
           >
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>{t.oneCallBooking}</span>
+            <PhoneCall className="w-3.5 h-3.5" />
+            <span>Call Rail Yatri</span>
           </button>
           <button
             onClick={() => {
               if (onOpenRailSathi) onOpenRailSathi();
               else onSwitchTab('help');
             }}
-            className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border border-white/20 flex items-center gap-1.5 transition-all active:scale-95"
+            className="flex-1 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border border-white/20 flex items-center justify-center gap-1.5 transition-all active:scale-95"
           >
-            <PhoneCall className="w-3.5 h-3.5" />
-            <span>{t.callScreen}</span>
+            <MessageSquare className="w-3.5 h-3.5 text-cyan-300" />
+            <span>Chat Assistant</span>
           </button>
         </div>
 
@@ -269,7 +271,13 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
           <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">
             {t.quickActions}
           </span>
-          <span className="text-[10px] text-slate-400">One-Tap Action</span>
+          <button
+            onClick={() => onOpenActionModal('services_hub')}
+            className="text-[10px] font-extrabold text-theme-primary hover:underline flex items-center gap-0.5"
+          >
+            <span>All 22 Services</span>
+            <ChevronRight className="w-3 h-3" />
+          </button>
         </div>
         <div className="grid grid-cols-4 gap-2">
           {quickActions.map(action => {
@@ -295,6 +303,24 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
               </button>
             );
           })}
+        </div>
+
+        {/* 22-Services Catalog Banner Button */}
+        <div className="pt-2">
+          <button
+            onClick={() => onOpenActionModal('services_hub')}
+            className="w-full py-2.5 px-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-theme-primary transition-all flex items-center justify-between shadow-xs active:scale-98"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-theme-primary/10 text-theme-primary flex items-center justify-center">
+                <Grid className="w-3.5 h-3.5" />
+              </div>
+              <span>Explore All 22 Commuter & Transit Services</span>
+            </div>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-theme-primary text-white">
+              Hub
+            </span>
+          </button>
         </div>
       </div>
 

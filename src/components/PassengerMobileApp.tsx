@@ -21,6 +21,7 @@ import { TRAIN_TRIPS, STATIONS } from '../fixtures/railwayData';
 import { PAN_INDIA_TRAINS } from '../fixtures/panIndiaTrainsData';
 import { resolveStation } from '../engine/journeyEngine';
 import { ThemeSelectorModal } from './ThemeSelectorModal';
+import { ServicesHubModal, ServiceItem } from './ServicesHubModal';
 import { useAuthority } from './AuthorityContext';
 import { InstitutionalInsignia } from './common/InstitutionalInsignia';
 import { getTranslation } from '../i18n/translations';
@@ -93,6 +94,7 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const [showGodsEye, setShowGodsEye] = useState<boolean>(false);
   const [godsEyeStationCode, setGodsEyeStationCode] = useState<string>('DR');
   const [showInstitutionalDossier, setShowInstitutionalDossier] = useState<boolean>(false);
+  const [showServicesHub, setShowServicesHub] = useState<boolean>(false);
 
   // Booking Modal State
   const [selectedItinerary, setSelectedItinerary] = useState<JourneyItinerary | null>(null);
@@ -283,7 +285,51 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       case 'gods_eye':
         handleOpenGodsEye(payload || 'DR');
         break;
+      case 'services_hub':
+        setShowServicesHub(true);
+        break;
       default:
+        break;
+    }
+  };
+
+  const handleServiceSelect = (service: ServiceItem) => {
+    switch (service.actionId) {
+      case 'uts_local':
+      case 'express_reserved':
+      case 'season_pass':
+      case 'journey_planning':
+        setActiveTab('journey');
+        break;
+      case 'platform_ticket':
+        handleActionModal('platform_ticket');
+        break;
+      case 'my_tickets':
+      case 'wallet':
+      case 'cancellation_refunds':
+        setActiveTab('tickets');
+        break;
+      case 'track_train':
+      case 'crowd_delay_insights':
+        setActiveTab('live');
+        break;
+      case 'station_guide':
+        handleOpenGodsEye('DR');
+        break;
+      case 'coach_guide':
+        setShowCoachGuide(true);
+        break;
+      case 'railyatri_voice_chat':
+        setActiveTab('help');
+        break;
+      case 'network_maps':
+        setActiveTab('live');
+        break;
+      case 'nearest_station':
+        setShowCityPicker(true);
+        break;
+      default:
+        setActiveTab('journey');
         break;
     }
   };
@@ -634,6 +680,15 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
             onClose={() => setShowInstitutionalDossier(false)}
           />
         </React.Suspense>
+      )}
+
+      {/* 22-Services Directory Hub Modal */}
+      {showServicesHub && (
+        <ServicesHubModal
+          isOpen={showServicesHub}
+          onClose={() => setShowServicesHub(false)}
+          onSelectService={handleServiceSelect}
+        />
       )}
 
       {/* Floating Rail Yatri Assistant Quick Action FAB */}

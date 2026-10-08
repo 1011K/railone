@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FastForward, Sparkles, Train } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FastForward, Sparkles, Train, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 
 interface LaunchSequenceProps {
   onComplete: () => void;
@@ -7,6 +7,62 @@ interface LaunchSequenceProps {
 
 export const LaunchSequence: React.FC<LaunchSequenceProps> = ({ onComplete }) => {
   const [phase, setPhase] = useState<'brand' | 'train' | 'fadeout'>('brand');
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    return localStorage.getItem('railone_launch_muted') === 'true';
+  });
+  const audioContextRef = useRef<any>(null);
+
+  const playSynthesizedHorn = (muted: boolean) => {
+    if (muted) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      audioContextRef.current = ctx;
+
+      // Realistic dual-tone Indian Railway electric locomotive horn (approx 311 Hz and 370 Hz)
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = 'sawtooth';
+      osc2.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(311, ctx.currentTime);
+      osc2.frequency.setValueAtTime(370, ctx.currentTime);
+
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(ctx.currentTime);
+      osc2.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 1.2);
+      osc2.stop(ctx.currentTime + 1.2);
+    } catch {
+      // Audio autoplay policy fallback
+    }
+  };
+
+  const toggleMute = () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    localStorage.setItem('railone_launch_muted', String(next));
+    if (!next) {
+      playSynthesizedHorn(false);
+    }
+  };
+
+  const restartSequence = () => {
+    setPhase('brand');
+    playSynthesizedHorn(isMuted);
+    setTimeout(() => setPhase('train'), 800);
+    setTimeout(() => setPhase('fadeout'), 2400);
+    setTimeout(() => onComplete(), 2900);
+  };
 
   useEffect(() => {
     // Respect reduced motion settings
@@ -16,14 +72,18 @@ export const LaunchSequence: React.FC<LaunchSequenceProps> = ({ onComplete }) =>
       return;
     }
 
-    const t1 = setTimeout(() => setPhase('train'), 700);
-    const t2 = setTimeout(() => setPhase('fadeout'), 2100);
-    const t3 = setTimeout(() => onComplete(), 2600);
+    playSynthesizedHorn(isMuted);
+    const t1 = setTimeout(() => setPhase('train'), 800);
+    const t2 = setTimeout(() => setPhase('fadeout'), 2400);
+    const t3 = setTimeout(() => onComplete(), 2900);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      if (audioContextRef.current) {
+        try { audioContextRef.current.close(); } catch {}
+      }
     };
   }, [onComplete]);
 
@@ -33,19 +93,39 @@ export const LaunchSequence: React.FC<LaunchSequenceProps> = ({ onComplete }) =>
         phase === 'fadeout' ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* Top Bar with Skip Button */}
+      {/* Top Bar with Audio Toggle and Skip Button */}
       <div className="w-full flex justify-between items-center z-20 pt-4">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-[10px] font-mono tracking-widest uppercase text-slate-400">RailOne Next v3.0</span>
         </div>
-        <button
-          onClick={onComplete}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md transition-all active:scale-95"
-        >
-          <span>Skip</span>
-          <FastForward className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleMute}
+            className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs backdrop-blur-md transition-all active:scale-95"
+            title={isMuted ? 'Unmute Railway Horn' : 'Mute Audio'}
+            aria-label={isMuted ? 'Unmute Railway Horn' : 'Mute Audio'}
+          >
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />}
+          </button>
+          <button
+            onClick={restartSequence}
+            className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs backdrop-blur-md transition-all active:scale-95"
+            title="Replay Cinematic Launch"
+            aria-label="Replay Cinematic Launch"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-300" />
+          </button>
+          <button
+            onClick={onComplete}
+            title="Skip Intro"
+            aria-label="Skip Intro"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md transition-all active:scale-95"
+          >
+            <span>Skip</span>
+            <FastForward className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Middle Animated Stage */}
