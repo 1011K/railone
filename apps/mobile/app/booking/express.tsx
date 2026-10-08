@@ -232,7 +232,7 @@ export default function ExpressBookingScreen() {
                   {cls}
                 </Text>
                 <Text style={[styles.classBtnSub, { color: travelClass === cls ? '#ffffff' : colors.textMuted }]}>
-                  {cls === '1A' ? '₹2520' : cls === '2A' ? '₹1480' : cls === '3A' ? '₹1025' : cls === 'SL' ? '₹385' : '₹210'}
+                  {travelClass === cls && farePerPassenger !== null ? `Demo est. ₹${farePerPassenger}` : 'Fare pending'}
                 </Text>
               </TouchableOpacity>
             ))}
