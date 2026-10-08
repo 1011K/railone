@@ -26,6 +26,7 @@ export interface RouteSearchParams {
   origin: string | DoorToDoorLocation;
   destination: string | DoorToDoorLocation;
   departureTime?: string; // HH:MM
+  serviceDate?: string; // YYYY-MM-DD, used for operating-day checks
   arriveByDeadline?: string;
   preferences?: MultimodalRoutingPreferences;
   liveObservations?: Record<string, { delayMinutes: number; status: 'ON_TIME' | 'DELAYED' | 'CANCELLED' }>;
@@ -196,6 +197,9 @@ export class MultimodalGraphEngine {
     const prefs = params.preferences || {};
     const expressThreshold = prefs.expressAdvantageThresholdMinutes ?? 15;
     const depTime = params.departureTime || '08:30';
+    if (params.serviceDate && !/^\d{4}-\d{2}-\d{2}$/.test(params.serviceDate)) {
+      return []; // Fail closed on invalid calendar input.
+    }
 
     // 1. Explore candidate paths up to depth 4
     const candidatePaths = this.findPaths(originNode.id, destNode.id, 4, prefs, params.liveObservations);
@@ -215,6 +219,7 @@ export class MultimodalGraphEngine {
         destNode,
         depTime,
         prefs,
+        serviceDate: params.serviceDate,
         index: i,
         walkAccessMinutes: resolvedOrigin.walkAccessMinutes,
         destWalkAccessMinutes: resolvedDest.walkAccessMinutes,
@@ -364,6 +369,7 @@ export class MultimodalGraphEngine {
     destNode: MultimodalNode;
     depTime: string;
     prefs: MultimodalRoutingPreferences;
+    serviceDate?: string;
     index: number;
     walkAccessMinutes: number;
     destWalkAccessMinutes?: number;
@@ -425,6 +431,22 @@ export class MultimodalGraphEngine {
       const fromNode = this.nodeMap.get(edge.fromNodeId) || originNode;
       const toNode = this.nodeMap.get(edge.toNodeId) || destNode;
 
+      // A published service window is a hard boundary, not an implied all-day service.
+      if (ctx.serviceDate && edge.operatingDays?.length) {
+        const serviceDay = new Date(`${ctx.serviceDate}T00:00:00Z`).getUTCDay();
+        if (!Number.isFinite(serviceDay) || !edge.operatingDays.includes(serviceDay)) return null;
+      }
+      if (edge.firstService && edge.lastService) {
+        const minutes = (clock: string) => {
+          const [hh, mm] = clock.split(':').map(Number);
+          return hh * 60 + mm;
+        };
+        const requestedAt = minutes(currentTime);
+        if (requestedAt < minutes(edge.firstService) || requestedAt > minutes(edge.lastService)) {
+          return null;
+        }
+      }
+
       if (!edge.stepFree || !fromNode.stepFreeAccessible || !toNode.stepFreeAccessible) {
         isStepFree = false;
       }
@@ -454,6 +476,9 @@ export class MultimodalGraphEngine {
         totalWalkMinutes += duration;
       }
 
+      // Per-edge headways are rough routing approximations until a service-date
+      // departure feed is licensed and independently reconciled.
+      const approximateSchedule = edge.dataQuality !== 'VERIFIED_LIVE';
       const legFare = edge.fareInr;
       totalFare += legFare;
       fareByMode[edge.mode] = (fareByMode[edge.mode] || 0) + legFare;
@@ -473,8 +498,8 @@ export class MultimodalGraphEngine {
         fareInr: legFare,
         isAcService: edge.mode === 'metro' || !!edge.isAcService,
         stepFreeAccessible: edge.stepFree,
-        dataQuality: edge.dataQuality,
-        provenanceLabel: edge.dataQuality === 'VERIFIED_LIVE' ? '[VERIFIED LIVE]' : '[TIMETABLE SCHEDULE]',
+        dataQuality: approximateSchedule ? 'ESTIMATED_MODEL' : 'VERIFIED_LIVE',
+        provenanceLabel: approximateSchedule ? '[MODELED DURATION / FARE - NOT A TIMETABLE DEPARTURE]' : '[VERIFIED LIVE]',
         bookingDeepLink: edge.bookingUrl,
         delayMinutes: delayMin > 0 ? delayMin : undefined,
         instructions: this.generateLegInstruction(edge, fromNode, toNode)
@@ -561,7 +586,7 @@ export class MultimodalGraphEngine {
       rankReason: '',
       badges: [],
       transparentRationale: '',
-      dataQualitySummary: hasUnavailable ? 'UNAVAILABLE' : 'TIMETABLE_SCHEDULE',
+      dataQualitySummary: hasUnavailable ? 'UNAVAILABLE' : 'ESTIMATED_MODEL',
       hasUnavailableSegments: hasUnavailable
     };
   }
