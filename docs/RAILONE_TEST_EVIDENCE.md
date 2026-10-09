@@ -70,10 +70,10 @@ $ npm test
   [PASS] Test Suite 27: Multi-Country Institutional Authority Registry (27.1 - 27.10)
   [PASS] Test Suite 28: Multi-Country Journey Planning & Dynamic Tariffs (28.1 - 28.8)
   [PASS] Test Suite 29: India Multimodal Architecture, MMR Scenarios & Security (29.1 - 29.15)
-  [PASS] Test Suite 30: Ghatkopar Resolution, Dadar Bridge, 22 Services, Launch Audio & Multimodal Kurla-BKC (30.1 - 30.18)
+  [PASS] Test Suite 30: Ghatkopar Resolution, Dadar Bridge, 22 Services, Launch Audio, Multimodal Kurla-BKC, Platform Truth & Home Parity (30.1 - 30.23)
 
 ====================================================
-TEST SUMMARY: 282/282 Passed (0 Failed)
+TEST SUMMARY: 289/289 Passed (0 Failed)
 ====================================================
 Exit Code: 0
 ```

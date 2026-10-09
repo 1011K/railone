@@ -1,9 +1,9 @@
 # RailOne Next — Master Feature & Capability Register
 
 **Charter Reference**: Master Plan 2.0 / 3.0 & Multimodal Transit Charter  
-**Integration Branch**: `integration/master-reconciliation-2026-10-08`  
-**Base Reconciliation**: `feature/india-multimodal-rebuild` + `fix/railone-p0-feature-parity-2026-10-08`  
-**Verification Date**: October 8, 2026 | **Environment**: Node.js v22.23.2, React 19, React Native (Expo SDK 53)  
+**Integration Branch**: `fix/railone-passenger-ux-2026-10-09`  
+**Base Reconciliation**: `integration/master-reconciliation-2026-10-08` (`807cd77`) + P0 Mobile UX Reconciliation (`d478cdb`)  
+**Verification Date**: October 9, 2026 | **Environment**: Node.js v22.23.2, React 19, React Native (Expo SDK 53)  
 
 ---
 
@@ -29,15 +29,20 @@
 | **FEAT-16** | Security & Isolated Multi-Tenant Authorization | `src/backend/middleware/auth.ts`, `src/backend/routes/v1.ts` | `integration/master-reconciliation-2026-10-08` | `VERIFIED` | HMAC-SHA256 Token Contracts | Cryptographically randomized session secret (`crypto.randomBytes(32)`), strict cross-user booking isolation (401/403), sanitized audit endpoints. None needed. | Test Suite 29 (29.1a, 29.1b), Contracts 23–26 | Tampered tokens rejected; users cannot list or inspect other commuters' bookings. |
 | **FEAT-17** | Real Production CRIS/IRCTC PRS & UTS Booking Gateway | External CRIS/IRCTC APIs | N/A | `BLOCKED` | CRIS / IRCTC Commercial Licensing Authority | Requires formal commercial partnership / MoU with IRCTC/CRIS. No third-party API is legally permitted without CRIS sanction. Cannot implement without government authorization. | N/A | Documented as external statutory blocker P0-01. Specimen tickets clearly labeled. |
 | **FEAT-18** | Confirmed Live Locomotive GPS Feeds | Indian Railways RTIS Telemetry Feeds | N/A | `BLOCKED` | Ministry of Railways / CRIS / ISRO | Requires authenticated RTIS telemetry streaming credentials from CRIS. Cannot implement without sanctioned feed access. | Test Suite 29 (29.9) | System reports `Unavailable (No Live Observation)` instead of fabricating live GPS train running. |
+| **FEAT-19** | P0 Platform Truth & Suburban Schedule Integrity | `src/engine/journeyEngine.ts`, `src/components/ItineraryCard.tsx` | `fix/railone-passenger-ux-2026-10-09` | `VERIFIED` | Suburban WTT Timetable Stop Platforms | Replaced default '1' platform fallback with 'Unassigned'; displays 'Platform unverified' in itinerary when platform number is unconfirmed. | Test Suite 30 (30.21) | Stops lacking verified platform numbers report Unassigned. |
+| **FEAT-20** | Live Telemetry Honest Offline Fallback | `src/components/mobile/MobileLiveTab.tsx` | `fix/railone-passenger-ux-2026-10-09` | `VERIFIED` | CRIS / Non-observed Telemetry Invariant | Eliminates invented train speed (~52 km/h) and fake On Time status when observation is null; displays 'TELEMETRY OFFLINE' and unassigned platform. | Test Suite 30 (30.20) | Null observations render truthful unavailable badges without synthetic speed. |
+| **FEAT-21** | Coach Formation & Station Alignment Separation | `src/models/coachGuide.ts`, `apps/mobile/src/models/coachGuide.ts` | `fix/railone-passenger-ux-2026-10-09` | `VERIFIED` | Surveyed Suburban & Express Formations | Platform alignment cleanly strips whitespace and 'PF' prefixes; unmapped stations return null without falling back to Dadar geometry. | Test Suite 30 (30.19) | Unmapped stations return null alignment; prefix normalization handles ' PF 3 ' and 'Platform 18'. |
+| **FEAT-22** | Grounded Station Concourse Wayfinding | `apps/mobile/app/guide.tsx`, `src/fixtures/stationLayoutsData.ts` | `fix/railone-passenger-ux-2026-10-09` | `VERIFIED` | Surveyed Station Concourse Geometry | Station guide grounds entrance and FOB stairs in real surveyed station data; unmapped stations display truthful [EXIT BLUEPRINT UNAVAILABLE] card rather than generic Gate 1 / Elevator 2 fallbacks. | Test Suite 30 (30.22) | CSMT, Dadar, Thane render verified concourse gates; unmapped stations report unavailable. |
+| **FEAT-23** | Mobile Web & Native Home Visual Contract Parity | `src/components/mobile/MobileHomeTab.tsx`, `apps/mobile/app/(tabs)/index.tsx` | `fix/railone-passenger-ux-2026-10-09` | `VERIFIED` | Passenger-First Mobile Contract | Compact identity, 4 quick actions (Tickets, Live Status, Station Guide, RailSathi), Depart Now/Later/Arrive By timing selectors, and bottom sheet preference sheet; no giant marketing banner or fake active commute. | Test Suite 30 (30.23) | Complete parity between web mobile tab and native Expo index. |
 
 ---
 
 ## 2. Verification Summary
-- **Total Functional Scenarios Verified**: 282 / 282 (100% pass rate)
+- **Total Functional Scenarios Verified**: 289 / 289 (100% pass rate across 30 test suites)
 - **Automated Regression Contracts Verified**: 13 / 13 (100% pass rate)
 - **TypeScript Typecheck Errors (Web + Server)**: 0 (`npm run lint` clean)
 - **TypeScript Typecheck Errors (Mobile Native Expo)**: 0 (`npm run mobile:lint` clean)
 - **Expo Doctor Check**: 18 / 18 checks passed (`npm run mobile:doctor` clean)
-- **Mobile Production Web Build**: Succeeded (`npm run mobile:build-web`, 1329 modules bundled into 6.22 MB distribution)
-- **Vite Production Client Build**: Succeeded (`npm run build`, `dist/assets/index-UCPPUavX.js`, 864 kB)
+- **Mobile Production Web Build**: Succeeded (`npm run mobile:build-web`, 1330 modules bundled into 6.30 MB distribution)
+- **Vite Production Client Build**: Succeeded (`npm run build`, `dist/assets/index-DbaOiFQh.js`, 869 kB in 1.84s)
 - **Truth in Data Compliance**: 100% adherence to `[VERIFIED LIVE]`, `[TIMETABLE SCHEDULE]`, and `[SIMULATED DATASET]` tagging with zero hallucination.
