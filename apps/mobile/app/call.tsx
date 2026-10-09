@@ -397,6 +397,28 @@ export default function VoiceCallScreen() {
             </Text>
           </View>
         )}
+
+        {/* Official 139 Telephony Distinction Banner */}
+        <View style={styles.officialHelplineRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.officialHelplineTitle}>Official Railway Helpline: 139</Text>
+            <Text style={styles.officialHelplineSub}>
+              RailSathi is an AI guide. For security RPF or medical emergency, call 139.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.officialDialBtn}
+            onPress={() => {
+              Linking.openURL('tel:139').catch(() => {
+                Alert.alert('Dial 139', 'Please dial 139 on your mobile dialer for official Indian Railways helpline.');
+              });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Call Official Railway Helpline 139"
+          >
+            <Text style={styles.officialDialBtnText}>Call 139</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 2. Audio Visualizer Pulse Waves with Actual Speech Capture */}
@@ -852,6 +874,40 @@ const styles = StyleSheet.create({
   endCallLabel: {
     color: '#ffffff',
     fontSize: 12,
+    fontWeight: '800'
+  },
+  officialHelplineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderColor: '#334155',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 8,
+    gap: 10
+  },
+  officialHelplineTitle: {
+    color: '#f59e0b',
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  officialHelplineSub: {
+    color: '#94a3b8',
+    fontSize: 10,
+    marginTop: 2
+  },
+  officialDialBtn: {
+    backgroundColor: '#b45309',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6
+  },
+  officialDialBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
     fontWeight: '800'
   }
 });

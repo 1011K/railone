@@ -135,8 +135,11 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
               <span className="font-medium">{primaryLeg.stoppingPatternLabel}</span>
               <span aria-hidden="true">·</span>
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
-                PF {primaryLeg.departurePlatform}
+                {primaryLeg.departurePlatform && primaryLeg.departurePlatform !== 'Unassigned' && primaryLeg.departurePlatform !== 'Unknown'
+                  ? `PF ${primaryLeg.departurePlatform}`
+                  : 'Platform unverified'}
               </span>
+
               {primaryLeg.delayDepMinutes > 0 ? (
                 <>
                   <span aria-hidden="true">·</span>
@@ -315,8 +318,11 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({
                       <span>({leg.train.serviceType})</span>
                       <span>·</span>
                       <span className="inline-flex items-center px-1 py-0.2 rounded text-[10px] font-bold font-mono bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-800">
-                        PF {leg.departurePlatform}
+                        {leg.departurePlatform && leg.departurePlatform !== 'Unassigned' && leg.departurePlatform !== 'Unknown'
+                          ? `PF ${leg.departurePlatform}`
+                          : 'Platform unverified'}
                       </span>
+
                     </div>
                   </div>
                   <div className="text-right">

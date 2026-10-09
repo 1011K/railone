@@ -54,6 +54,16 @@ function RailSathiTabIcon({ color, size = 20 }: { color: string; size?: number }
   );
 }
 
+function HelpTabIcon({ color, size = 20 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Circle cx="12" cy="12" r="10" />
+      <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <Line x1="12" y1="17" x2="12.01" y2="17" />
+    </Svg>
+  );
+}
+
 export default function TabLayout() {
   const { colors, language } = useMobileTheme();
 
@@ -144,19 +154,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="railsathi"
+        name="help"
         options={{
-          title: labels.railsathi,
-          headerTitle: 'RailSathi Assistant',
-          tabBarIcon: ({ color }) => <RailSathiTabIcon color={color} />
+          title: labels.help,
+          headerTitle: 'Support & Preferences',
+          tabBarIcon: ({ color }) => <HelpTabIcon color={color} />
         }}
       />
       <Tabs.Screen
-        name="help"
+        name="railsathi"
         options={{
           href: null,
-          title: labels.help,
-          headerTitle: 'Support & Disclaimers'
+          title: labels.railsathi,
+          headerTitle: 'RailSathi Assistant',
+          tabBarIcon: ({ color }) => <RailSathiTabIcon color={color} />
         }}
       />
     </Tabs>

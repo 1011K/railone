@@ -173,11 +173,12 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     route: '/map'
   },
   {
-    id: 'cab_auto_shared',
-    name: 'Cab, Auto & Shared Rickshaw',
+    id: 'auto_shared_rickshaw',
+    name: 'Auto & Shared Rickshaw Feeders',
     category: 'navigation',
     description: 'First/last mile station feeder alternatives with regulated prepaid auto tariffs.',
-    route: '/guide'
+    badge: 'Station Feeder',
+    route: '/wayfinding'
   },
   {
     id: 'accessibility_assistance',
@@ -219,6 +220,11 @@ export default function HomeScreen() {
   const [journeyDate, setJourneyDate] = useState('Today');
   const [acOnly, setAcOnly] = useState(false);
   const [recentSearches, setRecentSearches] = useState<Array<{ from: string; to: string }>>([]);
+  const [savedJourneys, setSavedJourneys] = useState<Array<any>>(() => OfflineStorage.getSavedJourneys());
+  const [timeMode, setTimeMode] = useState<'depart_now' | 'depart_later' | 'arrive_by'>('depart_now');
+  const [selectedClass, setSelectedClass] = useState<'all' | 'second' | 'first' | 'ac' | 'ladies'>('all');
+  const [routePreference, setRoutePreference] = useState<'all' | 'fastest' | 'direct'>('all');
+  const [showPrefModal, setShowPrefModal] = useState(false);
 
   // Modals state
   const [showLaunchModal, setShowLaunchModal] = useState<boolean>(() => !OfflineStorage.getHasSeenLaunch());
@@ -482,26 +488,35 @@ export default function HomeScreen() {
           <Text style={styles.alertBadgeText}>{currentCity.provenanceTag}</Text>
         </View>
         <Text style={[styles.alertText, { color: colors.textSecondary }]}>
-          {selectedCityId === 'mumbai'
-            ? 'Central Line Fast corridor running with +12m headway buffer at Vidyavihar. Slow line services normal.'
-            : currentCity.provenanceExplanation}
+          {currentCity.provenanceExplanation || 'Official timetable schedules active. Real-time delay telemetry is surfaced only when confirmed live sensors are online.'}
         </Text>
       </View>
 
-      {/* 3. Active Commute Card */}
-      <View style={[styles.activeCommuteCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <View style={styles.activeCommuteHeader}>
-          <View style={styles.livePulseDot} />
-          <Text style={[styles.activeCommuteTag, { color: colors.primary }]}>ACTIVE COMMUTE</Text>
-          <Text style={[styles.activeCommuteStatus, { color: colors.success }]}>Scheduled</Text>
-        </View>
-        <Text style={[styles.activeCommuteTrain, { color: colors.textPrimary }]}>
-          {currentCity.representativeJourneys[0]?.trainName || 'Suburban Fast Local (95112)'}
-        </Text>
-        <Text style={[styles.activeCommuteSub, { color: colors.textMuted }]}>
-          {fromStation.name} ➔ {toStation.name} · {currentCity.representativeJourneys[0]?.frequency || 'Standard Frequency'}
-        </Text>
-      </View>
+      {/* 3. Active Commute Card (Rendered only when a saved/active journey exists) */}
+      {savedJourneys.length > 0 && (
+        <TouchableOpacity
+          style={[styles.activeCommuteCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => {
+            setFromStation({ code: savedJourneys[0].fromStationCode, name: savedJourneys[0].fromStationName });
+            setToStation({ code: savedJourneys[0].toStationCode, name: savedJourneys[0].toStationName });
+          }}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={`Saved route ${savedJourneys[0].fromStationName} to ${savedJourneys[0].toStationName}`}
+        >
+          <View style={styles.activeCommuteHeader}>
+            <View style={styles.livePulseDot} />
+            <Text style={[styles.activeCommuteTag, { color: colors.primary }]}>SAVED COMMUTE SHORTCUT</Text>
+            <Text style={[styles.activeCommuteStatus, { color: colors.success }]}>Quick Fill</Text>
+          </View>
+          <Text style={[styles.activeCommuteTrain, { color: colors.textPrimary }]}>
+            {savedJourneys[0].fromStationName} ➔ {savedJourneys[0].toStationName}
+          </Text>
+          <Text style={[styles.activeCommuteSub, { color: colors.textMuted }]}>
+            Preferred: {savedJourneys[0].preferredClass || 'Standard EMU'} · Tap to fill search
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* 4. Prominent Call & Chat Rail Yatri Assistant Card */}
       <View style={[styles.callBanner, { backgroundColor: colors.primary }]}>
@@ -585,6 +600,32 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* Timing Modes: Depart Now / Depart Later / Arrive By */}
+        <View style={[styles.inputRow, { borderColor: colors.cardBorder }]}>
+          <View style={styles.inputPrefix}>
+            <Text style={[styles.inputPrefixText, { color: colors.primary }]}>MODE</Text>
+          </View>
+          <View style={styles.dateTimeContainer}>
+            {(['depart_now', 'depart_later', 'arrive_by'] as const).map(mode => (
+              <TouchableOpacity
+                key={mode}
+                onPress={() => setTimeMode(mode)}
+                style={[
+                  styles.datePill,
+                  {
+                    backgroundColor: timeMode === mode ? colors.primary : 'transparent',
+                    borderColor: timeMode === mode ? colors.primary : colors.cardBorder
+                  }
+                ]}
+              >
+                <Text style={[styles.datePillText, { color: timeMode === mode ? '#ffffff' : colors.textPrimary }]}>
+                  {mode === 'depart_now' ? 'Depart Now' : mode === 'depart_later' ? 'Depart Later' : 'Arrive By'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* Date / Time */}
         <View style={[styles.inputRow, { borderColor: colors.cardBorder }]}>
           <View style={styles.inputPrefix}>
@@ -608,7 +649,16 @@ export default function HomeScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-            <Text style={[styles.timeNowText, { color: colors.textMuted }]}>Depart Now</Text>
+            <TouchableOpacity
+              onPress={() => setShowPrefModal(true)}
+              style={[styles.datePill, { borderColor: colors.primary, marginLeft: 'auto' }]}
+              accessibilityRole="button"
+              accessibilityLabel="Class and route preferences"
+            >
+              <Text style={[styles.datePillText, { color: colors.primary }]}>
+                {selectedClass !== 'all' ? selectedClass.toUpperCase() : 'Prefs ⚙'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -641,36 +691,44 @@ export default function HomeScreen() {
             style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
             onPress={() => router.push('/booking/local')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Open Tickets"
           >
-            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Local Unreserved</Text>
-            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>UTS Single & Return</Text>
+            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Tickets</Text>
+            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>UTS & Express</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
-            onPress={() => router.push('/booking/express')}
+            onPress={() => router.push('/(tabs)/status')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Open Live Status"
           >
-            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Reserved Express</Text>
-            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Mail / Express Demo</Text>
+            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Live Status</Text>
+            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Departure Board</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
-            onPress={() => router.push({ pathname: '/booking/local', params: { type: 'platform' } })}
+            onPress={() => router.push('/wayfinding')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Open Station Guide"
           >
-            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Platform Permit</Text>
-            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>₹10 Station Access</Text>
+            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Station Guide</Text>
+            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>FOB & Platforms</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
-            onPress={() => router.push({ pathname: '/booking/local', params: { type: 'season' } })}
+            onPress={() => router.push('/call')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Open RailSathi Assistant"
           >
-            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Season Pass</Text>
-            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Monthly MST Pass</Text>
+            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>RailSathi</Text>
+            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Voice Assistant</Text>
           </TouchableOpacity>
         </View>
 
@@ -950,6 +1008,82 @@ export default function HomeScreen() {
                 }}
               >
                 <Text style={[styles.guestBtnText, { color: colors.textSecondary }]}>Continue as Commuter Guest</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ============================================================== */}
+      {/* MODAL 4B: Class & Route Preference Sheet                       */}
+      {/* ============================================================== */}
+      <Modal visible={showPrefModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.cityModalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.cityModalHeader}>
+              <View>
+                <Text style={[styles.cityModalTitle, { color: colors.textPrimary }]}>Travel Preferences</Text>
+                <Text style={[styles.cityModalSubtitle, { color: colors.textMuted }]}>
+                  Commute class & corridor routing options
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowPrefModal(false)} style={styles.closeBtn}>
+                <Text style={[styles.closeBtnText, { color: colors.textMuted }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.onboardingScroll}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Compartment / Travel Class:</Text>
+              <View style={{ gap: 8, marginVertical: 8 }}>
+                {[
+                  { id: 'all', label: 'All Classes (Default)' },
+                  { id: 'second', label: 'Second Class (II) General' },
+                  { id: 'first', label: 'First Class (FC)' },
+                  { id: 'ac', label: 'AC Local EMU' },
+                  { id: 'ladies', label: 'Ladies Compartment' }
+                ].map(c => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[
+                      styles.themeItem,
+                      { borderColor: selectedClass === c.id ? colors.primary : colors.cardBorder },
+                      selectedClass === c.id && { backgroundColor: colors.primary + '14' }
+                    ]}
+                    onPress={() => setSelectedClass(c.id as any)}
+                  >
+                    <Text style={[styles.themeItemText, { color: colors.textPrimary }]}>{c.label}</Text>
+                    {selectedClass === c.id && <Text style={[styles.themeSelectedCheck, { color: colors.primary }]}>✓</Text>}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 12 }]}>Corridor Routing:</Text>
+              <View style={{ gap: 8, marginVertical: 8 }}>
+                {[
+                  { id: 'all', label: 'All Services (Fast & Slow)' },
+                  { id: 'fastest', label: 'Fastest Service Only' },
+                  { id: 'direct', label: 'Direct Services Only (No Transfers)' }
+                ].map(r => (
+                  <TouchableOpacity
+                    key={r.id}
+                    style={[
+                      styles.themeItem,
+                      { borderColor: routePreference === r.id ? colors.primary : colors.cardBorder },
+                      routePreference === r.id && { backgroundColor: colors.primary + '14' }
+                    ]}
+                    onPress={() => setRoutePreference(r.id as any)}
+                  >
+                    <Text style={[styles.themeItemText, { color: colors.textPrimary }]}>{r.label}</Text>
+                    {routePreference === r.id && <Text style={[styles.themeSelectedCheck, { color: colors.primary }]}>✓</Text>}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={[styles.primaryModalBtn, { backgroundColor: colors.primary, marginTop: 16 }]}
+                onPress={() => setShowPrefModal(false)}
+              >
+                <Text style={styles.primaryModalBtnText}>Apply Preferences</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>

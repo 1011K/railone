@@ -210,8 +210,9 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
 
   const handleShare = () => {
     navigator.clipboard?.writeText?.(
-      `RailOne Live: Train ${currentTrain.trainNumber} (${currentTrain.trainName}) is currently at ${currentStop?.stationName || 'origin'}, ${currentDelay > 0 ? `delayed by ${currentDelay} min` : 'running on time'}.`
+      `RailOne Live: Train ${currentTrain.trainNumber} (${currentTrain.trainName}) is currently at ${currentStop?.stationName || 'origin'}, ${!obs ? 'live observation unavailable (scheduled timetable service)' : currentDelay > 0 ? `delayed by ${currentDelay} min` : 'running on time'}.`
     );
+
     showToast('Running status copied to clipboard');
   };
 
@@ -395,18 +396,24 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
 
               {/* Verified Live Pill */}
               <div className="shrink-0 flex flex-col items-end gap-1">
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  [TIMETABLE SCHEDULE]
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+                  !obs
+                    ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {!obs ? '[NO LIVE OBSERVATION]' : '[TIMETABLE SCHEDULE]'}
                 </span>
                 <span className="text-[9px] text-slate-400 font-mono">
-                  {obs?.dataSource ? 'Timetable Simulation' : 'Timetable Active'}
+                  {!obs ? 'Live Telemetry Offline' : obs?.dataSource ? 'Timetable Simulation' : 'Timetable Active'}
                 </span>
               </div>
             </div>
 
             {/* Live Status Hero Pill */}
             <div className={`p-3 rounded-2xl flex items-center justify-between border ${
-              isCanceled
+              !obs
+                ? 'bg-slate-800/60 border-slate-700/60 text-slate-300'
+                : isCanceled
                 ? 'bg-rose-500/15 border-rose-500/30 text-rose-200'
                 : !hasDeparted
                 ? 'bg-amber-500/15 border-amber-500/30 text-amber-200'
@@ -417,15 +424,17 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-3 w-3">
                   <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                    currentDelay > 5 ? 'bg-amber-400' : 'bg-emerald-400'
+                    !obs ? 'bg-slate-500' : currentDelay > 5 ? 'bg-amber-400' : 'bg-emerald-400'
                   }`} />
                   <span className={`relative inline-flex rounded-full h-3 w-3 ${
-                    currentDelay > 5 ? 'bg-amber-500' : 'bg-emerald-500'
+                    !obs ? 'bg-slate-500' : currentDelay > 5 ? 'bg-amber-500' : 'bg-emerald-500'
                   }`} />
                 </span>
                 <div>
                   <div className="text-xs font-black tracking-wide">
-                    {isCanceled
+                    {!obs
+                      ? 'Unavailable (No Live Observation)'
+                      : isCanceled
                       ? 'Service Cancelled Today'
                       : !hasDeparted
                       ? `Awaiting Departure at ${currentTrain.stops[0]?.stationName}`
@@ -434,11 +443,13 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
                       : `Running ${currentDelay} min Late · Near ${currentStop?.stationName || 'Next Halt'}`}
                   </div>
                   <div className="text-[10px] text-slate-300 font-mono mt-0.5">
-                    {isCanceled
+                    {!obs
+                      ? 'Timetable schedule only · Real-time GPS transponder offline'
+                      : isCanceled
                       ? 'Refer to station master announcements'
                       : !hasDeparted
                       ? `Scheduled Origin Departure: ${currentTrain.stops[0]?.scheduledDeparture}`
-                      : `Platform ${currentRawStop?.platform || '1'} · Next Halt: ${predictedStops[Math.min(totalStops - 1, effectiveCurrentIdx + 1)]?.stationName || 'Terminus'}`}
+                      : `Platform ${currentRawStop?.platform || 'Unassigned'} · Next Halt: ${predictedStops[Math.min(totalStops - 1, effectiveCurrentIdx + 1)]?.stationName || 'Terminus'}`}
                   </div>
                 </div>
               </div>
@@ -446,11 +457,12 @@ export const MobileLiveTab: React.FC<MobileLiveTabProps> = ({
               {/* Current Speed / Telemetry Micro Pill */}
               <div className="text-right shrink-0">
                 <div className="font-mono text-xs font-black text-white">
-                  {hasDeparted ? '~52 km/h' : '0 km/h'}
+                  {!obs ? 'TELEMETRY OFFLINE' : hasDeparted ? '~52 km/h (Estimated)' : '0 km/h'}
                 </div>
                 <div className="text-[9px] text-slate-400 font-mono">Speed</div>
               </div>
             </div>
+
 
             {/* Mini Progress Distance Line */}
             <div className="space-y-1.5">

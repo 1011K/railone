@@ -82,12 +82,15 @@ export default function WayfindingScreen() {
         // Fallback to local station layout fixture
       }
 
-      const fallback = STATION_3D_LAYOUTS[selectedStationCode] || STATION_3D_LAYOUTS['DR'];
-      if (active && fallback) {
+      const fallback = STATION_3D_LAYOUTS[selectedStationCode] || null;
+      if (active) {
         setStationLayout(fallback);
-        if (fallback.platforms && fallback.platforms.length >= 2) {
+        if (fallback && fallback.platforms && fallback.platforms.length >= 2) {
           setFromPlatformId(fallback.platforms[0].id);
           setToPlatformId(fallback.platforms[Math.min(3, fallback.platforms.length - 1)].id);
+        } else {
+          setFromPlatformId('');
+          setToPlatformId('');
         }
       }
     }
@@ -230,33 +233,56 @@ export default function WayfindingScreen() {
         })}
       </ScrollView>
 
-      {/* 2. Station Overview Header */}
-      {stationLayout && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <View style={styles.stationTitleRow}>
-            <View>
-              <Text style={[styles.stationTitle, { color: colors.textPrimary }]}>
-                {stationLayout.stationName}
-              </Text>
-              <Text style={[styles.stationVernacular, { color: colors.textSecondary }]}>
-                {stationLayout.hindiName} · {stationLayout.marathiName}
-              </Text>
-            </View>
-            <View style={[styles.levelBadge, { backgroundColor: colors.primary + '18' }]}>
-              <Text style={[styles.levelBadgeText, { color: colors.primary }]}>
-                {stationLayout.levelsCount} LEVEL CONCOURSE
-              </Text>
-            </View>
-          </View>
-          <Text style={[styles.stationDescription, { color: colors.textMuted }]}>
-            {stationLayout.description}
+      {/* 2. Station Overview Header or Honest Unavailable Notice */}
+      {!stationLayout ? (
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder, padding: 20, alignItems: 'center' }]}>
+          <Text style={[styles.stationTitle, { color: colors.textPrimary, textAlign: 'center', marginBottom: 6 }]}>
+            Blueprint Geometry Unavailable for Station [{selectedStationCode}]
           </Text>
+          <Text style={[styles.stationDescription, { color: colors.textMuted, textAlign: 'center', marginBottom: 14 }]}>
+            Topological 2D blueprints are currently surveyed and verified for major junction hubs. Never assuming or substituting fallback geometry.
+          </Text>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary, marginBottom: 8 }}>
+            Verified Surveyed Stations:
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+            {MAJOR_STATIONS.map(stn => (
+              <TouchableOpacity
+                key={stn.code}
+                onPress={() => setSelectedStationCode(stn.code)}
+                style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: colors.primary + '18', borderRadius: 8 }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 11 }}>{stn.name.split(' ')[0]} ({stn.code})</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      )}
+      ) : (
+        <>
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.stationTitleRow}>
+              <View>
+                <Text style={[styles.stationTitle, { color: colors.textPrimary }]}>
+                  {stationLayout.stationName}
+                </Text>
+                <Text style={[styles.stationVernacular, { color: colors.textSecondary }]}>
+                  {stationLayout.hindiName} · {stationLayout.marathiName}
+                </Text>
+              </View>
+              <View style={[styles.levelBadge, { backgroundColor: colors.primary + '18' }]}>
+                <Text style={[styles.levelBadgeText, { color: colors.primary }]}>
+                  {stationLayout.levelsCount} LEVEL CONCOURSE
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.stationDescription, { color: colors.textMuted }]}>
+              {stationLayout.description}
+            </Text>
+          </View>
 
-      {/* 3. VISUAL PLATFORM TOPOLOGICAL MAP & 3D ISOMETRIC VIEW */}
-      <View style={[styles.visualMapCard, { backgroundColor: '#090d16', borderColor: colors.cardBorder }]}>
-        <View style={styles.visualMapHeader}>
+          {/* 3. VISUAL PLATFORM TOPOLOGICAL MAP & 3D ISOMETRIC VIEW */}
+          <View style={[styles.visualMapCard, { backgroundColor: '#090d16', borderColor: colors.cardBorder }]}>
+            <View style={styles.visualMapHeader}>
           <View>
             <Text style={styles.visualMapTitle}>
               {is3dIsometric ? '3D Isometric Station View' : '2D Platform Blueprint'}
@@ -696,6 +722,8 @@ export default function WayfindingScreen() {
           )}
         </View>
       ) : null}
+      </>
+      )}
 
       {/* 6. Verified Station Exits & Transit Links */}
       {exitProfile && (

@@ -220,13 +220,14 @@ export const ALL_22_SERVICES: ServiceItem[] = [
     actionId: 'network_maps'
   },
   {
-    id: 'cab_auto_shared',
-    name: 'Cab, Auto & Shared Rickshaw',
+    id: 'auto_shared_rickshaw',
+    name: 'Auto & Shared Rickshaw Feeders',
     category: 'navigation',
-    description: 'First/last mile station feeder alternatives with regulated prepaid auto tariffs.',
+    description: 'First/last mile station feeder stands and shared-rickshaw routes with regulated tariff guidance.',
     icon: Car,
     color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-    actionId: 'cab_auto_shared'
+    badge: 'Station Feeder',
+    actionId: 'auto_shared_rickshaw'
   },
   {
     id: 'accessibility_assistance',

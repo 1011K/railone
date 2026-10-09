@@ -387,8 +387,11 @@ export const MobileJourneysTab: React.FC<MobileJourneysTabProps> = ({
                               <span>{leg.train.trainName} ({leg.train.trainNumber})</span>
                             </span>
                             <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300">
-                              PF {leg.departurePlatform}
+                              {leg.departurePlatform && leg.departurePlatform !== 'Unassigned' && leg.departurePlatform !== 'Unknown'
+                                ? `PF ${leg.departurePlatform}`
+                                : 'PF unassigned'}
                             </span>
+
                           </div>
 
                           <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">

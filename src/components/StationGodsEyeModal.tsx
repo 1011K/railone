@@ -55,10 +55,8 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
   const { language } = useTheme();
 
   // Selected station
-  const [stationCode, setStationCode] = useState(
-    STATION_3D_LAYOUTS[initialStationCode] ? initialStationCode : 'DR'
-  );
-  const layout = STATION_3D_LAYOUTS[stationCode] || STATION_3D_LAYOUTS['DR'];
+  const [stationCode, setStationCode] = useState(initialStationCode || 'DR');
+  const layout = STATION_3D_LAYOUTS[stationCode] || null;
 
   // View modes: 2D mobile-native top_down_plan by default
   const [viewMode, setViewMode] = useState<'gods_eye_3d' | 'top_down_plan' | 'pathfinder'>('top_down_plan');
@@ -68,7 +66,7 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
 
   // Selected platform for inspection
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(
-    layout.platforms[0]?.id || null
+    layout ? layout.platforms[0]?.id || null : null
   );
 
   // Selected bridge for inspection
@@ -76,10 +74,10 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
 
   // Transfer pathfinder states
   const [fromPlatformId, setFromPlatformId] = useState<string>(
-    initialFromPlatformId || layout.platforms[0]?.id || ''
+    initialFromPlatformId || (layout ? layout.platforms[0]?.id || '' : '')
   );
   const [toPlatformId, setToPlatformId] = useState<string>(
-    initialToPlatformId || layout.platforms[Math.min(3, layout.platforms.length - 1)]?.id || ''
+    initialToPlatformId || (layout ? layout.platforms[Math.min(3, layout.platforms.length - 1)]?.id || '' : '')
   );
   const [requireStepFree, setRequireStepFree] = useState(false);
 
@@ -101,9 +99,8 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
 
   // Synchronize when initialStationCode prop changes or modal opens
   useEffect(() => {
-    const validCode = STATION_3D_LAYOUTS[initialStationCode] ? initialStationCode : 'DR';
-    setStationCode(validCode);
-    const targetLayout = STATION_3D_LAYOUTS[validCode];
+    setStationCode(initialStationCode || 'DR');
+    const targetLayout = STATION_3D_LAYOUTS[initialStationCode || 'DR'];
     if (targetLayout) {
       setSelectedPlatformId(initialFromPlatformId || targetLayout.platforms[0]?.id || null);
       setFromPlatformId(initialFromPlatformId || targetLayout.platforms[0]?.id || '');
@@ -113,6 +110,10 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
         targetLayout.platforms[0]?.id || 
         ''
       );
+    } else {
+      setSelectedPlatformId(null);
+      setFromPlatformId('');
+      setToPlatformId('');
     }
     // Auto-adjust scale for small viewports
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
@@ -233,11 +234,11 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
   }, [stationCode, fromPlatformId, toPlatformId, requireStepFree]);
 
   const activePlatform = useMemo(() => {
-    return layout.platforms.find(p => p.id === selectedPlatformId);
+    return layout?.platforms.find(p => p.id === selectedPlatformId) || null;
   }, [layout, selectedPlatformId]);
 
   const activeBridge = useMemo(() => {
-    return layout.bridges.find(b => b.id === selectedBridgeId);
+    return layout?.bridges.find(b => b.id === selectedBridgeId) || null;
   }, [layout, selectedBridgeId]);
 
   if (!isOpen) return null;
@@ -265,12 +266,16 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
                 <h2 className="font-extrabold text-base sm:text-lg text-white">
                   Station Navigation & Guide
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-theme-light text-theme-primary border border-theme-primary/30">
-                  {layout.zone} Division
-                </span>
+                {layout && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-theme-light text-theme-primary border border-theme-primary/30">
+                    {layout.zone} Division
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400">
-                {layout.stationName} ({layout.hindiName}) · Platform Directions, FOB Bridges & Exits
+                {layout
+                  ? `${layout.stationName} (${layout.hindiName}) · Platform Directions, FOB Bridges & Exits`
+                  : `Station [${stationCode}] · Blueprint Geometry Unavailable`}
               </p>
             </div>
           </div>
@@ -300,16 +305,39 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
           </div>
         </div>
 
-        {/* Notice for unindexed station fallback */}
-        {initialStationCode && !STATION_3D_LAYOUTS[initialStationCode] && (
-          <div className="px-5 py-2 bg-amber-950/70 border-b border-amber-600/40 text-[11px] text-amber-200 flex items-center gap-2">
-            <Info className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>
-              3D model for station <strong>{initialStationCode}</strong> is currently under topological survey. Displaying nearest indexed interchange hub (<strong>{layout.stationName}</strong>).
-            </span>
+        {/* Notice for unindexed station: honest unavailable display without Dadar substitution */}
+        {!layout ? (
+          <div className="p-8 text-center space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Blueprint Geometry Unavailable for Station [{stationCode}]
+              </h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
+                Topological 2D blueprints are currently surveyed and verified for major junction hubs. Never assuming or substituting unverified geometry.
+              </p>
+            </div>
+            <div className="pt-2">
+              <span className="text-xs font-bold text-slate-300 block mb-2">
+                Available Verified Stations:
+              </span>
+              <div className="flex flex-wrap justify-center gap-1.5 max-w-lg mx-auto">
+                {Object.values(STATION_3D_LAYOUTS).map(stn => (
+                  <button
+                    key={stn.stationCode}
+                    onClick={() => handleStationChange(stn.stationCode)}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700"
+                  >
+                    {stn.stationName} ({stn.stationCode})
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        )}
-
+        ) : (
+          <>
         {/* Sub-header Controls */}
         <div className="px-5 py-2.5 bg-slate-950/60 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
           
@@ -933,6 +961,8 @@ export const StationGodsEyeModal: React.FC<StationGodsEyeModalProps> = ({
           </div>
 
         </div>
+        </>
+        )}
 
       </div>
     </div>

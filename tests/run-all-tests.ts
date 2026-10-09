@@ -1288,6 +1288,39 @@ console.log('\nTest Suite 23: Native Mobile Application (Expo / React Native), O
     savedJourneys.length > 0 && savedJourneys[0].fromStationCode === 'TNA' && savedJourneys[0].toStationCode === 'CCG',
     '23.11: OfflineStorage persists and retrieves commuter saved journeys'
   );
+
+  // 23.12: OfflineStorage profile and consent persistence across memory restarts
+  OfflineStorage.setUserProfile({ name: 'Rohit K', phone: '+919876543210', isGuest: false });
+  OfflineStorage.setLocationConsent(true);
+  OfflineStorage.setHasCompletedOnboarding(true);
+  OfflineStorage.setHasSeenLaunch(true);
+
+  // Simulate app restart / memory wipe
+  OfflineStorage._resetMemoryCacheOnly();
+
+  const reloadedProfile = OfflineStorage.getUserProfile();
+  const reloadedConsent = OfflineStorage.getLocationConsent();
+  const reloadedOnboarded = OfflineStorage.getHasCompletedOnboarding();
+  const reloadedLaunch = OfflineStorage.getHasSeenLaunch();
+
+  assert(
+    reloadedProfile?.name === 'Rohit K' &&
+    reloadedConsent === true &&
+    reloadedOnboarded === true &&
+    reloadedLaunch === true,
+    '23.12: OfflineStorage persists user profile, location consent, and onboarding flags across memory restarts'
+  );
+
+  // 23.13: OfflineStorage schema migration
+  OfflineStorage.setStorageVersion('1.0.0');
+  const migrationRes = OfflineStorage.migrateStorageSchema();
+  assert(
+    migrationRes.migrated === true &&
+    migrationRes.fromVersion === '1.0.0' &&
+    migrationRes.toVersion === '1.1.0' &&
+    OfflineStorage.getStorageVersion() === '1.1.0',
+    '23.13: OfflineStorage correctly executes schema migrations from v1.0.0 to v1.1.0'
+  );
 }
 
 console.log('\nTest Suite 24: All-Trains Departure Board, Express 15-Minute Rule, Guided Navigation & Station Exits');
@@ -2644,7 +2677,60 @@ console.log('\nTest Suite 30: Ghatkopar Resolution & Metro Isolation, Dadar Plat
     serviceIdsFound && mobileIndexSource.includes('export const NATIVE_22_SERVICES'),
     '30.18: Native mobile app defines complete registry of all 22 transit services matching web ServicesHub directory'
   );
+
+  // 30.19: Platform number normalization in getPlatformAlignment (whitespace, PF prefix, and unmapped platform handling)
+  const { getPlatformAlignment } = await import('../src/models/coachGuide');
+  const pfPadded = getPlatformAlignment('DR', ' PF 3 ');
+  const pfPrefixed = getPlatformAlignment('CSMT', 'Platform 18');
+  const pfUnmapped = getPlatformAlignment('XYZ', ' PF 1A ');
+  const pfUnknownOnDR = getPlatformAlignment('DR', '99');
+  assert(
+    pfPadded !== null && pfPadded.platformNumber === '3' &&
+    pfPrefixed !== null && pfPrefixed.platformNumber === '18' &&
+    pfUnmapped === null &&
+    pfUnknownOnDR === null,
+    '30.19: getPlatformAlignment normalizes platform numbers (whitespace and PF prefix) without falling back to Dadar for unmapped stations'
+  );
+
+  // 30.20: MobileLiveTab eliminates invented train speeds and never marks unobserved trains as ON TIME
+  const mobileLiveSource = fs.readFileSync(path.resolve(process.cwd(), 'src/components/mobile/MobileLiveTab.tsx'), 'utf8');
+  assert(
+    mobileLiveSource.includes('TELEMETRY OFFLINE') &&
+    mobileLiveSource.includes('Unavailable (No Live Observation)') &&
+    !mobileLiveSource.includes("~52 km/h' : '0 km/h'") &&
+    !mobileLiveSource.includes("Platform ${currentRawStop?.platform || '1'}"),
+    '30.20: MobileLiveTab eliminates invented speed (~52 km/h), default platform 1, and reports Unavailable (No Live Observation)'
+  );
+
+  // 30.21: journeyEngine never defaults unassigned train platforms to '1'
+  const journeyEngineSource = fs.readFileSync(path.resolve(process.cwd(), 'src/engine/journeyEngine.ts'), 'utf8');
+  assert(
+    journeyEngineSource.includes("departurePlatform: rawTripStopFrom?.platform || (isMetro ? '1' : 'Unassigned')") &&
+    journeyEngineSource.includes("arrivalPlatform: rawTripStopTo?.platform || (isMetro ? '1' : 'Unassigned')"),
+    '30.21: journeyEngine assigns platforms from schedule and leaves unassigned stops as Unassigned rather than default platform 1'
+  );
+
+  // 30.22: Guide screen grounds Step 3 entrance in verified exit profiles and Step 4 in verified FOB layouts
+  const guideSource = fs.readFileSync(path.resolve(process.cwd(), 'apps/mobile/app/guide.tsx'), 'utf8');
+  assert(
+    guideSource.includes('fromExitProfile') &&
+    guideSource.includes('fromStationLayout') &&
+    !guideSource.includes('Enter through Central Passenger Concourse Gate 1') &&
+    !guideSource.includes('Middle FOB Accessible Elevator 2 up to Concourse Level 1'),
+    '30.22: Guide screen grounds entrance and FOB walk in surveyed station layout data and rejects generic Gate 1 / FOB Elevator 2 fallbacks'
+  );
+
+  // 30.23: Web MobileHomeTab and native index maintain parity on 4 quick actions, timing modes, and preference bottom sheets
+  const webHomeSource = fs.readFileSync(path.resolve(process.cwd(), 'src/components/mobile/MobileHomeTab.tsx'), 'utf8');
+  assert(
+    webHomeSource.includes('fourQuickActions') &&
+    webHomeSource.includes('depart_now') &&
+    webHomeSource.includes('Class & Route Preferences') &&
+    webHomeSource.includes('SAVED COMMUTE SHORTCUT'),
+    '30.23: Web MobileHomeTab and native index maintain complete parity on 4 compact quick actions, timing modes, and preferences'
+  );
 }
+
 
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);

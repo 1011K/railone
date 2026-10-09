@@ -10,7 +10,16 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
-import { getStationExitGuidance } from '../src/fixtures/stationLayoutsData';
+import { getStationExitGuidance, STATION_3D_LAYOUTS } from '../src/fixtures/stationLayoutsData';
+import {
+  RakeModelType,
+  RakeFormation,
+  RakeCoach,
+  CoachCategory,
+  getRakeFormation,
+  computeCoachRecommendation,
+  RAKE_FORMATIONS
+} from '../src/models/coachGuide';
 
 export default function GuideScreen() {
   const { colors } = useMobileTheme();
@@ -40,12 +49,31 @@ export default function GuideScreen() {
   const arrivalTime = params.arrivalTime || '19:20';
   const trainNumber = params.trainNumber || '95112';
   const trainName = params.trainName || 'Fast Local';
-  const initialDeparturePlatform = params.departurePlatform || 'Unknown';
-  const arrivalPlatform = params.arrivalPlatform || '4';
+  const initialDeparturePlatform = params.departurePlatform || 'Unassigned';
+  const arrivalPlatform = params.arrivalPlatform || 'Unassigned';
   const hasTransfer = params.hasTransfer === 'true';
-  const transferStation = params.transferStation || 'DR';
-  const transferStationName = params.transferStationName || 'Dadar Junction';
+  const transferStation = params.transferStation || '';
+  const transferStationName = params.transferStationName || '';
   const isAc = params.isAc === 'true';
+
+  // Dynamic Rake & Coach Alignment Model
+  const rakeType: RakeModelType = useMemo(() => {
+    if (isAc) return '12_car_ac_suburban';
+    if (trainNumber.startsWith('206') || trainName.toLowerCase().includes('vande')) return '16_car_vande_bharat';
+    if (trainName.toLowerCase().includes('express') || trainName.toLowerCase().includes('superfast')) return '22_car_express';
+    if (trainName.toLowerCase().includes('15')) return '15_car_suburban';
+    return '12_car_suburban';
+  }, [isAc, trainNumber, trainName]);
+
+  const formation = useMemo(() => {
+    return getRakeFormation(rakeType) || RAKE_FORMATIONS['12_car_suburban'];
+  }, [rakeType]);
+
+  const [selectedCoachSeq, setSelectedCoachSeq] = useState<number>(() => (rakeType === '16_car_vande_bharat' ? 8 : 4));
+
+  const activeCoach = useMemo(() => {
+    return formation.coaches.find(c => c.sequence === selectedCoachSeq) || formation.coaches[0];
+  }, [formation, selectedCoachSeq]);
 
   // Navigation State Machine (1 to 12)
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -69,10 +97,36 @@ export default function GuideScreen() {
     isAc ? 'first' : 'general'
   );
 
+  const coachRec = useMemo(() => {
+    const isPfValid = currentPlatform && currentPlatform !== 'Unknown' && currentPlatform !== 'Unassigned';
+    if (!isPfValid) {
+      return {
+        status: 'UNAVAILABLE' as const,
+        message: `Platform alignment unavailable: Platform is unassigned for departure at ${fromCode}. Check digital station indicators on arrival.`
+      };
+    }
+    return computeCoachRecommendation({
+      rakeType,
+      coachSequence: selectedCoachSeq,
+      stationCode: fromCode,
+      platformNumber: currentPlatform
+    });
+  }, [rakeType, selectedCoachSeq, fromCode, currentPlatform]);
+
+  // Origin Entrance & Layout Profiles
+  const fromExitProfile = useMemo(() => {
+    return getStationExitGuidance(fromCode) || null;
+  }, [fromCode]);
+
+  const fromStationLayout = useMemo(() => {
+    return STATION_3D_LAYOUTS[fromCode] || null;
+  }, [fromCode]);
+
   // Destination Exit Guidance
   const destExitProfile = useMemo(() => {
     return getStationExitGuidance(toCode) || null;
   }, [toCode]);
+
 
   const [selectedExitId, setSelectedExitId] = useState<string>(
     destExitProfile?.exits[0]?.exitId || ''
@@ -298,20 +352,31 @@ export default function GuideScreen() {
             <Text style={[styles.cardHeader, { color: colors.textPrimary }, easyMode && styles.cardHeaderEasy]}>
               Step 3: Recommended Entrance Gate
             </Text>
-            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-              {fromCode === 'TNA'
-                ? 'Enter through West Deck SATIS Gate 2. This entrance leads directly to the Middle Foot-Over-Bridge and avoids the crowded ticket hall.'
-                : 'Enter through Central Passenger Concourse Gate 1.'}
-            </Text>
-
-            <View style={styles.amenityChipRow}>
-              <View style={styles.amenityChip}>
-                <Text style={styles.amenityChipText}>ATVM Counters: Available</Text>
+            {fromExitProfile && fromExitProfile.exits.length > 0 ? (
+              <>
+                <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+                  {`Recommended entrance at ${fromExitProfile.stationName}: ${fromExitProfile.exits[0].gateName}.`}
+                </Text>
+                <View style={styles.amenityChipRow}>
+                  {fromExitProfile.exits[0].onwardTransit?.autoStand && (
+                    <View style={styles.amenityChip}>
+                      <Text style={styles.amenityChipText}>{fromExitProfile.exits[0].onwardTransit.autoStand}</Text>
+                    </View>
+                  )}
+                  {fromExitProfile.exits[0].accessibility.isStepFree && (
+                    <View style={styles.amenityChip}>
+                      <Text style={styles.amenityChipText}>♿ Step-Free Access</Text>
+                    </View>
+                  )}
+                </View>
+              </>
+            ) : (
+              <View style={[styles.guidanceBox, { backgroundColor: '#78350f20', borderColor: '#b45309' }]}>
+                <Text style={[styles.guidanceText, { color: '#fef3c7' }]}>
+                  {`Station entrance layout unverified for station [${fromCode}]. Follow physical station signage and overhead concourse directions.`}
+                </Text>
               </View>
-              <View style={styles.amenityChip}>
-                <Text style={styles.amenityChipText}>RPF Post: 20m inside gate</Text>
-              </View>
-            </View>
+            )}
           </View>
         )}
 
@@ -333,30 +398,44 @@ export default function GuideScreen() {
               />
             </View>
 
-            <View style={styles.walkRouteBox}>
-              <Text style={styles.walkStepText}>
-                1. Walk along the main concourse toward Foot-Over-Bridge stairs (40m).
-              </Text>
-              <Text style={styles.walkStepText}>
-                {stepFreeRequired
-                  ? '2. Take Middle FOB Accessible Elevator 2 up to Concourse Level 1.'
-                  : '2. Ascend stairs / escalator onto Middle Foot-Over-Bridge.'}
-              </Text>
-              <Text style={styles.walkStepText}>
-                3. Walk 60m along bridge corridor toward Platform {currentPlatform} indicator.
-              </Text>
-              <Text style={styles.walkStepText}>
-                {stepFreeRequired
-                  ? `4. Take Elevator down directly onto Platform ${currentPlatform}.`
-                  : `4. Descend stairs onto Platform ${currentPlatform}.`}
-              </Text>
-            </View>
-
-            <Text style={[styles.estimatedWalkTime, { color: colors.primary }]}>
-              Estimated Walking Time: {stepFreeRequired ? '4-5 min' : '3 min'}
-            </Text>
+            {fromStationLayout ? (
+              <>
+                <View style={styles.walkRouteBox}>
+                  <Text style={styles.walkStepText}>
+                    {`1. Walk from entrance into ${fromStationLayout.stationName} concourse.`}
+                  </Text>
+                  <Text style={styles.walkStepText}>
+                    {stepFreeRequired
+                      ? (fromStationLayout.bridges.some(b => b.hasLifts)
+                          ? `2. Take ${fromStationLayout.bridges.find(b => b.hasLifts)?.name || 'Accessible FOB'} (Elevator / Lift equipped) to bridge level.`
+                          : `2. ⚠️ Notice: No lift-equipped bridge surveyed at ${fromCode}. Use level crossings or ask station master for assistance.`)
+                      : `2. Ascend ${fromStationLayout.bridges[0]?.name || 'Foot-Over-Bridge'} stairs/escalator.`}
+                  </Text>
+                  <Text style={styles.walkStepText}>
+                    {currentPlatform && currentPlatform !== 'Unassigned' && currentPlatform !== 'Unknown'
+                      ? `3. Follow overhead signage along bridge toward Platform ${currentPlatform}.`
+                      : '3. Check overhead LED indicator for confirmed platform assignment.'}
+                  </Text>
+                  <Text style={styles.walkStepText}>
+                    {stepFreeRequired
+                      ? `4. Use platform lift/ramp down to track level.`
+                      : `4. Descend stairs onto platform.`}
+                  </Text>
+                </View>
+                <Text style={[styles.estimatedWalkTime, { color: colors.primary }]}>
+                  {`Estimated Bridge Walk: ${stepFreeRequired ? '4-6 min' : `${fromStationLayout.bridges[0]?.typicalWalkMinutes || 3} min`}`}
+                </Text>
+              </>
+            ) : (
+              <View style={[styles.guidanceBox, { backgroundColor: '#78350f20', borderColor: '#b45309' }]}>
+                <Text style={[styles.guidanceText, { color: '#fef3c7' }]}>
+                  {`Concourse and Foot-Over-Bridge layout for station [${fromCode}] is unmapped. Follow overhead bridge signs and digital indicators to reach your platform.`}
+                </Text>
+              </View>
+            )}
           </View>
         )}
+
 
         {/* STEP 5: Platform Arrival & Indicator */}
         {currentStep === 5 && (
@@ -364,17 +443,39 @@ export default function GuideScreen() {
             <Text style={[styles.cardHeader, { color: colors.textPrimary }, easyMode && styles.cardHeaderEasy]}>
               Step 5: Platform Arrival & Digital Indicator
             </Text>
-            <View style={styles.platformBadgeLarge}>
-              <Text style={styles.platformBadgeLargeText}>PLATFORM {currentPlatform}</Text>
-            </View>
+
+            {currentPlatform && currentPlatform !== 'Unassigned' && currentPlatform !== 'Unknown' ? (
+              <View style={styles.platformBadgeLarge}>
+                <Text style={styles.platformBadgeLargeText}>PLATFORM {currentPlatform}</Text>
+              </View>
+            ) : (
+              <View style={[styles.platformBadgeLarge, { backgroundColor: '#78350f' }]}>
+                <Text style={styles.platformBadgeLargeText}>PLATFORM UNASSIGNED</Text>
+              </View>
+            )}
 
             <View style={styles.indicatorBoardSim}>
-              <Text style={styles.indicatorBoardHeader}>DIGITAL PLATFORM INDICATOR</Text>
+              <View style={styles.indicatorBadgeRow}>
+                <Text style={styles.indicatorBoardHeader}>DIGITAL PLATFORM INDICATOR</Text>
+                <Text style={styles.indicatorTag}>
+                  {currentPlatform && currentPlatform !== 'Unassigned' ? '[TIMETABLE SCHEDULE]' : '[AWAITING ASSIGNMENT]'}
+                </Text>
+              </View>
               <Text style={styles.indicatorBoardTrain}>
-                {departureTime} · {trainName.toUpperCase()} · CSMT FAST
+                {departureTime} · {trainName.toUpperCase()} ➔ {toCode}
               </Text>
-              <Text style={styles.indicatorBoardRake}>12 CAR RAKE · ON TIME</Text>
+              <Text style={styles.indicatorBoardRake}>
+                {formation.totalCoaches} CAR RAKE · {currentPlatform && currentPlatform !== 'Unassigned' ? `BOARD PF ${currentPlatform}` : 'CHECK CONCOURSE PA'}
+              </Text>
             </View>
+
+            {(!currentPlatform || currentPlatform === 'Unassigned' || currentPlatform === 'Unknown') && (
+              <View style={[styles.guidanceBox, { marginTop: 12, backgroundColor: '#78350f20', borderColor: '#b45309' }]}>
+                <Text style={[styles.guidanceText, { color: '#fef3c7' }]}>
+                  Platform assignment is confirmed 10–15 minutes before scheduled departure. Listen to station announcements (PA chimes) and verify overhead LED boards upon concourse arrival.
+                </Text>
+              </View>
+            )}
 
             {/* Platform Change Simulation Button */}
             <View style={styles.simulatePlatformChangeBox}>
@@ -400,10 +501,10 @@ export default function GuideScreen() {
               Step 6: Coach Alignment Zone
             </Text>
             <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-              Select your compartment profile to position yourself on the platform before the train arrives:
+              {formation.totalCoaches}-Car Rake ({formation.name}). Tap a coach to view alignment relative to platform markers:
             </Text>
 
-            {/* Coach Category Tabs */}
+            {/* Coach Category Filter Tabs */}
             <View style={styles.coachTabsRow}>
               {(['general', 'first', 'ladies', 'divyangjan'] as const).map(c => (
                 <TouchableOpacity
@@ -415,7 +516,16 @@ export default function GuideScreen() {
                       borderColor: coachPreference === c ? colors.primary : colors.cardBorder
                     }
                   ]}
-                  onPress={() => setCoachPreference(c)}
+                  onPress={() => {
+                    setCoachPreference(c);
+                    const match = formation.coaches.find(co => {
+                      if (c === 'first') return co.isFirstClass || co.category === 'first_class';
+                      if (c === 'ladies') return co.isLadiesReserved || co.category === 'ladies';
+                      if (c === 'divyangjan') return co.isAccessible || co.category === 'divyangjan';
+                      return co.category === 'general';
+                    });
+                    if (match) setSelectedCoachSeq(match.sequence);
+                  }}
                 >
                   <Text style={[styles.coachTabText, { color: coachPreference === c ? '#FFFFFF' : colors.textSecondary }]}>
                     {c === 'general' ? 'General (II)' : c === 'first' ? 'First Class' : c === 'ladies' ? 'Ladies' : 'Divyangjan'}
@@ -424,24 +534,78 @@ export default function GuideScreen() {
               ))}
             </View>
 
-            {/* Alignment Graphic Marker */}
-            <View style={styles.alignmentMarkerCard}>
-              <Text style={styles.markerTitle}>
-                Recommended Platform Marker:
-              </Text>
-              <Text style={styles.markerPositionText}>
-                {coachPreference === 'first'
-                  ? 'COACH 4 (Orange Strip Indicator) — 60m from Kalyan end'
-                  : coachPreference === 'ladies'
-                  ? 'COACH 2 & COACH 7 (Yellow/Green Indicator)'
-                  : coachPreference === 'divyangjan'
-                  ? 'COACH 6 (Tactile Paving & Blue Handicap Wheelchair Logo)'
-                  : 'COACH 1, 3, 5, 8, 9, 10, 11, 12'}
-              </Text>
-              <Text style={styles.markerNote}>
-                12-Car Rake: Stand between Pillar 8 and Pillar 12 for easy boarding.
-              </Text>
-            </View>
+            {/* Horizontal Swipeable Coach Formation Strip */}
+            <Text style={[styles.infoBoxLabel, { color: colors.textMuted, marginTop: 8, marginBottom: 4 }]}>
+              Rake Formation (South ➔ North):
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.coachStripContainer}>
+              {formation.coaches.map(c => {
+                const isSelected = c.sequence === selectedCoachSeq;
+                const isCategoryMatch =
+                  (coachPreference === 'first' && (c.isFirstClass || c.category === 'first_class')) ||
+                  (coachPreference === 'ladies' && (c.isLadiesReserved || c.category === 'ladies')) ||
+                  (coachPreference === 'divyangjan' && (c.isAccessible || c.category === 'divyangjan')) ||
+                  (coachPreference === 'general' && c.category === 'general');
+
+                const coachColor =
+                  c.isFirstClass ? '#ea580c' :
+                  c.isLadiesReserved ? '#db2777' :
+                  c.isAccessible ? '#2563eb' :
+                  c.category === 'motor_loco' ? '#475569' : '#334155';
+
+                return (
+                  <TouchableOpacity
+                    key={c.sequence}
+                    style={[
+                      styles.coachStripBox,
+                      {
+                        borderColor: isSelected ? colors.primary : isCategoryMatch ? '#fbbf24' : colors.cardBorder,
+                        backgroundColor: isSelected ? colors.primary + '25' : colors.background
+                      }
+                    ]}
+                    onPress={() => setSelectedCoachSeq(c.sequence)}
+                  >
+                    <View style={[styles.coachStripTag, { backgroundColor: coachColor }]}>
+                      <Text style={styles.coachStripTagText}>{c.identifier}</Text>
+                    </View>
+                    <Text style={[styles.coachSeqText, { color: colors.textPrimary }]}>C{c.sequence}</Text>
+                    <Text style={[styles.coachClassText, { color: colors.textMuted }]}>
+                      {c.isLadiesReserved ? 'Ladies' : c.isAccessible ? 'Divyang' : c.isFirstClass ? 'First' : 'General'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Alignment Recommendation or Honest Unavailable State */}
+            {coachRec.status === 'UNAVAILABLE' ? (
+              <View style={[styles.alignmentMarkerCard, { backgroundColor: '#78350f20', borderColor: '#b45309' }]}>
+                <Text style={[styles.markerTitle, { color: '#fbbf24' }]}>
+                  [PLATFORM ALIGNMENT UNAVAILABLE]
+                </Text>
+                <Text style={[styles.markerPositionText, { color: '#fef3c7' }]}>
+                  {coachRec.message}
+                </Text>
+                <Text style={[styles.markerNote, { color: '#cbd5e1' }]}>
+                  Rake has {formation.totalCoaches} cars. Standard overhead indicator markers are posted above Platform {currentPlatform} at the concourse entry.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.alignmentMarkerCard}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={styles.markerTitle}>Platform Alignment:</Text>
+                  <Text style={{ fontSize: 10, color: colors.primary, fontWeight: '700' }}>
+                    [{coachRec.provenance === 'LIVE_VERIFIED' ? 'VERIFIED LIVE' : 'TIMETABLE SCHEDULE'}]
+                  </Text>
+                </View>
+                <Text style={styles.markerPositionText}>
+                  Coach {activeCoach.sequence} ({activeCoach.identifier}): {activeCoach.className}
+                </Text>
+                <Text style={styles.markerNote}>
+                  {coachRec.primaryRecommendationText || activeCoach.description || `Position yourself at coach indicator marker ${activeCoach.sequence} on Platform ${currentPlatform}.`}
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -449,13 +613,20 @@ export default function GuideScreen() {
         {currentStep === 7 && (
           <View style={[styles.stepCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={[styles.cardHeader, { color: colors.textPrimary }, easyMode && styles.cardHeaderEasy]}>
-              Step 7: Boarding Countdown & Train Approaching
+              Step 7: Scheduled Departure & Boarding Notice
             </Text>
 
             <View style={styles.countdownContainer}>
-              <Text style={styles.countdownLabel}>TRAIN APPROACHING PLATFORM {currentPlatform}</Text>
-              <Text style={styles.countdownClock}>01 : 45</Text>
-              <Text style={styles.countdownSub}>Minutes Remaining</Text>
+              <Text style={styles.countdownLabel}>SCHEDULED TIMETABLE SERVICE</Text>
+              <Text style={styles.countdownClock}>{departureTime}</Text>
+              <Text style={styles.countdownSub}>Departure Time from {fromCode}</Text>
+            </View>
+
+            <View style={[styles.infoRowBox, { marginVertical: 8 }]}>
+              <Text style={[styles.infoBoxLabel, { color: colors.textMuted }]}>Live GPS Telemetry:</Text>
+              <Text style={[styles.infoBoxValue, { color: colors.textSecondary }]}>
+                [TIMETABLE SCHEDULE] Dynamic second-by-second countdown is not available for this rake. Listen for station PA arrival chime.
+              </Text>
             </View>
 
             <View style={styles.safetyGuidanceBox}>
@@ -470,27 +641,28 @@ export default function GuideScreen() {
         {currentStep === 8 && (
           <View style={[styles.stepCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={[styles.cardHeader, { color: colors.textPrimary }, easyMode && styles.cardHeaderEasy]}>
-              Step 8: Onboard Transit & Upcoming Halts
+              Step 8: Onboard Transit & Stopping Pattern
             </Text>
 
             <View style={styles.onboardStatusRow}>
-              <View style={styles.speedPill}>
-                <Text style={styles.speedPillText}>SPEED: 68 KM/H</Text>
+              <View style={[styles.speedPill, { backgroundColor: '#334155' }]}>
+                <Text style={styles.speedPillText}>SPEED: TELEMETRY OFFLINE</Text>
               </View>
               <View style={styles.onTimePill}>
-                <Text style={styles.onTimePillText}>SCHEDULE: ON TIME</Text>
+                <Text style={styles.onTimePillText}>[TIMETABLE SCHEDULE]</Text>
               </View>
             </View>
 
+            <Text style={[styles.stepDescription, { color: colors.textSecondary, marginTop: 8 }]}>
+              Transit route from {fromCode} to {toCode} ({departureTime} ➔ {arrivalTime}):
+            </Text>
+
             <View style={styles.haltsList}>
-              <Text style={styles.haltsListHeader}>Stopping Pattern:</Text>
+              <Text style={styles.haltsListHeader}>Scheduled Corridor Halts:</Text>
               {[
-                { stn: 'Thane (TNA)', time: '18:35', passed: true },
-                { stn: 'Ghatkopar (GC)', time: '18:48', passed: false, current: true },
-                { stn: 'Kurla (CLA)', time: '18:54', passed: false },
-                { stn: 'Dadar (DR)', time: '19:03', passed: false },
-                { stn: 'Byculla (BY)', time: '19:12', passed: false },
-                { stn: 'CSMT Terminus', time: '19:20', passed: false }
+                { stn: `${fromCode} (Origin)`, time: departureTime, passed: true },
+                { stn: hasTransfer ? `${transferStation} (Transfer)` : 'Mid-corridor Junction', time: '--:--', passed: false, current: true },
+                { stn: `${toCode} (Destination)`, time: arrivalTime, passed: false }
               ].map((h, idx) => (
                 <View key={idx} style={styles.haltRow}>
                   <View style={[styles.haltDot, h.passed && styles.haltDotPassed, h.current && styles.haltDotCurrent]} />
@@ -504,47 +676,83 @@ export default function GuideScreen() {
           </View>
         )}
 
-        {/* STEP 9: Interchange Station Approach / Dadar Walkthrough */}
+        {/* STEP 9: Interchange Station Approach / Conditional Transfer */}
         {currentStep === 9 && (
           <View style={[styles.stepCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={[styles.cardHeader, { color: colors.textPrimary }, easyMode && styles.cardHeaderEasy]}>
-              Step 9: Dadar Interchange Walkthrough
+              {hasTransfer ? `Step 9: Interchange Transfer (${transferStationName || transferStation || 'Junction'})` : 'Step 9: Direct Transit Monitoring'}
             </Text>
 
-            <View style={styles.dadarWalkthroughCard}>
-              <View style={styles.dadarInterchangeHeader}>
-                <Text style={styles.dadarInterchangeTitle}>
-                  DADAR JUNCTION TRANSFER (CR ➔ WR)
-                </Text>
-                <Text style={styles.dadarInterchangeSub}>
-                  Central PF 4 ➔ Western PF 3 (180m Walk)
+            {!hasTransfer ? (
+              <View style={styles.guidanceBox}>
+                <Text style={[styles.guidanceText, { color: colors.textPrimary }]}>
+                  Direct Through-Service: No transfer required for this journey from {fromCode} to {toCode}. Remain onboard until arrival at {toCode}.
                 </Text>
               </View>
+            ) : transferStation === 'DR' ? (
+              <View style={styles.dadarWalkthroughCard}>
+                <View style={styles.dadarInterchangeHeader}>
+                  <Text style={styles.dadarInterchangeTitle}>
+                    DADAR JUNCTION TRANSFER (CR ➔ WR)
+                  </Text>
+                  <Text style={styles.dadarInterchangeSub}>
+                    Platform {params.transferPlatformFrom || '4'} ➔ Platform {params.transferPlatformTo || '3'} ({params.transferWalkMinutes || '7'} min Walk)
+                  </Text>
+                </View>
 
-              <View style={styles.dadarStepsList}>
-                <Text style={styles.dadarStepItem}>
-                  1. Alight at Dadar Central Platform 4. Turn toward the North end of the platform.
-                </Text>
-                <Text style={styles.dadarStepItem}>
-                  2. Ascend North Foot-Over-Bridge (Avoid Middle FOB during 18:00–20:00 crush hours).
-                </Text>
-                <Text style={styles.dadarStepItem}>
-                  3. Walk straight 140m across the railway tracks corridor connecting Central to Western.
-                </Text>
-                <Text style={styles.dadarStepItem}>
-                  4. Follow green digital signage for "Western Line Churchgate Fast Locals".
-                </Text>
-                <Text style={styles.dadarStepItem}>
-                  5. Descend stairs directly onto Western Railway Platform 3.
-                </Text>
-              </View>
+                <View style={styles.dadarStepsList}>
+                  <Text style={styles.dadarStepItem}>
+                    1. Alight at Dadar Central. Walk toward the North end of the platform.
+                  </Text>
+                  <Text style={styles.dadarStepItem}>
+                    2. Ascend North Foot-Over-Bridge (Avoid Middle FOB during peak rush hours).
+                  </Text>
+                  <Text style={styles.dadarStepItem}>
+                    3. Cross the railway corridor bridge connecting Central to Western tracks.
+                  </Text>
+                  <Text style={styles.dadarStepItem}>
+                    4. Follow Western Railway signage toward Platform {params.transferPlatformTo || '3'}.
+                  </Text>
+                  <Text style={styles.dadarStepItem}>
+                    5. Descend stairs/ramp onto Western Platform {params.transferPlatformTo || '3'}.
+                  </Text>
+                </View>
 
-              <View style={styles.dadarMetricsRow}>
-                <Text style={styles.dadarMetric}>Physical Walk: 180m</Text>
-                <Text style={styles.dadarMetric}>Transfer Time: 6-7 min</Text>
-                <Text style={styles.dadarMetric}>Lift Available: Yes</Text>
+                <View style={styles.dadarMetricsRow}>
+                  <Text style={styles.dadarMetric}>Transfer Walk: ~180m</Text>
+                  <Text style={styles.dadarMetric}>Est. Time: {params.transferWalkMinutes || '7'} min</Text>
+                  <Text style={styles.dadarMetric}>Step-Free: Lift Available</Text>
+                </View>
               </View>
-            </View>
+            ) : (
+              <View style={styles.dadarWalkthroughCard}>
+                <View style={styles.dadarInterchangeHeader}>
+                  <Text style={styles.dadarInterchangeTitle}>
+                    TRANSFER AT {transferStationName ? transferStationName.toUpperCase() : transferStation}
+                  </Text>
+                  <Text style={styles.dadarInterchangeSub}>
+                    Platform {params.transferPlatformFrom || 'Arrival'} ➔ Platform {params.transferPlatformTo || 'Connecting'} ({params.transferWalkMinutes || '5'} min Walk)
+                  </Text>
+                </View>
+
+                <View style={styles.dadarStepsList}>
+                  <Text style={styles.dadarStepItem}>
+                    1. Alight at {transferStationName || transferStation}.
+                  </Text>
+                  <Text style={styles.dadarStepItem}>
+                    2. Take nearest Foot-Over-Bridge or concourse subway.
+                  </Text>
+                  <Text style={styles.dadarStepItem}>
+                    3. Follow digital signage to Platform {params.transferPlatformTo || 'Connecting'}.
+                  </Text>
+                </View>
+
+                <View style={styles.dadarMetricsRow}>
+                  <Text style={styles.dadarMetric}>Transfer Buffer: {params.transferWalkMinutes || '5'} min</Text>
+                  <Text style={styles.dadarMetric}>Accessibility: Follow station lifts</Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -552,14 +760,27 @@ export default function GuideScreen() {
         {currentStep === 10 && (
           <View style={[styles.stepCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={[styles.cardHeader, { color: colors.textPrimary }, easyMode && styles.cardHeaderEasy]}>
-              Step 10: Connecting Platform & Train Boarding
+              {hasTransfer ? 'Step 10: Connecting Platform & Boarding' : 'Step 10: Final Line Section Approach'}
             </Text>
-            <View style={styles.platformBadgeLarge}>
-              <Text style={styles.platformBadgeLargeText}>PLATFORM 3 (WR)</Text>
-            </View>
-            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
-              Arrived at connecting platform. Next departure: 19:12 Churchgate Fast Local.
-            </Text>
+
+            {hasTransfer ? (
+              <>
+                <View style={styles.platformBadgeLarge}>
+                  <Text style={styles.platformBadgeLargeText}>
+                    PLATFORM {params.transferPlatformTo || 'CONNECTING'}
+                  </Text>
+                </View>
+                <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
+                  Arrived at connecting platform at {transferStationName || transferStation}. Board connecting service toward {toCode}.
+                </Text>
+              </>
+            ) : (
+              <View style={styles.guidanceBox}>
+                <Text style={[styles.guidanceText, { color: colors.textPrimary }]}>
+                  Approaching final transit segment toward {toCode}. Estimated arrival at {arrivalTime}.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -567,20 +788,28 @@ export default function GuideScreen() {
         {currentStep === 11 && (
           <View style={[styles.stepCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={[styles.cardHeader, { color: colors.textPrimary }, easyMode && styles.cardHeaderEasy]}>
-              Step 11: Destination Approach & Door Side
+              Step 11: Destination Approach & Alighting Caution
             </Text>
 
-            <View style={styles.doorSideCard}>
-              <Text style={styles.doorSideAlert}>DOORS WILL OPEN ON THE LEFT</Text>
+            <View style={[styles.doorSideCard, { backgroundColor: '#1e293b', borderColor: '#334155' }]}>
+              <Text style={[styles.doorSideAlert, { color: '#f59e0b' }]}>
+                ALIGHTING CAUTION: MIND THE GAP
+              </Text>
               <Text style={styles.doorSideSub}>
-                Approaching {toCode} (Platform {arrivalPlatform}). Prepare to alight.
+                Approaching {toCode} (Scheduled Platform: {arrivalPlatform}).
+              </Text>
+            </View>
+
+            <View style={[styles.guidanceBox, { marginVertical: 8, backgroundColor: '#0f172a' }]}>
+              <Text style={[styles.guidanceText, { color: '#94a3b8' }]}>
+                Notice: Door opening side is platform track-dependent and varies between island and side platforms. Look out of the door window to verify platform edge before train halts completely.
               </Text>
             </View>
 
             <View style={styles.crowdExitGuidance}>
               <Text style={styles.crowdExitTitle}>Commuter Flow Advice:</Text>
               <Text style={styles.crowdExitText}>
-                Step onto the platform promptly. Main exits are located toward the FRONT of the rake.
+                Step onto the platform promptly after train stops. Keep moving along concourse corridors to prevent doorway congestion.
               </Text>
             </View>
           </View>
@@ -596,65 +825,82 @@ export default function GuideScreen() {
               Verified exit gates and onward connections for {destExitProfile?.stationName || toCode}:
             </Text>
 
-            {/* Exit Gate Selector Tabs */}
-            <View style={styles.exitGateTabsRow}>
-              {destExitProfile?.exits.map(ex => (
-                <TouchableOpacity
-                  key={ex.exitId}
-                  style={[
-                    styles.exitGateTab,
-                    {
-                      backgroundColor: selectedExitId === ex.exitId ? colors.primary : colors.card,
-                      borderColor: selectedExitId === ex.exitId ? colors.primary : colors.cardBorder
-                    }
-                  ]}
-                  onPress={() => setSelectedExitId(ex.exitId)}
-                >
-                  <Text style={[styles.exitGateTabText, { color: selectedExitId === ex.exitId ? '#FFFFFF' : colors.textPrimary }]}>
-                    {ex.gateName.split('(')[0].trim()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Selected Exit Details Card */}
-            {selectedExit && (
-              <View style={styles.exitDetailsCard}>
-                <Text style={styles.exitNameTitle}>{selectedExit.gateName}</Text>
-
-                <View style={styles.landmarksSection}>
-                  <Text style={styles.sectionSmallLabel}>Landmarks & Roads:</Text>
-                  {selectedExit.destinationLandmarks.map((l, lIdx) => (
-                    <Text key={lIdx} style={styles.landmarkItem}>• {l}</Text>
+            {/* Exit Gate Selector Tabs & Details */}
+            {destExitProfile && destExitProfile.exits && destExitProfile.exits.length > 0 ? (
+              <>
+                <View style={styles.exitGateTabsRow}>
+                  {destExitProfile.exits.map(ex => (
+                    <TouchableOpacity
+                      key={ex.exitId}
+                      style={[
+                        styles.exitGateTab,
+                        {
+                          backgroundColor: selectedExitId === ex.exitId ? colors.primary : colors.card,
+                          borderColor: selectedExitId === ex.exitId ? colors.primary : colors.cardBorder
+                        }
+                      ]}
+                      onPress={() => setSelectedExitId(ex.exitId)}
+                    >
+                      <Text style={[styles.exitGateTabText, { color: selectedExitId === ex.exitId ? '#FFFFFF' : colors.textPrimary }]}>
+                        {ex.gateName.split('(')[0].trim()}
+                      </Text>
+                    </TouchableOpacity>
                   ))}
                 </View>
 
-                <View style={styles.transitSection}>
-                  <Text style={styles.sectionSmallLabel}>Onward Transit Link:</Text>
-                  {selectedExit.onwardTransit.metroInterchange && (
-                    <Text style={styles.transitItem}>🚇 Metro: {selectedExit.onwardTransit.metroInterchange}</Text>
-                  )}
-                  {selectedExit.onwardTransit.taxiStand && (
-                    <Text style={styles.transitItem}>🚕 Taxi: {selectedExit.onwardTransit.taxiStand}</Text>
-                  )}
-                  {selectedExit.onwardTransit.autoStand && (
-                    <Text style={styles.transitItem}>🛺 Auto: {selectedExit.onwardTransit.autoStand}</Text>
-                  )}
-                  {selectedExit.onwardTransit.busInterchange && (
-                    <Text style={styles.transitItem}>🚌 Bus: {selectedExit.onwardTransit.busInterchange}</Text>
-                  )}
-                </View>
+                {/* Selected Exit Details Card */}
+                {selectedExit && (
+                  <View style={styles.exitDetailsCard}>
+                    <Text style={styles.exitNameTitle}>{selectedExit.gateName}</Text>
 
-                <View style={styles.exitAccessibilityRow}>
-                  <Text style={styles.accessibilityBadge}>
-                    {selectedExit.accessibility.isStepFree ? '✓ Step-Free Ramp Available' : 'Stairs Only'}
-                  </Text>
-                  <Text style={styles.walkMinutesBadge}>
-                    ~{selectedExit.approxWalkMinutes} min walk from platform
-                  </Text>
-                </View>
+                    <View style={styles.landmarksSection}>
+                      <Text style={styles.sectionSmallLabel}>Landmarks & Roads:</Text>
+                      {selectedExit.destinationLandmarks.map((l, lIdx) => (
+                        <Text key={lIdx} style={styles.landmarkItem}>• {l}</Text>
+                      ))}
+                    </View>
+
+                    <View style={styles.transitSection}>
+                      <Text style={styles.sectionSmallLabel}>Onward Transit Link:</Text>
+                      {selectedExit.onwardTransit.metroInterchange && (
+                        <Text style={styles.transitItem}>🚇 Metro: {selectedExit.onwardTransit.metroInterchange}</Text>
+                      )}
+                      {selectedExit.onwardTransit.taxiStand && (
+                        <Text style={styles.transitItem}>🚕 Taxi: {selectedExit.onwardTransit.taxiStand}</Text>
+                      )}
+                      {selectedExit.onwardTransit.autoStand && (
+                        <Text style={styles.transitItem}>🛺 Auto: {selectedExit.onwardTransit.autoStand}</Text>
+                      )}
+                      {selectedExit.onwardTransit.busInterchange && (
+                        <Text style={styles.transitItem}>🚌 Bus: {selectedExit.onwardTransit.busInterchange}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.exitAccessibilityRow}>
+                      <Text style={styles.accessibilityBadge}>
+                        {selectedExit.accessibility.isStepFree ? '✓ Step-Free Ramp Available' : 'Stairs Only'}
+                      </Text>
+                      <Text style={styles.walkMinutesBadge}>
+                        ~{selectedExit.approxWalkMinutes} min walk from platform
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={[styles.alignmentMarkerCard, { backgroundColor: '#78350f20', borderColor: '#b45309', marginVertical: 12 }]}>
+                <Text style={[styles.markerTitle, { color: '#fbbf24' }]}>
+                  {`[EXIT BLUEPRINT UNAVAILABLE FOR STATION [${toCode}]]`}
+                </Text>
+                <Text style={[styles.markerPositionText, { color: '#fef3c7' }]}>
+                  Topological exit guidance is currently verified for major junction hubs (CSMT, Dadar, Thane, Andheri, Borivali, Kurla, Kalyan).
+                </Text>
+                <Text style={[styles.markerNote, { color: '#cbd5e1' }]}>
+                  Follow station exit signage and concourse indicators upon train arrival.
+                </Text>
               </View>
             )}
+
 
             <TouchableOpacity
               style={[styles.finishTripBtn, { backgroundColor: '#15803d' }]}
@@ -1370,5 +1616,47 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '900'
+  },
+  indicatorBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  indicatorTag: {
+    color: '#38bdf8',
+    fontSize: 9,
+    fontWeight: '800'
+  },
+  coachStripContainer: {
+    paddingVertical: 8,
+    gap: 8
+  },
+  coachStripBox: {
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    width: 62,
+    minHeight: 64,
+    justifyContent: 'center'
+  },
+  coachStripTag: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4
+  },
+  coachStripTagText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900'
+  },
+  coachSeqText: {
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  coachClassText: {
+    fontSize: 9,
+    fontWeight: '600'
   }
 });

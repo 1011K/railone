@@ -64,12 +64,6 @@ export function searchRoutes(params: RouteSearchParams): JourneyItinerary[] {
     }
   }
 
-  // If no explicit departure time was specified and no services are active (e.g. late night),
-  // fallback to morning peak timetable (10:35) so unscheduled queries return the next daytime services
-  if (routes.length === 0 && !params.departureTime) {
-    routes = planJourneys({ ...planParams, departureTime: '10:35' });
-  }
-
   // Never secretly retry at 10:35 or change requested departure time behind user's back
   return routes;
 }

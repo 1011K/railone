@@ -80,6 +80,18 @@ export interface CachedVectorMap {
 }
 
 // Durable storage bridge: leverages device localStorage with resilient memory fallback
+if (typeof globalThis !== 'undefined' && !globalThis.localStorage) {
+  const polyfillStore = new Map<string, string>();
+  (globalThis as any).localStorage = {
+    getItem: (key: string) => polyfillStore.get(key) ?? null,
+    setItem: (key: string, value: string) => polyfillStore.set(key, String(value)),
+    removeItem: (key: string) => polyfillStore.delete(key),
+    clear: () => polyfillStore.clear(),
+    get length() { return polyfillStore.size; },
+    key: (index: number) => Array.from(polyfillStore.keys())[index] ?? null
+  };
+}
+
 const memoryCache = new Map<string, any>();
 
 function loadDurable<T>(key: string, defaultValue: T): T {
@@ -184,36 +196,77 @@ export const OfflineStorage = {
   },
 
   getUserProfile(): { name?: string; phone?: string; isGuest: boolean } | null {
-    return memoryCache.get('user_profile') || null;
+    return loadDurable('user_profile', null);
   },
 
   setUserProfile(profile: { name?: string; phone?: string; isGuest: boolean }): void {
-    memoryCache.set('user_profile', profile);
+    saveDurable('user_profile', profile);
   },
 
   getLocationConsent(): boolean | null {
-    const val = memoryCache.get('location_consent');
+    const val = loadDurable('location_consent', null);
     return val !== undefined ? val : null;
   },
 
   setLocationConsent(consent: boolean): void {
-    memoryCache.set('location_consent', consent);
+    saveDurable('location_consent', consent);
   },
 
   getHasSeenLaunch(): boolean {
-    return Boolean(memoryCache.get('has_seen_launch'));
+    return Boolean(loadDurable('has_seen_launch', false));
   },
 
   setHasSeenLaunch(seen: boolean): void {
-    memoryCache.set('has_seen_launch', seen);
+    saveDurable('has_seen_launch', seen);
   },
 
   getHasCompletedOnboarding(): boolean {
-    return Boolean(memoryCache.get('has_completed_onboarding'));
+    return Boolean(loadDurable('has_completed_onboarding', false));
   },
 
   setHasCompletedOnboarding(completed: boolean): void {
-    memoryCache.set('has_completed_onboarding', completed);
+    saveDurable('has_completed_onboarding', completed);
+  },
+
+  getStorageVersion(): string {
+    return loadDurable('storage_schema_version', '1.0.0');
+  },
+
+  setStorageVersion(version: string): void {
+    saveDurable('storage_schema_version', version);
+  },
+
+  migrateStorageSchema(): { migrated: boolean; fromVersion: string; toVersion: string } {
+    const fromVersion = this.getStorageVersion();
+    const TARGET_VERSION = '1.1.0';
+    if (fromVersion === TARGET_VERSION) {
+      return { migrated: false, fromVersion, toVersion: TARGET_VERSION };
+    }
+
+    const profile = this.getUserProfile();
+    if (profile && typeof profile === 'object' && typeof profile.isGuest === 'undefined') {
+      this.setUserProfile({ ...profile, isGuest: false });
+    }
+
+    const tickets = this.getTickets();
+    let ticketsUpdated = false;
+    const migratedTickets = tickets.map(t => {
+      if (!t.cachedAt) {
+        ticketsUpdated = true;
+        return { ...t, cachedAt: new Date().toISOString() };
+      }
+      return t;
+    });
+    if (ticketsUpdated) {
+      this.saveTickets(migratedTickets);
+    }
+
+    this.setStorageVersion(TARGET_VERSION);
+    return { migrated: true, fromVersion, toVersion: TARGET_VERSION };
+  },
+
+  _resetMemoryCacheOnly(): void {
+    memoryCache.clear();
   },
 
   // 6. Offline Vector Map & Geometry Caching (Zero-connectivity tunnel navigation)
@@ -343,16 +396,28 @@ export const OfflineStorage = {
   },
 
   hasCachedVectorMap(scope = 'mumbai_suburban'): boolean {
-    return Boolean(memoryCache.get(`offline_vector_map_${scope}`));
+    return Boolean(loadDurable(`offline_vector_map_${scope}`, null));
   },
 
   clearVectorMapCache(scope?: string): void {
     if (scope) {
-      memoryCache.delete(`offline_vector_map_${scope}`);
+      deleteDurable(`offline_vector_map_${scope}`);
     } else {
-      memoryCache.delete('offline_map_nodes');
-      memoryCache.delete('offline_track_segments');
-      memoryCache.delete('offline_station_geometries');
+      deleteDurable('offline_map_nodes');
+      deleteDurable('offline_track_segments');
+      deleteDurable('offline_station_geometries');
+      if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+        try {
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < globalThis.localStorage.length; i++) {
+            const k = globalThis.localStorage.key(i);
+            if (k && k.startsWith('railone_offline_vector_map_')) {
+              keysToRemove.push(k.replace('railone_', ''));
+            }
+          }
+          keysToRemove.forEach(k => deleteDurable(k));
+        } catch {}
+      }
       for (const key of Array.from(memoryCache.keys())) {
         if (key.startsWith('offline_vector_map_')) {
           memoryCache.delete(key);

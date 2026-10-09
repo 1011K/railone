@@ -328,6 +328,9 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       case 'nearest_station':
         setShowCityPicker(true);
         break;
+      case 'auto_shared_rickshaw':
+        handleOpenGodsEye('DR');
+        break;
       default:
         setActiveTab('journey');
         break;
