@@ -1,30 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CITIES_REGISTRY, CityCoverageConfig } from '../../fixtures/citiesData';
 import { useAuthority } from '../AuthorityContext';
 import { InstitutionalInsignia } from '../common/InstitutionalInsignia';
 import { useTheme } from '../ThemeContext';
 import { getTranslation } from '../../i18n/translations';
-import { 
-  Train, 
-  MapPin, 
-  ArrowRightLeft, 
-  Search, 
-  Clock, 
-  Ticket, 
-  Wallet, 
-  ShieldCheck, 
-  Compass, 
-  Layers, 
-  ChevronRight, 
+import { ALL_22_SERVICES, ServiceItem } from '../ServicesHubModal';
+import { MockBookingStore } from '../../engine/mockBookingStore';
+import { resolveStation } from '../../engine/journeyEngine';
+import { STATIONS } from '../../fixtures/railwayData';
+import {
+  Train,
+  MapPin,
+  ArrowRightLeft,
+  Search,
+  Clock,
+  Ticket,
+  Wallet,
+  ShieldCheck,
+  Compass,
+  Layers,
+  ChevronRight,
   Sparkles,
   Zap,
   Radio,
   FileText,
   PhoneCall,
   MessageSquare,
-  Grid
+  Grid,
+  CheckCircle2,
+  ExternalLink,
+  ChevronDown,
+  Info,
+  Calendar,
+  Filter,
+  X
 } from 'lucide-react';
-
 import { PassengerNavTab } from '../common/BottomNavigation';
 
 interface MobileHomeTabProps {
@@ -36,6 +46,31 @@ interface MobileHomeTabProps {
   onOpenRailSathi?: () => void;
 }
 
+const SERVICE_SHORT_LABELS: Record<string, string> = {
+  unreserved_tickets: 'Unreserved UTS',
+  reserved_tickets: 'Reserved PRS',
+  platform_permits: 'Platform Ticket',
+  season_passes: 'Season Pass',
+  metro_ticketing: 'Metro QR',
+  my_tickets_qr: 'My Tickets',
+  wallet_recharge: 'RailWallet',
+  cancellation_refunds: 'Refunds',
+  journey_planning: 'Door-to-Door',
+  train_running_status: 'Track Train',
+  crowd_delay_insights: 'Live Delays',
+  station_navigation_2d: 'Station 2D',
+  coach_positioning: 'Coach Guide',
+  railyatri_voice_chat: 'RailSathi AI',
+  railmadad_help: 'RailMadad 139',
+  food_station_amenities: 'e-Catering',
+  nearest_station: 'Nearby Hubs',
+  network_maps: 'Network Maps',
+  pnr_status: 'PNR Status',
+  accessibility_assistance: 'Divyangjan',
+  disruption_weather: 'Weather/Blocks',
+  travel_feedback: 'Feedback'
+};
+
 export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
   currentCity,
   onSelectCityClick,
@@ -45,17 +80,33 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
   onOpenRailSathi
 }) => {
   const { authority } = useAuthority();
-  const { language } = useTheme();
+  const { language, setLanguage, isDark, toggleDarkMode } = useTheme();
   const t = getTranslation(language);
 
+  // Search station state
   const [fromCode, setFromCode] = useState(authority.defaultOriginCode || 'DR');
   const [toCode, setToCode] = useState(authority.defaultDestCode || 'TNA');
+  const [journeyDate, setJourneyDate] = useState<'today' | 'tomorrow'>('today');
+  const [acOnly, setAcOnly] = useState(false);
 
-  // Sync station defaults
+  // Services Directory controls
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'ticketing' | 'navigation' | 'assistance' | 'insights'>('all');
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [externalGatedNotice, setExternalGatedNotice] = useState<ServiceItem | null>(null);
+
+  // Real application state for upcoming / saved journeys
+  const [savedBookings, setSavedBookings] = useState<any[]>([]);
+
   useEffect(() => {
     setFromCode(authority.defaultOriginCode || 'DR');
     setToCode(authority.defaultDestCode || 'TNA');
   }, [authority.defaultOriginCode, authority.defaultDestCode]);
+
+  useEffect(() => {
+    // Only fetch real user bookings from MockBookingStore
+    const realBookings = MockBookingStore.listBookings();
+    setSavedBookings(realBookings);
+  }, []);
 
   const swapStations = () => {
     const temp = fromCode;
@@ -68,336 +119,579 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
     onNavigateToJourney(fromCode, toCode);
   };
 
-  // Quick action items (All India / Suburban specific)
-  const quickActions = [
-    { id: 'uts_local', label: t.unreservedPass, icon: Ticket, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
-    { id: 'express_reserved', label: t.reservedTransit, icon: Train, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
-    { id: 'platform_ticket', label: t.platformPermit, icon: ShieldCheck, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
-    { id: 'season_pass', label: t.seasonPass, icon: FileText, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20' },
-    { id: 'wallet', label: t.transitWallet, icon: Wallet, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20' },
-    { id: 'track_train', label: t.liveTelemetry, icon: Radio, color: 'text-rose-500 bg-rose-500/10 border-rose-500/20' },
-    { id: 'coach_guide', label: t.coachPosition, icon: Layers, color: 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20' },
-    { id: 'station_guide', label: t.stationGuide, icon: Compass, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
-  ];
+  // Reconciled 22 Services mapped to pastel design tokens
+  const serviceStyleMap: Record<string, { bg: string; text: string; border: string }> = {
+    unreserved_tickets: {
+      bg: 'bg-amber-50 dark:bg-amber-950/40',
+      text: 'text-amber-700 dark:text-amber-300',
+      border: 'border-amber-200/80 dark:border-amber-800/40'
+    },
+    reserved_tickets: {
+      bg: 'bg-blue-50 dark:bg-blue-950/40',
+      text: 'text-blue-700 dark:text-blue-300',
+      border: 'border-blue-200/80 dark:border-blue-800/40'
+    },
+    platform_permits: {
+      bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+      text: 'text-emerald-700 dark:text-emerald-300',
+      border: 'border-emerald-200/80 dark:border-emerald-800/40'
+    },
+    season_passes: {
+      bg: 'bg-purple-50 dark:bg-purple-950/40',
+      text: 'text-purple-700 dark:text-purple-300',
+      border: 'border-purple-200/80 dark:border-purple-800/40'
+    },
+    metro_ticketing: {
+      bg: 'bg-cyan-50 dark:bg-cyan-950/40',
+      text: 'text-cyan-700 dark:text-cyan-300',
+      border: 'border-cyan-200/80 dark:border-cyan-800/40'
+    },
+    my_tickets_qr: {
+      bg: 'bg-indigo-50 dark:bg-indigo-950/40',
+      text: 'text-indigo-700 dark:text-indigo-300',
+      border: 'border-indigo-200/80 dark:border-indigo-800/40'
+    },
+    wallet_recharge: {
+      bg: 'bg-teal-50 dark:bg-teal-950/40',
+      text: 'text-teal-700 dark:text-teal-300',
+      border: 'border-teal-200/80 dark:border-teal-800/40'
+    },
+    cancellation_refunds: {
+      bg: 'bg-rose-50 dark:bg-rose-950/40',
+      text: 'text-rose-700 dark:text-rose-300',
+      border: 'border-rose-200/80 dark:border-rose-800/40'
+    },
+    journey_planning: {
+      bg: 'bg-sky-50 dark:bg-sky-950/40',
+      text: 'text-sky-700 dark:text-sky-300',
+      border: 'border-sky-200/80 dark:border-sky-800/40'
+    },
+    pnr_status: {
+      bg: 'bg-violet-50 dark:bg-violet-950/40',
+      text: 'text-violet-700 dark:text-violet-300',
+      border: 'border-violet-200/80 dark:border-violet-800/40'
+    },
+    train_running_status: {
+      bg: 'bg-rose-50 dark:bg-rose-950/40',
+      text: 'text-rose-700 dark:text-rose-300',
+      border: 'border-rose-200/80 dark:border-rose-800/40'
+    },
+    coach_positioning: {
+      bg: 'bg-cyan-50 dark:bg-cyan-950/40',
+      text: 'text-cyan-700 dark:text-cyan-300',
+      border: 'border-cyan-200/80 dark:border-cyan-800/40'
+    },
+    station_navigation_2d: {
+      bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+      text: 'text-emerald-700 dark:text-emerald-300',
+      border: 'border-emerald-200/80 dark:border-emerald-800/40'
+    },
+    food_station_amenities: {
+      bg: 'bg-orange-50 dark:bg-orange-950/40',
+      text: 'text-orange-700 dark:text-orange-300',
+      border: 'border-orange-200/80 dark:border-orange-800/40'
+    },
+    railmadad_help: {
+      bg: 'bg-red-50 dark:bg-red-950/40',
+      text: 'text-red-700 dark:text-red-300',
+      border: 'border-red-200/80 dark:border-red-800/40'
+    },
+    travel_feedback: {
+      bg: 'bg-amber-50 dark:bg-amber-950/40',
+      text: 'text-amber-700 dark:text-amber-300',
+      border: 'border-amber-200/80 dark:border-amber-800/40'
+    },
+    railyatri_voice_chat: {
+      bg: 'bg-purple-50 dark:bg-purple-950/40',
+      text: 'text-purple-700 dark:text-purple-300',
+      border: 'border-purple-200/80 dark:border-purple-800/40'
+    },
+    crowd_delay_insights: {
+      bg: 'bg-yellow-50 dark:bg-yellow-950/40',
+      text: 'text-yellow-700 dark:text-yellow-300',
+      border: 'border-yellow-200/80 dark:border-yellow-800/40'
+    },
+    nearest_station: {
+      bg: 'bg-blue-50 dark:bg-blue-950/40',
+      text: 'text-blue-700 dark:text-blue-300',
+      border: 'border-blue-200/80 dark:border-blue-800/40'
+    },
+    network_maps: {
+      bg: 'bg-indigo-50 dark:bg-indigo-950/40',
+      text: 'text-indigo-700 dark:text-indigo-300',
+      border: 'border-indigo-200/80 dark:border-indigo-800/40'
+    },
+    accessibility_assistance: {
+      bg: 'bg-teal-50 dark:bg-teal-950/40',
+      text: 'text-teal-700 dark:text-teal-300',
+      border: 'border-teal-200/80 dark:border-teal-800/40'
+    },
+    disruption_weather: {
+      bg: 'bg-sky-50 dark:bg-sky-950/40',
+      text: 'text-sky-700 dark:text-sky-300',
+      border: 'border-sky-200/80 dark:border-sky-800/40'
+    }
+  };
 
-  // Indian Suburban Departures with dynamic localization
-  const activeDepartures = [
-    { pf: 'PF 4', time: '10:45', name: `CSMT ${t.fastLocal}`, line: 'Central Fast', rake: '12-car', isAc: false, crowd: t.moderateCrowd },
-    { pf: 'PF 1', time: '10:48', name: `Borivali ${t.slowLocal}`, line: 'Western Slow', rake: '15-car', isAc: true, crowd: t.lightCrowd },
-    { pf: 'PF 5', time: '10:50', name: `Kalyan ${t.fastLocal}`, line: 'Central Fast', rake: '12-car', isAc: false, crowd: t.heavyCrowd },
-    { pf: 'PF 3', time: '11:00', name: `Kalyan ${t.acLocal}`, line: 'Central AC', rake: '12-car AC', isAc: true, crowd: t.lightCrowd }
-  ];
+  // Filter 22 services by category and search
+  const filteredServices = useMemo(() => {
+    return ALL_22_SERVICES.filter(svc => {
+      const matchCat = selectedCategory === 'all' || svc.category === selectedCategory;
+      const matchQ = !serviceSearch.trim() ||
+        svc.name.toLowerCase().includes(serviceSearch.toLowerCase().trim()) ||
+        svc.description.toLowerCase().includes(serviceSearch.toLowerCase().trim());
+      return matchCat && matchQ;
+    });
+  }, [selectedCategory, serviceSearch]);
+
+  const handleTileClick = (service: ServiceItem) => {
+    if (service.isExternalLink) {
+      setExternalGatedNotice(service);
+      return;
+    }
+
+    switch (service.actionId) {
+      case 'uts_local':
+      case 'express_reserved':
+      case 'season_pass':
+        onNavigateToJourney(fromCode, toCode);
+        break;
+      case 'platform_ticket':
+        onOpenActionModal('platform_ticket');
+        break;
+      case 'pnr_status':
+        onOpenActionModal('pnr_status');
+        break;
+      case 'travel_feedback':
+        onOpenActionModal('travel_feedback');
+        break;
+      case 'coach_guide':
+        onOpenActionModal('coach_guide', { stationCode: fromCode, platformNumber: '1' });
+        break;
+      case 'station_guide':
+        onOpenActionModal('gods_eye', fromCode);
+        break;
+      case 'track_train':
+      case 'crowd_delay_insights':
+        onSwitchTab('live');
+        break;
+      case 'my_tickets':
+      case 'wallet':
+      case 'cancellation_refunds':
+        onSwitchTab('tickets');
+        break;
+      case 'railyatri_voice_chat':
+        if (onOpenRailSathi) onOpenRailSathi();
+        else onSwitchTab('help');
+        break;
+      case 'nearest_station':
+        onSelectCityClick();
+        break;
+      case 'network_maps':
+      case 'disruption_weather':
+        onSwitchTab('live');
+        break;
+      case 'accessibility_assistance':
+        onOpenActionModal('gods_eye', fromCode);
+        break;
+      case 'journey_planning':
+        onNavigateToJourney(fromCode, toCode);
+        break;
+      default:
+        onOpenActionModal(service.actionId);
+        break;
+    }
+  };
+
+  // Resolve Station Names for readable display
+  const fromStationObj = resolveStation(fromCode) || STATIONS[fromCode] || { code: fromCode, name: fromCode };
+  const toStationObj = resolveStation(toCode) || STATIONS[toCode] || { code: toCode, name: toCode };
 
   return (
-    <div className="space-y-4 pb-24 px-3.5 pt-2">
-      
-      {/* 1. Indian Railways Sovereign Authority Banner (Strictly India Only) */}
-      <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <InstitutionalInsignia authorityId="india" size={30} />
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black text-slate-900 dark:text-white">
-                {t.appName}
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
-              {t.ministryName}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>{t.statutoryActive}</span>
-        </div>
-      </div>
-
-      {/* 2. PROMINENT RAIL YATRI / ONE-CALL VOICE ASSISTANT HERO CARD */}
-      <div className="p-3.5 rounded-3xl bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 text-white border border-blue-500/30 shadow-lg space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-theme-primary flex items-center justify-center text-white shadow-xs">
-              <Sparkles className="w-4 h-4 animate-pulse" />
-            </div>
-            <div>
-              <div className="text-xs font-black flex items-center gap-1.5">
-                <span>{t.railYatriTitle}</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[8px] font-mono font-black bg-emerald-400 text-slate-950">
-                  {t.oneCallBadge}
-                </span>
-              </div>
-              <div className="text-[10px] text-cyan-200">
-                {t.railYatriSubtitle}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Rail Yatri One-Call and Chat Action Chips */}
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            onClick={() => {
-              if (onOpenRailSathi) onOpenRailSathi();
-              else onSwitchTab('help');
-            }}
-            className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[11px] font-black shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95"
-          >
-            <PhoneCall className="w-3.5 h-3.5" />
-            <span>Call Rail Yatri</span>
-          </button>
-          <button
-            onClick={() => {
-              if (onOpenRailSathi) onOpenRailSathi();
-              else onSwitchTab('help');
-            }}
-            className="flex-1 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border border-white/20 flex items-center justify-center gap-1.5 transition-all active:scale-95"
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-cyan-300" />
-            <span>Chat Assistant</span>
-          </button>
-        </div>
-
-        {/* Quick Suggestion Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[10px]">
-          <button
-            onClick={() => {
-              if (onOpenRailSathi) onOpenRailSathi();
-              else onSwitchTab('help');
-            }}
-            className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-cyan-200 border border-white/10 whitespace-nowrap active:scale-95"
-          >
-            "{t.bookFastLocalDadarThane}"
-          </button>
-          <button
-            onClick={() => {
-              if (onOpenRailSathi) onOpenRailSathi();
-              else onSwitchTab('help');
-            }}
-            className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-cyan-200 border border-white/10 whitespace-nowrap active:scale-95"
-          >
-            "{t.bookSecondThaneCsmt}"
-          </button>
-        </div>
-      </div>
-
-      {/* 3. City & Live Status Header Pill (Indian Metropolitan Networks) */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={onSelectCityClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-xs hover:border-theme-primary transition-all active:scale-95"
-        >
-          <MapPin className="w-3.5 h-3.5 text-theme-primary" />
-          <span>{currentCity.name}</span>
-          <span className="text-[10px] text-slate-400 font-normal">({currentCity.nativeName})</span>
-          <span className="text-[9px] text-slate-400 ml-0.5">▼</span>
-        </button>
-
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-bold">
-          <span>INR (₹)</span>
-        </div>
-      </div>
-
-      {/* 4. Main Journey Search Card */}
-      <div className="rounded-3xl bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 shadow-xl border border-slate-700/80 space-y-3">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+    <div className="space-y-3 pb-24 px-3 pt-1 max-w-xl mx-auto">
+      {/* ============================================================== */}
+      {/* 1. MINIMAL JOURNEY SEARCH CARD (CRIS Benchmark)                */}
+      {/* ============================================================== */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-3 shadow-2xs space-y-2.5">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800 pb-2">
           <span className="flex items-center gap-1.5">
-            <Train className="w-4 h-4 text-theme-primary" />
-            <span>{t.findItineraries}</span>
+            <Train className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+            <span>Search Trains & Timetable</span>
           </span>
-          <span className="text-[10px] font-mono text-slate-400">Quad-Track Timetable</span>
+          <span className="text-[10px] font-mono text-slate-400">
+            {currentCity.primaryHubs[0]?.code} Network
+          </span>
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="space-y-2.5">
-          {/* Origin & Destination with Swap Button */}
+        <form onSubmit={handleSearchSubmit} className="space-y-3">
+          {/* Station Selector with Center Swap */}
           <div className="relative space-y-2">
-            {/* Origin Input */}
-            <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-white/10 dark:bg-slate-950/70 border border-white/15">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 ml-1" />
+            {/* FROM Station Input */}
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
               <div className="flex-1">
-                <div className="text-[9px] uppercase font-bold text-slate-400">{t.fromStation}</div>
+                <span className="block text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400">
+                  From Station
+                </span>
                 <input
                   type="text"
                   value={fromCode}
                   onChange={(e) => setFromCode(e.target.value.toUpperCase())}
-                  placeholder={t.fromPlaceholder}
-                  className="w-full bg-transparent text-sm font-bold text-white focus:outline-hidden"
+                  placeholder="Station code (e.g. DR)"
+                  className="w-full bg-transparent text-sm font-black text-slate-900 dark:text-white focus:outline-hidden"
                 />
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate block">
+                  {fromStationObj.name}
+                </span>
               </div>
             </div>
 
-            {/* Swap Floating Button */}
+            {/* Circular Swap Button */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
               <button
                 type="button"
                 onClick={swapStations}
-                className="w-8 h-8 rounded-full bg-theme-primary text-white flex items-center justify-center shadow-lg border-2 border-slate-900 transition-transform active:rotate-180"
-                title="Swap stations"
+                className="w-8 h-8 rounded-full bg-blue-800 dark:bg-blue-600 text-white flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900 transition-transform active:rotate-180"
+                title="Swap origin and destination"
+                aria-label="Swap origin and destination"
               >
                 <ArrowRightLeft className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Destination Input */}
-            <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-white/10 dark:bg-slate-950/70 border border-white/15">
-              <div className="w-2.5 h-2.5 rounded-full bg-rose-400 ml-1" />
+            {/* TO Station Input */}
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
               <div className="flex-1">
-                <div className="text-[9px] uppercase font-bold text-slate-400">{t.toStation}</div>
+                <span className="block text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400">
+                  To Station
+                </span>
                 <input
                   type="text"
                   value={toCode}
                   onChange={(e) => setToCode(e.target.value.toUpperCase())}
-                  placeholder={t.toPlaceholder}
-                  className="w-full bg-transparent text-sm font-bold text-white focus:outline-hidden"
+                  placeholder="Station code (e.g. TNA)"
+                  className="w-full bg-transparent text-sm font-black text-slate-900 dark:text-white focus:outline-hidden"
                 />
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate block">
+                  {toStationObj.name}
+                </span>
               </div>
             </div>
+          </div>
+
+          {/* Date & Service Filters */}
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            <div className="flex items-center gap-1.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setJourneyDate('today')}
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                  journeyDate === 'today'
+                    ? 'bg-blue-800 text-white shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setJourneyDate('tomorrow')}
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                  journeyDate === 'tomorrow'
+                    ? 'bg-blue-800 text-white shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                Tomorrow
+              </button>
+            </div>
+
+            {/* AC Local Toggle */}
+            <button
+              type="button"
+              onClick={() => setAcOnly(!acOnly)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                acOnly
+                  ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-700 dark:text-cyan-300'
+                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${acOnly ? 'bg-cyan-500' : 'bg-slate-400'}`} />
+              <span>AC Only</span>
+            </button>
           </div>
 
           {/* Search Button */}
           <button
             type="submit"
-            className="w-full py-3 rounded-2xl bg-theme-primary hover:bg-blue-600 font-bold text-xs text-white shadow-lg shadow-theme-primary/30 flex items-center justify-center gap-2 transition-all active:scale-98 min-h-[44px]"
+            className="w-full py-3 rounded-xl bg-blue-800 hover:bg-blue-900 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all active:scale-98 min-h-[48px]"
           >
             <Search className="w-4 h-4" />
-            <span>{t.findItineraries}</span>
+            <span>Search Trains</span>
           </button>
         </form>
       </div>
 
-      {/* 5. Quick Actions Grid */}
+      {/* ============================================================== */}
+      {/* 3. PROMINENT BOOKING SHORTCUTS (4 Equal Columns)                */}
+      {/* ============================================================== */}
       <div>
         <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">
-            {t.quickActions}
+          <span className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-tight uppercase">
+            Quick Booking
           </span>
-          <button
-            onClick={() => onOpenActionModal('services_hub')}
-            className="text-[10px] font-extrabold text-theme-primary hover:underline flex items-center gap-0.5"
-          >
-            <span>All 22 Services</span>
-            <ChevronRight className="w-3 h-3" />
-          </button>
+          <span className="text-[10px] text-slate-400 font-mono">UTS & PRS</span>
         </div>
         <div className="grid grid-cols-4 gap-2">
-          {quickActions.map(action => {
-            const Icon = action.icon;
+          {/* Reserved PRS */}
+          <button
+            onClick={() => onNavigateToJourney(fromCode, toCode)}
+            className="p-2 rounded-2xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/40 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs active:scale-95 transition-all min-h-[68px] min-w-0"
+          >
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-2xs shrink-0">
+              <Train className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-black text-blue-950 dark:text-blue-200 leading-tight truncate w-full">
+              Reserved
+            </span>
+          </button>
+
+          {/* Unreserved UTS */}
+          <button
+            onClick={() => onNavigateToJourney(fromCode, toCode)}
+            className="p-2 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/40 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs active:scale-95 transition-all min-h-[68px] min-w-0"
+          >
+            <div className="w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-2xs shrink-0">
+              <Ticket className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-black text-amber-950 dark:text-amber-200 leading-tight truncate w-full">
+              Unreserved
+            </span>
+          </button>
+
+          {/* Platform Permit */}
+          <button
+            onClick={() => onOpenActionModal('platform_ticket')}
+            className="p-2 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/40 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs active:scale-95 transition-all min-h-[68px] min-w-0"
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-2xs shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-black text-emerald-950 dark:text-emerald-200 leading-tight truncate w-full">
+              Platform
+            </span>
+          </button>
+
+          {/* Season Pass */}
+          <button
+            onClick={() => onNavigateToJourney(fromCode, toCode)}
+            className="p-2 rounded-2xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/40 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs active:scale-95 transition-all min-h-[68px] min-w-0"
+          >
+            <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-2xs shrink-0">
+              <FileText className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-black text-purple-950 dark:text-purple-200 leading-tight truncate w-full">
+              Season Pass
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* 4. SQUARE-GRID 22-SERVICE DIRECTORY (CRIS HARD REQUIREMENT)     */}
+      {/* ============================================================== */}
+      <div className="space-y-2.5 pt-1">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-tight uppercase">
+              Services Directory
+            </span>
+            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
+              22
+            </span>
+          </div>
+
+          {/* Optional inline filter or search toggle */}
+          <span className="text-[10px] text-slate-400 font-medium">
+            4 Columns · Direct Access
+          </span>
+        </div>
+
+        {/* Quick Search & Category Filters for fast discovery */}
+        <div className="space-y-1.5">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={serviceSearch}
+              onChange={(e) => setServiceSearch(e.target.value)}
+              placeholder="Search services (e.g. PNR, UTS, Food, Coach)..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 text-[11px] font-medium text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-blue-700"
+            />
+            {serviceSearch && (
+              <button
+                onClick={() => setServiceSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5 text-[10px]">
+            {[
+              { id: 'all', label: 'All (22)' },
+              { id: 'ticketing', label: 'Ticketing (8)' },
+              { id: 'navigation', label: 'Navigation (5)' },
+              { id: 'assistance', label: 'Assistance (5)' },
+              { id: 'insights', label: 'Insights (4)' }
+            ].map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id as any)}
+                className={`px-2.5 py-1 rounded-full whitespace-nowrap font-bold transition-all ${
+                  selectedCategory === cat.id
+                    ? 'bg-blue-800 text-white shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* MANDATORY 4-COLUMN SQUARE GRID */}
+        <div className="grid grid-cols-4 gap-2">
+          {filteredServices.map(svc => {
+            const Icon = svc.icon;
+            const style = serviceStyleMap[svc.id] || {
+              bg: 'bg-slate-50 dark:bg-slate-800/40',
+              text: 'text-slate-700 dark:text-slate-300',
+              border: 'border-slate-200 dark:border-slate-700'
+            };
+
             return (
               <button
-                key={action.id}
-                onClick={() => {
-                  if (action.id === 'station_guide') {
-                    onOpenActionModal('gods_eye', 'DR');
-                  } else {
-                    onOpenActionModal(action.id);
-                  }
-                }}
-                className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center gap-1.5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all active:scale-95 min-h-[64px]"
+                key={svc.id}
+                onClick={() => handleTileClick(svc)}
+                className="flex flex-col items-center text-center group active:scale-95 transition-transform min-w-0"
+                title={svc.name}
+                aria-label={svc.name}
               >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${action.color}`}>
-                  <Icon className="w-4 h-4" />
+                {/* 1:1 Aspect Ratio Square Icon Container */}
+                <div
+                  className={`w-full aspect-square max-w-[56px] mx-auto rounded-2xl flex items-center justify-center border shadow-2xs transition-all group-hover:border-slate-400 ${style.bg} ${style.border}`}
+                >
+                  <Icon className={`w-5 h-5 ${style.text}`} />
                 </div>
-                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
-                  {action.label}
+
+                {/* Short Readable Label (1-2 lines) */}
+                <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 leading-tight mt-1 px-0.5 line-clamp-2 h-7 flex items-center justify-center text-center">
+                  {SERVICE_SHORT_LABELS[svc.id] || svc.name}
                 </span>
               </button>
             );
           })}
         </div>
 
-        {/* 22-Services Catalog Banner Button */}
-        <div className="pt-2">
-          <button
-            onClick={() => onOpenActionModal('services_hub')}
-            className="w-full py-2.5 px-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-theme-primary transition-all flex items-center justify-between shadow-xs active:scale-98"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-theme-primary/10 text-theme-primary flex items-center justify-center">
-                <Grid className="w-3.5 h-3.5" />
-              </div>
-              <span>Explore All 22 Commuter & Transit Services</span>
-            </div>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-theme-primary text-white">
-              Hub
+        {filteredServices.length === 0 && (
+          <div className="text-center py-6 text-xs text-slate-400">
+            No service matching "{serviceSearch}". Try clearing search.
+          </div>
+        )}
+      </div>
+
+      {/* ============================================================== */}
+      {/* 5. UPCOMING / SAVED JOURNEYS (When Real Application State Exists)*/}
+      {/* ============================================================== */}
+      {savedBookings.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
+              <span>Active Specimen Booking</span>
             </span>
-          </button>
-        </div>
-      </div>
-
-      {/* 6. Glanceable Departure Board from Active Hub */}
-      <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-theme-primary" />
-            <span>{t.nextDepartures} · Dadar (DR)</span>
-          </span>
-          <button 
-            onClick={() => onSwitchTab('live')}
-            className="text-[10px] text-theme-primary font-bold hover:underline"
-          >
-            {t.liveBoard}
-          </button>
-        </div>
-
-        <div className="space-y-1.5">
-          {activeDepartures.map((dep, idx) => (
-            <div 
-              key={idx}
-              className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs"
+            <button
+              onClick={() => onSwitchTab('tickets')}
+              className="text-[10px] font-bold text-blue-700 dark:text-blue-400 hover:underline"
             >
-              <div className="flex items-center gap-2.5">
-                <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-black text-slate-700 dark:text-slate-300">
-                  {dep.pf}
-                </span>
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <span>{dep.name}</span>
-                    {dep.isAc && (
-                      <span className="text-[9px] px-1 rounded-sm bg-cyan-500/20 text-cyan-500 font-extrabold">AC</span>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-slate-400">{dep.line} · {dep.rake}</div>
-                </div>
-              </div>
+              View All ({savedBookings.length})
+            </button>
+          </div>
 
-              <div className="text-right">
-                <div className="font-mono font-black text-slate-900 dark:text-slate-100">{dep.time}</div>
-                <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{dep.crowd}</div>
+          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs">
+            <div>
+              <div className="font-bold text-slate-900 dark:text-white">
+                {savedBookings[0].trainNumber} · {savedBookings[0].trainName}
+              </div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                {savedBookings[0].originStation} ➔ {savedBookings[0].destStation} · PNR: {savedBookings[0].pnr}
               </div>
             </div>
-          ))}
+            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+              CONFIRMED
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* 6. OFFICIALLY SOURCED ALERTS                                   */}
+      {/* ============================================================== */}
+      <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-start gap-2.5 text-xs">
+        <Info className="w-4 h-4 text-blue-700 dark:text-blue-400 shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-400">
+              [TIMETABLE SCHEDULE]
+            </span>
+            <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+              Suburban & Express Services Operational
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">
+            Normal train frequency on Western, Central and Harbour lines. Live platform indicators are verified against timetable allocations.
+          </p>
         </div>
       </div>
 
-      {/* 7. Key Transit Corridors (Mumbai Suburban Routes) */}
-      <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">
-            {t.primaryCorridors}
-          </span>
-          <span className="text-[10px] text-slate-400">{t.officialRoutes}</span>
+      {/* ============================================================== */}
+      {/* MODAL: Official Gated External Notice (RailMadad & e-Catering)  */}
+      {/* ============================================================== */}
+      {externalGatedNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 max-w-sm w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center justify-center">
+              <ExternalLink className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Official External Service Handoff
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                <strong>{externalGatedNotice.name}</strong> is operated directly by Indian Railways / IRCTC. Opening external official portal.
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setExternalGatedNotice(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300"
+              >
+                Cancel
+              </button>
+              <a
+                href={externalGatedNotice.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setExternalGatedNotice(null)}
+                className="flex-1 py-2.5 rounded-xl bg-blue-800 text-white text-xs font-bold text-center shadow-xs"
+              >
+                Proceed
+              </a>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { from: 'CCG', to: 'BVI', name: 'Western Line', desc: 'Churchgate ➔ Borivali (Slow/Fast)' },
-            { from: 'CSMT', to: 'KYN', name: 'Central Main Line', desc: 'CSMT ➔ Kalyan (Slow/Fast)' },
-            { from: 'CSMT', to: 'PNVL', name: 'Harbour Line', desc: 'CSMT ➔ Panvel Direct' },
-            { from: 'TNA', to: 'VSH', name: 'Trans-Harbour', desc: 'Thane ➔ Vashi / Nerul' }
-          ].map((c, i) => (
-            <button
-              key={i}
-              onClick={() => onNavigateToJourney(c.from, c.to)}
-              className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left hover:border-theme-primary transition-all active:scale-95"
-            >
-              <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center justify-between">
-                <span className="truncate pr-1">{c.name}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              </div>
-              <div className="text-[10px] text-slate-400 mt-0.5 truncate">{c.desc}</div>
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
     </div>
   );

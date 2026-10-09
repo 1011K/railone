@@ -17,7 +17,7 @@ import { useMobileTheme, THEME_PALETTES, ColorTheme, AppLanguage } from '../../s
 import { MobileApiClient } from '../../src/api/client';
 import { OfflineStorage } from '../../src/storage/offlineStorage';
 import { CITIES_REGISTRY, CityCoverageConfig } from '../../src/fixtures/citiesData';
-import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
+import Svg, { Path, Circle, Polyline, Line, Rect, Polygon } from 'react-native-svg';
 
 export interface NativeServiceItem {
   id: string;
@@ -173,11 +173,12 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     route: '/map'
   },
   {
-    id: 'cab_auto_shared',
-    name: 'Cab, Auto & Shared Rickshaw',
-    category: 'navigation',
-    description: 'First/last mile station feeder alternatives with regulated prepaid auto tariffs.',
-    route: '/guide'
+    id: 'pnr_status',
+    name: 'PNR Status Enquiry',
+    category: 'insights',
+    description: 'Check real-time chart preparation, berth allocation, and passenger confirmation status.',
+    badge: 'PRS',
+    route: '/pnr'
   },
   {
     id: 'accessibility_assistance',
@@ -195,13 +196,212 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     route: '/(tabs)/status'
   },
   {
-    id: 'saved_journeys',
-    name: 'Saved Journeys & Commute Alerts',
-    category: 'insights',
-    description: 'Quick-access daily routes, morning/evening office alerts, and favorite corridors.',
-    route: '/(tabs)/journeys'
+    id: 'travel_feedback',
+    name: 'Passenger Travel Feedback',
+    category: 'assistance',
+    description: 'Rate train cleanliness, punctuality, coach amenities, and passenger security.',
+    badge: 'Citizen',
+    route: '/feedback'
   }
 ];
+
+const NATIVE_SERVICE_PASTELS: Record<string, { bg: string; border: string; icon: string }> = {
+  unreserved_tickets: { bg: '#fef3c7', border: '#fde68a', icon: '#b45309' },
+  reserved_tickets: { bg: '#dbeafe', border: '#bfdbfe', icon: '#1d4ed8' },
+  platform_permits: { bg: '#d1fae5', border: '#a7f3d0', icon: '#047857' },
+  season_passes: { bg: '#f3e8ff', border: '#e9d5ff', icon: '#6b21a8' },
+  metro_ticketing: { bg: '#cffafe', border: '#a5f3fc', icon: '#0e7490' },
+  my_tickets_qr: { bg: '#e0e7ff', border: '#c7d2fe', icon: '#4338ca' },
+  wallet_recharge: { bg: '#ccfbf1', border: '#99f6e4', icon: '#0f766e' },
+  cancellation_refunds: { bg: '#ffe4e6', border: '#fecdd3', icon: '#be123c' },
+  journey_planning: { bg: '#e0f2fe', border: '#bae6fd', icon: '#0369a1' },
+  pnr_status: { bg: '#ede9fe', border: '#ddd6fe', icon: '#6d28d9' },
+  train_running_status: { bg: '#ffe4e6', border: '#fecdd3', icon: '#e11d48' },
+  coach_positioning: { bg: '#cffafe', border: '#a5f3fc', icon: '#0891b2' },
+  station_navigation_2d: { bg: '#d1fae5', border: '#a7f3d0', icon: '#059669' },
+  food_station_amenities: { bg: '#ffedd5', border: '#fed7aa', icon: '#c2410c' },
+  railmadad_help: { bg: '#fee2e2', border: '#fecaca', icon: '#b91c1c' },
+  travel_feedback: { bg: '#fef3c7', border: '#fde68a', icon: '#d97706' },
+  railyatri_voice_chat: { bg: '#f3e8ff', border: '#e9d5ff', icon: '#7e22ce' },
+  crowd_delay_insights: { bg: '#fef9c3', border: '#fef08a', icon: '#a16207' },
+  nearest_station: { bg: '#dbeafe', border: '#bfdbfe', icon: '#2563eb' },
+  network_maps: { bg: '#e0e7ff', border: '#c7d2fe', icon: '#4f46e5' },
+  accessibility_assistance: { bg: '#ccfbf1', border: '#99f6e4', icon: '#0d9488' },
+  disruption_weather: { bg: '#e0f2fe', border: '#bae6fd', icon: '#0284c7' }
+};
+
+const renderServiceSvgIcon = (id: string, color: string) => {
+  switch (id) {
+    case 'unreserved_tickets':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v2a3 3 0 0 0 0 6v2a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-2a3 3 0 0 0 0-6V9z" />
+          <Line x1="9" y1="12" x2="15" y2="12" />
+        </Svg>
+      );
+    case 'reserved_tickets':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Rect x="4" y="3" width="16" height="16" rx="2" />
+          <Path d="M4 11h16" />
+          <Path d="M12 3v8" />
+          <Circle cx="8" cy="15" r="1" fill={color} />
+          <Circle cx="16" cy="15" r="1" fill={color} />
+        </Svg>
+      );
+    case 'platform_permits':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <Polyline points="9 12 11 14 15 10" />
+        </Svg>
+      );
+    case 'season_passes':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <Polyline points="14 2 14 8 20 8" />
+          <Line x1="16" y1="13" x2="8" y2="13" />
+        </Svg>
+      );
+    case 'metro_ticketing':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Rect x="2" y="5" width="20" height="14" rx="2" />
+          <Line x1="2" y1="10" x2="22" y2="10" />
+        </Svg>
+      );
+    case 'my_tickets_qr':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Rect x="3" y="3" width="7" height="7" />
+          <Rect x="14" y="3" width="7" height="7" />
+          <Rect x="3" y="14" width="7" height="7" />
+          <Rect x="14" y="14" width="7" height="7" />
+        </Svg>
+      );
+    case 'wallet_recharge':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+          <Path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+          <Path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
+        </Svg>
+      );
+    case 'cancellation_refunds':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Polyline points="1 4 1 10 7 10" />
+          <Path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+        </Svg>
+      );
+    case 'journey_planning':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Circle cx="12" cy="12" r="10" />
+          <Polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill={color} />
+        </Svg>
+      );
+    case 'pnr_status':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <Polyline points="22 4 12 14.01 9 11.01" />
+        </Svg>
+      );
+    case 'train_running_status':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Circle cx="12" cy="12" r="2" fill={color} />
+          <Path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14" />
+        </Svg>
+      );
+    case 'coach_positioning':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <Polyline points="2 17 12 22 22 17" />
+          <Polyline points="2 12 12 17 22 12" />
+        </Svg>
+      );
+    case 'station_navigation_2d':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+          <Line x1="8" y1="2" x2="8" y2="18" />
+          <Line x1="16" y1="6" x2="16" y2="22" />
+        </Svg>
+      );
+    case 'food_station_amenities':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+          <Path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+          <Line x1="6" y1="1" x2="6" y2="4" />
+          <Line x1="10" y1="1" x2="10" y2="4" />
+        </Svg>
+      );
+    case 'railmadad_help':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Circle cx="12" cy="12" r="10" />
+          <Circle cx="12" cy="12" r="4" />
+          <Line x1="4.93" y1="4.93" x2="9.17" y2="9.17" />
+          <Line x1="14.83" y1="14.83" x2="19.07" y2="19.07" />
+        </Svg>
+      );
+    case 'travel_feedback':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </Svg>
+      );
+    case 'railyatri_voice_chat':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </Svg>
+      );
+    case 'crowd_delay_insights':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Line x1="18" y1="20" x2="18" y2="10" />
+          <Line x1="12" y1="20" x2="12" y2="4" />
+          <Line x1="6" y1="20" x2="6" y2="14" />
+        </Svg>
+      );
+    case 'nearest_station':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <Circle cx="12" cy="10" r="3" />
+        </Svg>
+      );
+    case 'network_maps':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Line x1="6" y1="3" x2="6" y2="15" />
+          <Circle cx="18" cy="6" r="3" />
+          <Circle cx="6" cy="18" r="3" />
+        </Svg>
+      );
+    case 'accessibility_assistance':
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Circle cx="16" cy="4" r="1" fill={color} />
+          <Path d="M18 19l-4-4 2-5h-4l-1 5" />
+          <Circle cx="9" cy="17" r="4" />
+        </Svg>
+      );
+    case 'disruption_weather':
+    default:
+      return (
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+          <Path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+        </Svg>
+      );
+  }
+};
 
 export default function HomeScreen() {
   const { colors, language, setLanguage, isDarkMode, toggleDarkMode, colorTheme, setColorTheme } = useMobileTheme();
@@ -221,9 +421,9 @@ export default function HomeScreen() {
   const [recentSearches, setRecentSearches] = useState<Array<{ from: string; to: string }>>([]);
 
   // Modals state
-  const [showLaunchModal, setShowLaunchModal] = useState<boolean>(() => !OfflineStorage.getHasSeenLaunch());
+  const [showLaunchModal, setShowLaunchModal] = useState<boolean>(false);
   const [isLaunchMuted, setIsLaunchMuted] = useState(false);
-  const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(() => !OfflineStorage.getHasCompletedOnboarding());
+  const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
   const [showCityModal, setShowCityModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -479,62 +679,11 @@ export default function HomeScreen() {
       {/* 2. Rail Alert Banner (Timetable Scenario Advisory) */}
       <View style={[styles.alertBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <View style={styles.alertBadge}>
-          <Text style={styles.alertBadgeText}>{currentCity.provenanceTag}</Text>
+          <Text style={styles.alertBadgeText}>[TIMETABLE SCHEDULE]</Text>
         </View>
         <Text style={[styles.alertText, { color: colors.textSecondary }]}>
-          {selectedCityId === 'mumbai'
-            ? 'Central Line Fast corridor running with +12m headway buffer at Vidyavihar. Slow line services normal.'
-            : currentCity.provenanceExplanation}
+          Suburban EMU services operating on published timetable. Platform indicators verified against schedule.
         </Text>
-      </View>
-
-      {/* 3. Active Commute Card */}
-      <View style={[styles.activeCommuteCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <View style={styles.activeCommuteHeader}>
-          <View style={styles.livePulseDot} />
-          <Text style={[styles.activeCommuteTag, { color: colors.primary }]}>ACTIVE COMMUTE</Text>
-          <Text style={[styles.activeCommuteStatus, { color: colors.success }]}>Scheduled</Text>
-        </View>
-        <Text style={[styles.activeCommuteTrain, { color: colors.textPrimary }]}>
-          {currentCity.representativeJourneys[0]?.trainName || 'Suburban Fast Local (95112)'}
-        </Text>
-        <Text style={[styles.activeCommuteSub, { color: colors.textMuted }]}>
-          {fromStation.name} ➔ {toStation.name} · {currentCity.representativeJourneys[0]?.frequency || 'Standard Frequency'}
-        </Text>
-      </View>
-
-      {/* 4. Prominent Call & Chat Rail Yatri Assistant Card */}
-      <View style={[styles.callBanner, { backgroundColor: colors.primary }]}>
-        <View style={styles.callBannerContent}>
-          <View style={styles.callBannerBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.callBannerBadgeText}>VOICE & CHAT ASSISTANT</Text>
-          </View>
-          <Text style={styles.callBannerTitle}>Rail Yatri AI</Text>
-          <Text style={styles.callBannerSubtitle}>
-            "Book me a First-Class local from {fromStation.name} to {toStation.name}"
-          </Text>
-        </View>
-        <View style={styles.assistantButtonsRow}>
-          <TouchableOpacity
-            style={styles.callButtonCircle}
-            activeOpacity={0.85}
-            onPress={() => router.push('/call')}
-            accessibilityRole="button"
-            accessibilityLabel="Call Rail Yatri voice assistant"
-          >
-            <Text style={styles.callButtonText}>CALL</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.callButtonCircle, { backgroundColor: '#ffffff26' }]}
-            activeOpacity={0.85}
-            onPress={() => router.push('/(tabs)/railsathi')}
-            accessibilityRole="button"
-            accessibilityLabel="Chat with Rail Yatri assistant"
-          >
-            <Text style={styles.callButtonText}>CHAT</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* 5. Journey Search Container */}
@@ -674,6 +823,44 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* 4-Column Square Services Grid (CRIS Benchmark) */}
+        <View style={styles.squareGridSection}>
+          <View style={styles.squareGridHeader}>
+            <Text style={[styles.squareGridTitle, { color: colors.textPrimary }]}>
+              SERVICES DIRECTORY (22)
+            </Text>
+            <TouchableOpacity onPress={() => setShowServicesModal(true)}>
+              <Text style={[styles.squareGridHubLink, { color: colors.primary }]}>All 22 Transit Services →</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.squareGridContainer}>
+            {NATIVE_22_SERVICES.map(svc => {
+              const basePastel = NATIVE_SERVICE_PASTELS[svc.id];
+              const pastel = {
+                bg: isDarkMode ? '#1e293b' : (basePastel?.bg || colors.card),
+                border: isDarkMode ? '#334155' : (basePastel?.border || colors.cardBorder),
+                icon: basePastel?.icon || colors.primary
+              };
+              return (
+                <TouchableOpacity
+                  key={svc.id}
+                  style={styles.squareTile}
+                  onPress={() => handleServiceSelect(svc)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={svc.name}
+                >
+                  <View style={[styles.squareIconBox, { backgroundColor: pastel.bg, borderColor: pastel.border }]}>
+                    {renderServiceSvgIcon(svc.id, pastel.icon)}
+                  </View>
+                  <Text style={[styles.squareTileLabel, { color: colors.textPrimary }]} numberOfLines={2}>
+                    {svc.name.replace(/\s*\([^)]*\)/g, '').replace('Door-to-Door ', '')}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
         {/* Services Hub Entry Point */}
         <TouchableOpacity
           style={[styles.servicesHubBanner, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '40' }]}
@@ -681,13 +868,39 @@ export default function HomeScreen() {
           activeOpacity={0.8}
         >
           <View style={styles.servicesHubContent}>
-            <Text style={[styles.servicesHubTitle, { color: colors.primary }]}>Explore All 22 Transit Services</Text>
+            <Text style={[styles.servicesHubTitle, { color: colors.primary }]}>All 22 Transit Services Directory</Text>
             <Text style={[styles.servicesHubSubtitle, { color: colors.textMuted }]}>Metro, FOB Navigation, RailMadad, TTE Demo, Amenity guides</Text>
           </View>
           <View style={[styles.servicesHubBadge, { backgroundColor: colors.primary }]}>
             <Text style={styles.servicesHubBadgeText}>HUB</Text>
           </View>
         </TouchableOpacity>
+
+        {/* RailSathi Assistant Quick Actions */}
+        <View style={[styles.assistantStrip, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.assistantStripTitle, { color: colors.textPrimary }]}>Rail Yatri AI Assistant</Text>
+            <Text style={[styles.assistantStripSub, { color: colors.textMuted }]}>Grounded voice & chat assistance</Text>
+          </View>
+          <View style={styles.assistantButtonsRow}>
+            <TouchableOpacity
+              style={[styles.callButtonCircle, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/call')}
+              accessibilityRole="button"
+              accessibilityLabel="Call Rail Yatri voice assistant"
+            >
+              <Text style={styles.callButtonText}>CALL</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.callButtonCircle, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/(tabs)/railsathi')}
+              accessibilityRole="button"
+              accessibilityLabel="Chat with Rail Yatri assistant"
+            >
+              <Text style={styles.callButtonText}>CHAT</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       {/* 6. Saved Journeys */}
@@ -1791,6 +2004,71 @@ const styles = StyleSheet.create({
   servicesCategoryPillText: {
     fontSize: 11,
     fontWeight: '700'
+  },
+  squareGridSection: {
+    marginTop: 14,
+    marginBottom: 6
+  },
+  squareGridHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 2
+  },
+  squareGridTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5
+  },
+  squareGridHubLink: {
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  squareGridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4
+  },
+  squareTile: {
+    width: '25%',
+    paddingHorizontal: 4,
+    marginBottom: 10,
+    alignItems: 'center'
+  },
+  squareIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  squareTileLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 13,
+    paddingHorizontal: 2,
+    height: 26
+  },
+  assistantStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 8
+  },
+  assistantStripTitle: {
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  assistantStripSub: {
+    fontSize: 10,
+    marginTop: 2
   },
   serviceModalItem: {
     padding: 12,

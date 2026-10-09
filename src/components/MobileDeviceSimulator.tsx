@@ -141,7 +141,7 @@ export const MobileDeviceSimulator: React.FC = () => {
   // IF ON NATIVE MOBILE VIEWPORT: render full screen without chassis bezel
   if (isMobileScreen) {
     return (
-      <div className="w-full h-full min-h-screen bg-slate-950 flex flex-col relative">
+      <div className="w-full h-screen overflow-hidden bg-slate-950 flex flex-col relative">
         <PassengerMobileApp
           presetOrigin={presetOrigin}
           presetDest={presetDest}

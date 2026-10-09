@@ -22,6 +22,8 @@ import { PAN_INDIA_TRAINS } from '../fixtures/panIndiaTrainsData';
 import { resolveStation } from '../engine/journeyEngine';
 import { ThemeSelectorModal } from './ThemeSelectorModal';
 import { ServicesHubModal, ServiceItem } from './ServicesHubModal';
+import { PnrStatusModal } from './PnrStatusModal';
+import { TravelFeedbackModal } from './TravelFeedbackModal';
 import { useAuthority } from './AuthorityContext';
 import { InstitutionalInsignia } from './common/InstitutionalInsignia';
 import { getTranslation } from '../i18n/translations';
@@ -80,12 +82,10 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const [currentTime, setCurrentTime] = useState<string>('10:42');
 
   // Modals & Flow States
-  const [showLaunchSequence, setShowLaunchSequence] = useState<boolean>(() => {
-    return !sessionStorage.getItem('railone_launch_seen');
-  });
-  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
-    return !localStorage.getItem('railone_onboarding_completed');
-  });
+  const [showLaunchSequence, setShowLaunchSequence] = useState<boolean>(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [showPnrModal, setShowPnrModal] = useState<boolean>(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
   const [showCityPicker, setShowCityPicker] = useState<boolean>(false);
   const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
   const [showCoachGuide, setShowCoachGuide] = useState<boolean>(false);
@@ -285,6 +285,12 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       case 'gods_eye':
         handleOpenGodsEye(payload || 'DR');
         break;
+      case 'pnr_status':
+        setShowPnrModal(true);
+        break;
+      case 'travel_feedback':
+        setShowFeedbackModal(true);
+        break;
       case 'services_hub':
         setShowServicesHub(true);
         break;
@@ -303,6 +309,12 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         break;
       case 'platform_ticket':
         handleActionModal('platform_ticket');
+        break;
+      case 'pnr_status':
+        setShowPnrModal(true);
+        break;
+      case 'travel_feedback':
+        setShowFeedbackModal(true);
         break;
       case 'my_tickets':
       case 'wallet':
@@ -372,41 +384,50 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         </div>
       </div>
 
-      {/* 2. APP COMPACT HEADER (Clean Transit Brand, India-Only & Tools) */}
-      <header className="shrink-0 px-3 py-2 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between z-10 shadow-xs">
+      {/* 2. CRIS BENCHMARK COMPACT APP HEADER */}
+      <header className="shrink-0 px-3.5 py-2 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between z-10 shadow-2xs">
         {/* Brand & Indian Railways Badge */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-theme-primary text-white flex items-center justify-center font-black shadow-sm shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-blue-800 dark:bg-blue-600 text-white flex items-center justify-center font-black shadow-2xs shrink-0">
             <Train className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5">
               <span className="text-sm font-black tracking-tight text-slate-900 dark:text-white">
                 {t.appName}
               </span>
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 text-[10px] font-bold">
-                <InstitutionalInsignia authorityId="india" size={14} />
-                <span>Indian Railways</span>
-              </div>
-            </div>
-            {/* Provenance Micro-Pill & Authority Attribution (Zero CRIS) */}
-            <div className="flex items-center gap-1 text-[9px] font-mono mt-0.5">
-              <span className="px-1 rounded text-[8px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                [{t.statutoryActive}]
+              <span className="px-1.5 py-0.2 rounded-md bg-blue-700 text-white font-mono font-black text-[9px] tracking-wider uppercase">
+                Next
               </span>
-              <span className="text-slate-500 dark:text-slate-400 truncate max-w-[130px] sm:max-w-none text-[8px]">
-                {t.ministryName}
+            </div>
+            <div className="flex items-center gap-1 text-[9px] text-slate-500 dark:text-slate-400 font-medium">
+              <InstitutionalInsignia authorityId="india" size={11} />
+              <span>Indian Railways</span>
+              <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                [{t.statutoryActive}]
               </span>
             </div>
           </div>
         </div>
 
-        {/* Right Header Actions */}
-        <div className="flex items-center gap-1">
+        {/* Right Header Controls: City Selector Chip + Settings */}
+        <div className="flex items-center gap-1.5">
+          {/* City / Network Chip */}
+          <button
+            onClick={() => setShowCityPicker(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/60 text-[11px] font-bold text-blue-900 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all active:scale-95"
+            title="Switch Transit City Network"
+            aria-label={`Current transit network: ${currentCity.name}. Click to switch.`}
+          >
+            <MapPin className="w-3 h-3 text-blue-700 dark:text-blue-400 shrink-0" />
+            <span className="truncate max-w-[65px] sm:max-w-[85px]">{currentCity.name}</span>
+            <ChevronDown className="w-2.5 h-2.5 text-blue-600" />
+          </button>
+
           {/* Language Toggle */}
           <button
             onClick={cycleLanguage}
-            className="px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[36px]"
+            className="px-2 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[32px]"
             title="Cycle Language (EN / HI / MR)"
           >
             {language}
@@ -415,38 +436,22 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
           {/* Theme Palette Button */}
           <button
             onClick={() => setShowThemeModal(true)}
-            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[36px] min-w-[36px] flex items-center justify-center"
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[32px] min-w-[32px] flex items-center justify-center"
             title="Switch Livery & Color Theme"
           >
-            <Palette className="w-4 h-4 text-theme-primary" />
+            <Palette className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
           </button>
 
           {/* Dark / Light Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[36px] min-w-[36px] flex items-center justify-center"
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 touch-target min-h-[32px] min-w-[32px] flex items-center justify-center"
             title="Toggle Dark / Light Mode"
           >
-            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+            {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-600" />}
           </button>
         </div>
       </header>
-
-      {/* Indian Railways Suburban Network Bar (India Only) */}
-      <div className="shrink-0 px-3.5 py-1 bg-slate-900 text-slate-100 border-b border-slate-800 flex items-center justify-between text-[10px]">
-        <div className="flex items-center gap-1.5 truncate">
-          <InstitutionalInsignia authorityId="india" size={13} />
-          <span className="font-extrabold uppercase tracking-wider text-slate-300 truncate">
-            {t.ministryName}
-          </span>
-        </div>
-        <button
-          onClick={() => setShowCityPicker(true)}
-          className="text-[9px] font-bold text-theme-primary hover:underline shrink-0 ml-2 font-mono"
-        >
-          {currentCity.name} ({currentCity.nativeName}) ▼
-        </button>
-      </div>
 
       {/* 3. MAIN TAB CONTENT VIEWPORT */}
       <main className="flex-1 overflow-y-auto overscroll-contain relative pb-20">
@@ -691,18 +696,23 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
         />
       )}
 
-      {/* Floating Rail Yatri Assistant Quick Action FAB */}
-      {activeTab !== 'help' && (
-        <button
-          onClick={() => setActiveTab('help')}
-          aria-label="Open Rail Yatri AI Assistant"
-          className="fixed bottom-20 right-4 z-30 px-3.5 py-2.5 rounded-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-xl border border-white/20 flex items-center gap-2 transition-all active:scale-95 touch-target min-h-[44px]"
-        >
-          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-          <span>{t.railYatriTitle.split(' ')[0]} {t.railYatriTitle.split(' ')[1]}</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-        </button>
+      {/* Dedicated PNR Status Enquiry Modal */}
+      {showPnrModal && (
+        <PnrStatusModal
+          isOpen={showPnrModal}
+          onClose={() => setShowPnrModal(false)}
+        />
       )}
+
+      {/* Dedicated Travel Experience Feedback Modal */}
+      {showFeedbackModal && (
+        <TravelFeedbackModal
+          isOpen={showFeedbackModal}
+          onClose={() => setShowFeedbackModal(false)}
+          defaultStation={currentCity.primaryHubs[0]?.name || 'Dadar (DR)'}
+        />
+      )}
+
 
       {/* Onboarding Flow */}
       {showOnboarding && !showLaunchSequence && (

@@ -26,7 +26,9 @@ import {
   Search,
   ExternalLink,
   ChevronRight,
-  Info
+  Info,
+  CheckCircle2,
+  MessageSquare
 } from 'lucide-react';
 
 export interface ServiceItem {
@@ -220,13 +222,14 @@ export const ALL_22_SERVICES: ServiceItem[] = [
     actionId: 'network_maps'
   },
   {
-    id: 'cab_auto_shared',
-    name: 'Cab, Auto & Shared Rickshaw',
-    category: 'navigation',
-    description: 'First/last mile station feeder alternatives with regulated prepaid auto tariffs.',
-    icon: Car,
-    color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-    actionId: 'cab_auto_shared'
+    id: 'pnr_status',
+    name: 'PNR Status Enquiry',
+    category: 'insights',
+    description: 'Check real-time chart preparation, berth allocation, and passenger confirmation status.',
+    icon: CheckCircle2,
+    color: 'text-indigo-600 bg-indigo-50 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40',
+    badge: 'PRS',
+    actionId: 'pnr_status'
   },
   {
     id: 'accessibility_assistance',
@@ -248,13 +251,14 @@ export const ALL_22_SERVICES: ServiceItem[] = [
     actionId: 'disruption_weather'
   },
   {
-    id: 'saved_journeys',
-    name: 'Saved Journeys & Commute Alerts',
-    category: 'insights',
-    description: 'Quick-access daily routes, morning/evening office alerts, and favorite corridors.',
-    icon: Bookmark,
-    color: 'text-violet-500 bg-violet-500/10 border-violet-500/20',
-    actionId: 'saved_journeys'
+    id: 'travel_feedback',
+    name: 'Passenger Travel Feedback',
+    category: 'assistance',
+    description: 'Rate train cleanliness, punctuality, coach amenities, and passenger security.',
+    icon: MessageSquare,
+    color: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40',
+    badge: 'Citizen',
+    actionId: 'travel_feedback'
   }
 ];
 
