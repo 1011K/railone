@@ -424,6 +424,80 @@ export default function GuideScreen() {
               ))}
             </View>
 
+            {/* Proportional Train Formation Strip */}
+            <View style={{ marginVertical: 14, backgroundColor: '#090d16', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#94a3b8', letterSpacing: 0.8 }}>
+                  TRAIN FORMATION STRIP (12-CAR EMU)
+                </Text>
+                <Text style={{ fontSize: 10, color: '#64748b', fontWeight: '600' }}>
+                  NORTH ➔ SOUTH (CSMT)
+                </Text>
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', gap: 6, paddingVertical: 4 }}>
+                {[
+                  { coach: 1, type: 'general', code: 'C1', label: 'II' },
+                  { coach: 2, type: 'ladies', code: 'C2', label: 'LD' },
+                  { coach: 3, type: 'general', code: 'C3', label: 'II' },
+                  { coach: 4, type: 'first', code: 'C4', label: 'FC' },
+                  { coach: 5, type: 'general', code: 'C5', label: 'II' },
+                  { coach: 6, type: 'divyangjan', code: 'C6', label: 'DIV' },
+                  { coach: 7, type: 'ladies', code: 'C7', label: 'LD' },
+                  { coach: 8, type: 'general', code: 'C8', label: 'II' },
+                  { coach: 9, type: 'general', code: 'C9', label: 'II' },
+                  { coach: 10, type: 'general', code: 'C10', label: 'II' },
+                  { coach: 11, type: 'general', code: 'C11', label: 'II' },
+                  { coach: 12, type: 'general', code: 'C12', label: 'II' }
+                ].map(item => {
+                  const isMatching = coachPreference === item.type;
+                  const coachBg = item.type === 'first'
+                    ? '#b45309'
+                    : item.type === 'ladies'
+                    ? '#047857'
+                    : item.type === 'divyangjan'
+                    ? '#0369a1'
+                    : '#1e293b';
+                  const coachBorder = isMatching ? '#ffffff' : (
+                    item.type === 'first' ? '#f59e0b' : item.type === 'ladies' ? '#10b981' : item.type === 'divyangjan' ? '#38bdf8' : '#334155'
+                  );
+
+                  return (
+                    <TouchableOpacity
+                      key={item.coach}
+                      onPress={() => setCoachPreference(item.type as any)}
+                      style={{
+                        width: 52,
+                        height: 54,
+                        borderRadius: 6,
+                        backgroundColor: coachBg,
+                        borderWidth: isMatching ? 2.5 : 1,
+                        borderColor: coachBorder,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: 2
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Coach ${item.coach} ${item.label}`}
+                    >
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#ffffff' }}>{item.code}</Text>
+                      <Text style={{ fontSize: 9, fontWeight: '700', color: isMatching ? '#fef08a' : '#cbd5e1', marginTop: 2 }}>
+                        {item.label}
+                      </Text>
+                      {isMatching && (
+                        <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#fef08a', marginTop: 2 }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+                <Text style={{ fontSize: 9, color: '#64748b' }}>Cab 1 (Kalyan End)</Text>
+                <Text style={{ fontSize: 9, color: '#64748b' }}>Cab 12 (CSMT End)</Text>
+              </View>
+            </View>
+
             {/* Alignment Graphic Marker */}
             <View style={styles.alignmentMarkerCard}>
               <Text style={styles.markerTitle}>

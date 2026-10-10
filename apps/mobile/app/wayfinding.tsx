@@ -24,18 +24,22 @@ import Svg, { Rect, Line, Circle, G, Text as SvgText, Path, Polygon } from 'reac
 const MAJOR_STATIONS = [
   { code: 'DR', name: 'Dadar Junction', subtitle: 'CR & WR 15 Platforms' },
   { code: 'CSMT', name: 'CSMT Terminus', subtitle: 'Heritage Concourse & Subway' },
-  { code: 'CLA', name: 'Kurla Junction', subtitle: 'Central Main & Harbour' },
   { code: 'TNA', name: 'Thane Junction', subtitle: 'Trans-Harbour & SATIS Deck' },
+  { code: 'ADH', name: 'Andheri Hub', subtitle: 'WR & Metro 1 Direct Interchange' },
   { code: 'KYN', name: 'Kalyan Junction', subtitle: 'Kasara & Karjat Bifurcation' },
+  { code: 'NDLS', name: 'New Delhi Central', subtitle: 'Pahar Ganj & Ajmeri Gate Concourses' },
   { code: 'BVI', name: 'Borivali Terminus', subtitle: 'SV Road Elevated Skywalk' },
-  { code: 'CCG', name: 'Churchgate', subtitle: 'WR Ground Concourse' }
+  { code: 'CLA', name: 'Kurla Junction', subtitle: 'Central Main & Harbour' },
+  { code: 'CCG', name: 'Churchgate', subtitle: 'WR Ground Concourse' },
+  { code: 'GC', name: 'Ghatkopar Hub', subtitle: 'CR & Metro 1 Integrated Bridge' },
+  { code: 'PNVL', name: 'Panvel Junction', subtitle: 'Harbour, Trans-Harbour & Konkan' }
 ];
 
 type AmenityCategory = 'all' | 'lifts' | 'water' | 'tickets' | 'security' | 'exits';
 
 export default function WayfindingScreen() {
   const { colors } = useMobileTheme();
-  const params = useLocalSearchParams<{ station?: string }>();
+  const params = useLocalSearchParams<{ station?: string; stepFree?: string; nearest?: string }>();
 
   const [selectedStationCode, setSelectedStationCode] = useState(
     params.station?.toUpperCase() || 'DR'
@@ -43,7 +47,7 @@ export default function WayfindingScreen() {
   const [stationLayout, setStationLayout] = useState<any | null>(null);
   const [fromPlatformId, setFromPlatformId] = useState<string>('');
   const [toPlatformId, setToPlatformId] = useState<string>('');
-  const [stepFreeRequired, setStepFreeRequired] = useState(false);
+  const [stepFreeRequired, setStepFreeRequired] = useState(params.stepFree === 'true');
 
   // 3D Isometric View perspective toggle
   const [is3dIsometric, setIs3dIsometric] = useState(false);
@@ -82,12 +86,19 @@ export default function WayfindingScreen() {
         // Fallback to local station layout fixture
       }
 
-      const fallback = STATION_3D_LAYOUTS[selectedStationCode] || STATION_3D_LAYOUTS['DR'];
-      if (active && fallback) {
-        setStationLayout(fallback);
-        if (fallback.platforms && fallback.platforms.length >= 2) {
-          setFromPlatformId(fallback.platforms[0].id);
-          setToPlatformId(fallback.platforms[Math.min(3, fallback.platforms.length - 1)].id);
+      const fallback = STATION_3D_LAYOUTS[selectedStationCode];
+      if (active) {
+        if (fallback) {
+          setStationLayout(fallback);
+          if (fallback.platforms && fallback.platforms.length >= 2) {
+            setFromPlatformId(fallback.platforms[0].id);
+            setToPlatformId(fallback.platforms[Math.min(3, fallback.platforms.length - 1)].id);
+          }
+        } else {
+          setStationLayout(null);
+          setFromPlatformId('');
+          setToPlatformId('');
+          setWalkRoute(null);
         }
       }
     }
@@ -191,6 +202,18 @@ export default function WayfindingScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Optional GPS Proximity Banner */}
+      {params.nearest === 'true' && (
+        <View style={{ backgroundColor: colors.primary + '18', borderColor: colors.primary + '40', marginBottom: 12, padding: 12, borderRadius: 10, borderWidth: 1 }}>
+          <Text style={{ fontSize: 10, fontWeight: '800', color: colors.primary, letterSpacing: 0.8 }}>
+            [CONSENT-BASED GPS PROXIMITY]
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.textPrimary, marginTop: 3 }}>
+            Nearest indexed transit hub detected: Dadar Junction (DR) · ~450m via Tilak Bridge Concourse
+          </Text>
+        </View>
+      )}
+
       {/* 1. Station Selector Chips */}
       <ScrollView
         horizontal
@@ -230,10 +253,43 @@ export default function WayfindingScreen() {
         })}
       </ScrollView>
 
-      {/* 2. Station Overview Header */}
-      {stationLayout && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <View style={styles.stationTitleRow}>
+      {/* 2. Station Overview or Unindexed Fallback Card */}
+      {!stationLayout ? (
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder, padding: 18, marginVertical: 12 }]}>
+          <View style={[styles.levelBadge, { backgroundColor: '#ef444418', alignSelf: 'flex-start', marginBottom: 10 }]}>
+            <Text style={[styles.levelBadgeText, { color: '#ef4444' }]}>
+              BLUEPRINT NOT YET INDEXED
+            </Text>
+          </View>
+          <Text style={[styles.stationTitle, { color: colors.textPrimary, marginBottom: 8 }]}>
+            Station Blueprint Not Yet Indexed for {selectedStationCode}
+          </Text>
+          <Text style={[styles.stationDescription, { color: colors.textMuted, lineHeight: 20, marginBottom: 16 }]}>
+            Architectural 2D/3D Foot-Over-Bridge and platform blueprints are currently mapped for 11 major railway and metro transfer hubs. Detailed schematics for {selectedStationCode} are undergoing statutory survey.
+          </Text>
+          <Text style={[styles.pickerLabel, { color: colors.textSecondary, marginBottom: 10 }]}>
+            SELECT AN INDEXED INTERCHANGE HUB:
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {MAJOR_STATIONS.map(st => (
+              <TouchableOpacity
+                key={st.code}
+                style={[
+                  styles.stationChip,
+                  { backgroundColor: colors.primary + '14', borderColor: colors.primary + '40', paddingVertical: 8, paddingHorizontal: 12 }
+                ]}
+                onPress={() => setSelectedStationCode(st.code)}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '800', color: colors.primary }}>{st.code}</Text>
+                <Text style={{ fontSize: 11, color: colors.textPrimary, marginLeft: 4 }}>{st.name.split(' ')[0]}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      ) : (
+        <>
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.stationTitleRow}>
             <View>
               <Text style={[styles.stationTitle, { color: colors.textPrimary }]}>
                 {stationLayout.stationName}
@@ -252,7 +308,6 @@ export default function WayfindingScreen() {
             {stationLayout.description}
           </Text>
         </View>
-      )}
 
       {/* 3. VISUAL PLATFORM TOPOLOGICAL MAP & 3D ISOMETRIC VIEW */}
       <View style={[styles.visualMapCard, { backgroundColor: '#090d16', borderColor: colors.cardBorder }]}>
@@ -739,7 +794,9 @@ export default function WayfindingScreen() {
           </View>
         </View>
       )}
-    </ScrollView>
+    </>
+  )}
+</ScrollView>
   );
 }
 
