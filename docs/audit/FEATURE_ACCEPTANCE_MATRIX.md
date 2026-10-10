@@ -99,6 +99,30 @@ The coverage matrix fulfills the mandate of **8 mandatory urban regions** at 100
 
 ---
 
-## 4. Acceptance Certification
+## 4. Antigravity Mission C — 17 Specific Regression Scenarios Matrix (Suite 33)
+
+| # | Regression Case | Scope & Condition | Test Suite Citation | Status |
+| :---: | :--- | :--- | :---: | :---: |
+| 1 | Thane to CSMT | Direct Central suburban route planning | Suite 33.1 | **VERIFIED** |
+| 2 | Thane to Ghatkopar | Direct Central suburban route planning | Suite 33.2 | **VERIFIED** |
+| 3 | Thane to Churchgate via Dadar | Transfer route via Dadar interchange with 7-min FOB buffer | Suite 33.3 | **VERIFIED** |
+| 4 | Ghatkopar railway to Ghatkopar Metro | FOB walking transfer leg across suburban and metro | Suite 33.4 | **VERIFIED** |
+| 5 | Metro Line 1 with intermediate stations | Versova to Ghatkopar corridor pathfinding | Suite 33.5 | **VERIFIED** |
+| 6 | All 8 focus cities + Ahmedabad | Delhi, Bengaluru, Kolkata, Pune, Chennai, Hyderabad, Kochi, Ahmedabad | Suite 33.6 | **VERIFIED** |
+| 7 | Unknown station | `matchedStation: undefined` and 0 itineraries | Suite 33.7 | **VERIFIED** |
+| 8 | Unsupported cross-city route | Returns 0 itineraries without illegal hops | Suite 33.8 | **VERIFIED** |
+| 9 | Missing timetable (past curfew) | 23:58 query returns 0 itineraries (no morning retry) | Suite 33.9 | **VERIFIED** |
+| 10 | Unobserved train status | Train 98046 reports `SCHEDULED` with `delayMinutes: null` | Suite 33.10 | **VERIFIED** |
+| 11 | Offline station lookup | Search stations with local dataset | Suite 33.11 | **VERIFIED** |
+| 12 | Backend unavailable | Graceful degradation in MobileApiClient | Suite 33.12 | **VERIFIED** |
+| 13 | Specimen booking and cancellation | Booking creation, clerical deduction, and wallet refund | Suite 33.13 | **VERIFIED** |
+| 14 | Invalid vs locally issued PNR | Local PNR found, invalid PNR returns `null` | Suite 33.14 | **VERIFIED** |
+| 15 | Fresh launch and returning session | Mute toggle, skip intro, session persistence | Suite 33.15 | **VERIFIED** |
+| 16 | Coach guide & station navigation | 12-car formation strip and unindexed blueprint card | Suite 33.16 | **VERIFIED** |
+| 17 | All 22 native service buttons | Directory mapping across web and mobile | Suite 33.17 | **VERIFIED** |
+
+---
+
+## 5. Acceptance Certification
 
 This acceptance matrix confirms that **100% of all functional requirements and safety constraints** on `integrate/railone-recovery-2026-10-10` have been tested, witnessed, and validated with zero regressions against the baseline.

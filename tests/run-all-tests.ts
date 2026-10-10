@@ -2653,6 +2653,10 @@ await runBackendRedTeamAcceptanceTests();
 // Run Test Suite 32: Native Mobile 22-Services & Screen Parity Acceptance
 await import('./mobile-navigation.test.ts');
 
+// Run Test Suite 33: Antigravity Mission C — 17 Specific Regression Scenarios
+const { runRegressionCasesTests } = await import('./regression-cases.test.ts');
+await runRegressionCasesTests(assert);
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');

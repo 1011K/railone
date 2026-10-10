@@ -237,7 +237,7 @@ export class MultimodalGraphEngine {
     prefs: MultimodalRoutingPreferences,
     liveObservations?: Record<string, { delayMinutes: number; status: 'ON_TIME' | 'DELAYED' | 'CANCELLED' }>
   ): MultimodalEdge[][] {
-    if (startNodeId === targetNodeId || this.isTargetReached(startNodeId, targetNodeId)) {
+    if (startNodeId === targetNodeId) {
       return [];
     }
 

@@ -24,8 +24,14 @@ The integration branch `integrate/railone-recovery-2026-10-10` was constructed d
 | `590424a` | `merge: incorporate backend canonical data and red-team gates` | Integration Merge (Track B) |
 | `a971f5b` | `merge: incorporate mobile phone-first UX and 22-service workflows` | Integration Merge (Track A) |
 | `622059a` | `feat(integrate): synchronize canonical metro and layout fixtures to mobile app and wire suite 32` | Integration Fixture Synchronization |
+| `0fa3610` | `docs(audit): publish final integration report, feature acceptance matrix, and remaining gaps` | Authoritative Audit Handover |
+| `HEAD` | `feat(recovery): fix multimodal graph transfer guard, add metro 1 corridor edges, reconcile mobile types, and wire suite 33` | Antigravity Recovery & Regression Closure |
 
-Both branches merged with **zero git conflicts**. Canonical fixtures (`src/fixtures/metroData.ts` and `src/fixtures/stationLayoutsData.ts`) were synchronized directly to `apps/mobile/src/fixtures/` to eliminate cross-subsystem drift, and Test Suite 32 (`tests/mobile-navigation.test.ts`) was wired into the root test runner `tests/run-all-tests.ts`.
+Both tracks merged cleanly. Comprehensive red-team testing subsequently identified and resolved three critical functional gaps:
+1. **Multimodal Graph Engine Transfer Guard:** In `src/engine/multimodal/graphEngine.ts`, `findPaths` evaluated `this.isTargetReached(startNodeId, targetNodeId)` before traversing initial edges. Because `equivalenceMap` listed `GC` and `METRO_GHT` as intermodal equivalents, querying `GC -> METRO_GHT` erroneously returned 0 itineraries. Removing this check from the start guard restored the 3-minute FOB transfer walk (`EDGE_WALK_GC_RAIL_METRO`).
+2. **Metro Line 1 Intermediate Corridor Edges:** In `src/engine/multimodal/cityPacks.ts`, `MUMBAI_NODES` and `MUMBAI_EDGES` were extended to include intermediate stations (`METRO_DNN`, `METRO_WEH`, `METRO_MRL`) and bidirectional corridor edges connecting Versova (`METRO_VER`) to Ghatkopar (`METRO_GHT`).
+3. **Cross-Subsystem Type Synchronization:** `apps/mobile/src/types/railway.ts` was reconciled with root types by adding `'metro'` to `TrainServiceType` and international transit classes (`STD`, `1ST`, `ORD`, `GRN`, `2CL`, `2KL`, etc.) to `TravelClass`.
+4. **Test Suite 33 Regression Closure:** `tests/regression-cases.test.ts` was created and wired into `tests/run-all-tests.ts`, formally asserting all 17 mission-specific scenarios and bringing total test assertions to 299 across 33 suites.
 
 ---
 
@@ -35,12 +41,12 @@ All primary quality gates and regression test suites pass with **100% success ra
 
 | Test Suite / Quality Gate | Command | Result | Assertion Count / Coverage |
 | :--- | :--- | :---: | :--- |
-| **Comprehensive Root Test Runner** | `npm test` | **PASS** | **282 / 282 passed (0 failed, 32 suites)** |
+| **Comprehensive Root Test Runner** | `npm test` | **PASS** | **299 / 299 passed (0 failed, 33 suites)** |
 | **Architectural Regression Contracts** | `npm run test:contracts` | **PASS** | **13 / 13 passed (100% invariant adherence)** |
 | **Root Web TypeScript Static Analysis** | `npm run lint` (`tsc --noEmit`) | **PASS** | **0 errors, 0 warnings** |
 | **Mobile App TypeScript Static Analysis** | `npm run mobile:lint` (`tsc --noEmit`) | **PASS** | **0 errors, 0 warnings** |
-| **Vite Web Production Bundle Build** | `npm run build` | **PASS** | **Clean production build in 1.66s** |
-| **Expo Mobile Web Export Bundle** | `npm run mobile:build-web` | **PASS** | **Clean bundle export in 1.30s (1,332 modules)** |
+| **Vite Web Production Bundle Build** | `npm run build` | **PASS** | **Clean production build in 1.64s** |
+| **Expo Mobile Web Export Bundle** | `npm run mobile:build-web` | **PASS** | **Clean bundle export in 1.99s (636 modules)** |
 
 ### 2.1 Architectural Regression Invariants Verified (`13/13`)
 1. `No profile-ID-only token renewal`: Reject token renewal without cryptographic signature verification.
