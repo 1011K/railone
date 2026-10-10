@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { searchStations, getStationByCode, getAllStations } from '../modules/stations';
+import { searchStations, getStationByCode, getAllStations, getStationSnapshot } from '../modules/stations';
+import { submitFeedback, getAllFeedback, getFeedbackById } from '../modules/feedback';
+import { getCoverageMatrix } from '../modules/coverage';
 import { searchRoutes, compareJourneys } from '../modules/routePlanner';
 import { searchTrainServices, getTrainTrip } from '../modules/services';
 import { getStationDepartures } from '../modules/timetable';
@@ -40,6 +42,10 @@ v1Router.get('/stations/search', (req: Request, res: Response) => {
   const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 25;
   const results = searchStations(query, line, limit);
   res.json({ count: results.length, stations: results });
+});
+
+v1Router.get('/stations/snapshot', (_req: Request, res: Response) => {
+  res.json(getStationSnapshot());
 });
 
 v1Router.get('/stations/:code', (req: Request, res: Response) => {
@@ -600,5 +606,97 @@ v1Router.get('/multimodal/plan', (req: Request, res: Response) => {
   } catch (err: any) {
     res.status(500).json({ error: 'ROUTING_FAILED', message: err.message || 'Multimodal routing calculation failed.' });
   }
+});
+
+// ---------------------------------------------------------------------------
+// 18. PNR Truthful Inquiry & Status
+// ---------------------------------------------------------------------------
+v1Router.get('/pnr/:pnr', (req: Request, res: Response) => {
+  const pnr = req.params.pnr?.trim();
+  if (!pnr || !/^\d{10}$/.test(pnr)) {
+    return res.status(400).json({ error: 'INVALID_PNR', message: 'PNR must be a 10-digit numeric string.' });
+  }
+
+  const booking = getBookingByPnr(pnr);
+  if (booking) {
+    return res.json({
+      pnr,
+      isDemo: true,
+      status: 'CONFIRMED',
+      trainNumber: booking.trainNumber,
+      trainName: booking.trainName,
+      journeyDate: booking.journeyDate,
+      fromStation: booking.fromStationName,
+      toStation: booking.toStationName,
+      passengers: booking.passengers,
+      bookingState: booking.bookingState,
+      note: '[SIMULATED DATASET] This is a local specimen demo PNR.'
+    });
+  }
+
+  res.json({
+    pnr,
+    isDemo: false,
+    status: 'OFFICIAL_PORTAL_REQUIRED',
+    officialUrl: 'https://www.indianrail.gov.in/enquiry/PNR/PnrEnquiry.html?locale=en',
+    message: 'Live PNR telemetry is restricted to official Indian Railways CRIS servers. RailOne does not fabricate live passenger reservation charts.'
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 19. Travel Feedback Persistence
+// ---------------------------------------------------------------------------
+v1Router.post('/feedback', (req: Request, res: Response) => {
+  try {
+    const { category, rating, feedbackText, pnr, trainNumber, stationCode, passengerProfileId } = req.body;
+    const record = submitFeedback({ category, rating, feedbackText, pnr, trainNumber, stationCode, passengerProfileId });
+    res.status(201).json({ success: true, feedback: record });
+  } catch (err: any) {
+    res.status(400).json({ error: 'FEEDBACK_SUBMISSION_FAILED', message: err.message });
+  }
+});
+
+v1Router.get('/feedback', (_req: Request, res: Response) => {
+  const list = getAllFeedback();
+  res.json({ count: list.length, feedback: list });
+});
+
+// ---------------------------------------------------------------------------
+// 20. Urban Network Coverage Matrix (8 Mandatory + 1 Experimental)
+// ---------------------------------------------------------------------------
+v1Router.get('/coverage/matrix', (_req: Request, res: Response) => {
+  res.json(getCoverageMatrix());
+});
+
+// ---------------------------------------------------------------------------
+// 21. Station Interchanges & Foot-Over-Bridge Geometry
+// ---------------------------------------------------------------------------
+v1Router.get('/interchanges/hubs', (_req: Request, res: Response) => {
+  res.json({ hubs: listInterchangeHubs() });
+});
+
+v1Router.get('/interchanges/layout/:code', (req: Request, res: Response) => {
+  const layout = getStationLayout(req.params.code);
+  if (!layout) {
+    return res.status(404).json({ error: 'LAYOUT_NOT_FOUND', message: `Layout for station ${req.params.code} not found.` });
+  }
+  res.json({ layout });
+});
+
+v1Router.get('/interchanges/guide', (req: Request, res: Response) => {
+  const stationCode = req.query.stationCode as string;
+  const fromPlatform = req.query.fromPlatform as string;
+  const toPlatform = req.query.toPlatform as string;
+  const stepFree = req.query.stepFree === 'true' || req.query.stepFree === '1';
+
+  if (!stationCode || !fromPlatform || !toPlatform) {
+    return res.status(400).json({ error: 'INVALID_PARAMS', message: 'stationCode, fromPlatform, and toPlatform query parameters are required.' });
+  }
+
+  const guide = getTransferWalkGuide(stationCode, fromPlatform, toPlatform, stepFree);
+  if (!guide) {
+    return res.status(404).json({ error: 'GUIDE_NOT_FOUND', message: 'Transfer walk route could not be calculated.' });
+  }
+  res.json({ guide });
 });
 

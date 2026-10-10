@@ -17,6 +17,8 @@ export interface TrainAvailabilityResponse {
   classes: ClassAvailabilityItem[];
   isSimulated: boolean;
   statusProvenance: 'VERIFIED_PROVIDER_ADAPTER' | 'TIMETABLE_SIMULATED';
+  isOfficialInventoryAvailable: boolean;
+  simulationNotice: string;
 }
 
 export function checkAvailability(
@@ -88,6 +90,8 @@ export function checkAvailability(
     serviceType: train.serviceType,
     classes,
     isSimulated: true,
-    statusProvenance: 'TIMETABLE_SIMULATED'
+    statusProvenance: 'TIMETABLE_SIMULATED',
+    isOfficialInventoryAvailable: false,
+    simulationNotice: '[DEMO_SIMULATION] Live IRCTC PRS inventory requires authorized CRIS credentials; values shown are simulated demo estimates.'
   };
 }

@@ -187,11 +187,11 @@ export function normalizeStation(rawQuery: string): StationNormalizationResult {
   } else if (exactMatches.length > 1) {
     return {
       query,
-      matchedStation: exactMatches[0], // default to Central if Dadar
+      matchedStation: undefined,
       candidates: exactMatches,
       isAmbiguous: true,
       confidence: 'EXACT',
-      explanation: `Ambiguous station "${query}": Multiple lines match (${exactMatches.map(s => `${s.name} [${s.code}]`).join(', ')}). Defaulting to ${exactMatches[0].code}.`
+      explanation: `Ambiguous station "${query}": Multiple lines match (${exactMatches.map(s => `${s.name} [${s.code}]`).join(', ')}). Please select target platform/station.`
     };
   }
 

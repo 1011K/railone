@@ -2646,6 +2646,10 @@ console.log('\nTest Suite 30: Ghatkopar Resolution & Metro Isolation, Dadar Plat
   );
 }
 
+// Run Test Suite 31: Antigravity Mission Backend & Data Integrity Acceptance
+const { runBackendRedTeamAcceptanceTests } = await import('./backend-redteam-acceptance.test.ts');
+await runBackendRedTeamAcceptanceTests();
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');

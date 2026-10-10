@@ -123,16 +123,6 @@ export class MultimodalGraphEngine {
         }
       }
 
-      // Check across other cities if not found in current city pack
-      for (const otherPack of Object.values(CITY_PACKS)) {
-        if (otherPack.cityId === this.cityPack.cityId) continue;
-        for (const n of otherPack.nodes) {
-          if (n.code.toUpperCase() === upper || n.name.toLowerCase().includes(lower)) {
-            return { node: n, walkAccessMinutes: 0, resolvedName: n.name };
-          }
-        }
-      }
-
       return null;
     }
 
@@ -179,6 +169,9 @@ export class MultimodalGraphEngine {
    * Plans multimodal routes satisfying all constraints.
    */
   public planJourney(params: RouteSearchParams): MultimodalItinerary[] {
+    if (params.cityId && params.cityId !== this.cityPack.cityId) {
+      this.switchCity(params.cityId);
+    }
     const resolvedOrigin = this.resolveNode(params.origin);
     const resolvedDest = this.resolveNode(params.destination);
 

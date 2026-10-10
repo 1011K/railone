@@ -65,7 +65,7 @@ export const STATIONS: Record<string, Station> = {
     platforms: [1, 2, 3, 4],
     isInterchange: true, // Metro 1 connection
     interchangeWalkMinutes: 4,
-    aliases: ['ghatkopar', 'gc', 'ghatcopar', 'ghatkopr', 'gatkopar', 'घाटकोपर']
+    aliases: ['ghatkopar', 'gc', 'ghatcopar', 'ghatkopr', 'gatkopar', 'ghatkoper', 'घाटकोपर']
   },
   VK: {
     id: 'VK',
