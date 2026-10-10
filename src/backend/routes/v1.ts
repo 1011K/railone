@@ -749,13 +749,29 @@ v1Router.get('/weather', async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // 24. AI Provider Health & Credential Readiness Matrix
 // ---------------------------------------------------------------------------
-v1Router.get('/providers/readiness', (_req: Request, res: Response) => {
+v1Router.get('/providers/readiness', async (req: Request, res: Response) => {
   const router = AiProviderRouter.getInstance();
   const providers = router.getProvidersHealth();
   const orsAdapter = new OpenRouteServiceAdapter();
 
+  const isLiveCheck = req.query.liveCheck === 'true' || req.query.live === 'true';
+  let liveValidationDetails: Record<string, any> | undefined = undefined;
+
+  if (isLiveCheck) {
+    liveValidationDetails = {};
+    const nvidia = router.getProvider('nvidia');
+    if (nvidia.validateModelAvailability) {
+      liveValidationDetails.nvidia = await nvidia.validateModelAvailability();
+    }
+    const groq = router.getProvider('groq');
+    if (groq.validateModelAvailability) {
+      liveValidationDetails.groq = await groq.validateModelAvailability();
+    }
+  }
+
   res.json({
     aiProviders: providers,
+    liveValidation: liveValidationDetails,
     navigation: {
       provider: 'OpenRouteService (HeiGIT)',
       endpoint: 'https://api.heigit.org/v2/directions',
@@ -779,5 +795,45 @@ v1Router.get('/providers/readiness', (_req: Request, res: Response) => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// 25. Voice Audio Transcription (Groq Whisper Free Tier Adapter)
+// ---------------------------------------------------------------------------
+v1Router.post('/voice/transcribe', async (req: Request, res: Response) => {
+  const { audioBase64, mimeType } = req.body;
+  if (!audioBase64) {
+    return res.status(400).json({ error: 'AUDIO_REQUIRED', message: 'audioBase64 field is required.' });
+  }
+
+  const router = AiProviderRouter.getInstance();
+  const groq = router.getProvider('groq') as any;
+
+  if (groq && groq.isConfigured && groq.isConfigured()) {
+    try {
+      const buffer = Buffer.from(audioBase64, 'base64');
+      const text = await groq.transcribeAudio(buffer, mimeType || 'audio/wav');
+      return res.json({
+        text,
+        engine: 'groq_whisper',
+        provenance: 'VERIFIED_API',
+        notes: 'Transcribed using Groq Whisper free tier'
+      });
+    } catch (err: any) {
+      return res.status(502).json({
+        error: 'GROQ_TRANSCRIPTION_FAILED',
+        message: err.message,
+        fallbackEngine: 'web_speech_api_client_side'
+      });
+    }
+  }
+
+  return res.json({
+    text: null,
+    engine: 'web_speech_api_client_side',
+    provenance: 'CLIENT_BROWSER_ENGINE',
+    message: 'Groq Whisper API key not configured. Speech transcription safely delegates to client-side native Web Speech API.'
+  });
+});
+
 
 

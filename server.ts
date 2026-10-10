@@ -27,12 +27,12 @@ import { AiProviderRouter } from './src/backend/modules/ai/aiProviderRouter';
 // 1. Task Decomposition API
 app.post('/api/ai/decompose', async (req, res) => {
   const { prompt, context, preferredProvider } = req.body;
-  if (!prompt) {
+  if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
     return res.status(400).json({ error: 'Prompt is required' });
   }
 
   try {
-    const result = await AiProviderRouter.getInstance().decomposeTasks(prompt, context, preferredProvider);
+    const result = await AiProviderRouter.getInstance().decomposeTasks(prompt.trim(), context, preferredProvider);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: 'DECOMPOSE_FAILED', message: err.message });
@@ -42,12 +42,12 @@ app.post('/api/ai/decompose', async (req, res) => {
 // 2. AI Copilot Chat API
 app.post('/api/ai/copilot', async (req, res) => {
   const { query, history = [], preferredProvider } = req.body;
-  if (!query) {
+  if (!query || typeof query !== 'string' || !query.trim()) {
     return res.status(400).json({ error: 'Query is required' });
   }
 
   try {
-    const result = await AiProviderRouter.getInstance().askCopilot(query, history, preferredProvider);
+    const result = await AiProviderRouter.getInstance().askCopilot(query.trim(), history, preferredProvider);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: 'COPILOT_FAILED', message: err.message });
