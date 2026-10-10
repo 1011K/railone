@@ -68,3 +68,12 @@ This matrix documents the bidirectional contract between the Passenger Web Appli
 - **Behavior:**
   - PNR screen provides honest local lookup against demo specimen tickets. Unindexed numbers display a CRIS/IRCTC handoff card with direct link to the official Indian Railways inquiry portal (`https://www.indianrail.gov.in/enquiry/PNR/PnrEnquiry.html`).
   - Feedback screen captures 5-star ratings across cleanliness, punctuality, amenities, and security, persisting draft submissions offline in `OfflineStorage`.
+
+### 7. Canonical Station Resolver & 3D Train Visualization
+- **Station Search Service:** `apps/mobile/src/services/canonicalStationResolver.ts`
+- **Behavior:**
+  - Robust offline typo normalization (e.g. `ghatkoper`, `gatkopar`, `ghatcopar` resolve to Central Suburban `GC`).
+  - Native Devanagari script queries (e.g. `घाटकोपर` resolves to `GC` with `EXACT` confidence, while isolating `METRO_GHT`).
+  - Multi-platform disambiguation: Generic `dadar` flags platform ambiguity, returning both `DR` (Central) and `DDR` (Western) candidates.
+- **3D Visualization:** `src/components/MovingTrain3DModal.tsx` wired into `PassengerMobileApp.tsx` with actions for `moving_train_3d`, `3d_train`, `cancellation_refunds`, and `replay_launch`.
+

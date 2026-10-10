@@ -18,7 +18,17 @@ import { MobileApiClient } from '../../src/api/client';
 import { OfflineStorage } from '../../src/storage/offlineStorage';
 import { CITIES_REGISTRY, CityCoverageConfig } from '../../src/fixtures/citiesData';
 import { NativeLaunchSequence } from '../../src/components/NativeLaunchSequence';
+import { resolveStationCanonical, CanonicalStationRecord } from '../../src/services/canonicalStationResolver';
 import Svg, { Path, Circle, Polyline, Line, Rect, Polygon } from 'react-native-svg';
+
+export interface StationPickerItem {
+  code: string;
+  name: string;
+  hindiName?: string;
+  line?: string;
+  city?: string;
+  isMetro?: boolean;
+}
 
 export interface NativeServiceItem {
   id: string;
@@ -525,25 +535,77 @@ export default function HomeScreen() {
       setStationList(cityGraphStations);
       return;
     }
-    const cityMatches = cityGraphStations.filter(st =>
-      st.name.toLowerCase().includes(text.toLowerCase()) ||
-      st.code.toLowerCase().includes(text.toLowerCase())
-    );
-    if (cityMatches.length > 0) {
-      setStationList(cityMatches);
-      return;
-    }
+
+    const byCode = new Map<string, StationPickerItem>();
+
+    // 1. Canonical normalizer: handles exact codes, typos (e.g. Ghatkoper), Devanagari (घाटकोपर), and aliases
     try {
-      const results = await MobileApiClient.searchStations(text);
-      if (results && results.length > 0) {
-        setStationList(results.map(s => ({ code: s.code, name: s.name })));
+      const norm = resolveStationCanonical(text);
+      if (norm.matchedStation) {
+        byCode.set(norm.matchedStation.code, {
+          code: norm.matchedStation.code,
+          name: norm.matchedStation.name,
+          hindiName: norm.matchedStation.hindiName,
+          line: norm.matchedStation.line,
+          city: norm.matchedStation.city,
+          isMetro: norm.matchedStation.isMetro
+        });
+      }
+      if (norm.candidates && norm.candidates.length > 0) {
+        for (const c of norm.candidates) {
+          if (!byCode.has(c.code)) {
+            byCode.set(c.code, {
+              code: c.code,
+              name: c.name,
+              hindiName: c.hindiName,
+              line: c.line,
+              city: c.city,
+              isMetro: c.isMetro
+            });
+          }
+        }
       }
     } catch {
-      const filtered = cityGraphStations
-        .filter(st => st.name.toLowerCase().includes(text.toLowerCase()) ||
-          st.code.toLowerCase().includes(text.toLowerCase()));
-      setStationList(filtered);
+      // offline fallback
     }
+
+    // 2. City graph substring matches across code and name
+    const q = text.toLowerCase().trim();
+    for (const st of cityGraphStations) {
+      if (st.name.toLowerCase().includes(q) || st.code.toLowerCase().includes(q)) {
+        if (!byCode.has(st.code)) {
+          byCode.set(st.code, {
+            ...st,
+            isMetro: Boolean((st as any).isMetro || st.code.startsWith('METRO_'))
+          });
+        }
+      }
+    }
+
+    // 3. Online backend search if needed and online
+    if (byCode.size === 0) {
+      try {
+        const results = await MobileApiClient.searchStations(text);
+        if (results && results.length > 0) {
+          for (const s of results) {
+            if (!byCode.has(s.code)) {
+              byCode.set(s.code, {
+                code: s.code,
+                name: s.name,
+                hindiName: s.hindiName,
+                line: s.line,
+                city: s.city,
+                isMetro: s.line === 'metro' || s.code?.startsWith('METRO_')
+              });
+            }
+          }
+        }
+      } catch {
+        // network unavailable - preserved offline search
+      }
+    }
+
+    setStationList([...byCode.values()]);
   };
 
   const selectStation = (station: { code: string; name: string }) => {
@@ -1207,17 +1269,51 @@ export default function HomeScreen() {
           <FlatList
             data={stationList}
             keyExtractor={(item: any) => item.code}
-            renderItem={({ item }: { item: any }) => (
-              <TouchableOpacity
-                style={[styles.stationListItem, { borderBottomColor: colors.cardBorder }]}
-                onPress={() => selectStation(item)}
-              >
-                <View style={styles.stationBadge}>
-                  <Text style={styles.stationBadgeText}>{item.code}</Text>
-                </View>
-                <Text style={[styles.stationListName, { color: colors.textPrimary }]}>{item.name}</Text>
-              </TouchableOpacity>
-            )}
+            ListEmptyComponent={
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 }}>
+                  No stations found matching "{searchQuery}"
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', lineHeight: 18 }}>
+                  Try searching by station code (e.g. GC, CSMT, TNA, METRO_GHT), name, or Devanagari script.
+                </Text>
+              </View>
+            }
+            renderItem={({ item }: { item: any }) => {
+              const isMetro = Boolean(item.isMetro || item.code.startsWith('METRO_') || item.line === 'metro');
+              return (
+                <TouchableOpacity
+                  style={[styles.stationListItem, { borderBottomColor: colors.cardBorder }]}
+                  onPress={() => selectStation(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.name} (${item.code})`}
+                >
+                  <View style={[styles.stationBadge, isMetro && { backgroundColor: '#0891b2' }]}>
+                    <Text style={styles.stationBadgeText}>{item.code}</Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={[styles.stationListName, { color: colors.textPrimary }]}>{item.name}</Text>
+                      <View style={{
+                        paddingHorizontal: 5,
+                        paddingVertical: 1,
+                        borderRadius: 4,
+                        backgroundColor: isMetro ? '#0891b220' : '#16a34a20'
+                      }}>
+                        <Text style={{ fontSize: 9, fontWeight: '800', color: isMetro ? '#0891b2' : '#16a34a' }}>
+                          {isMetro ? 'METRO' : 'RAILWAY'}
+                        </Text>
+                      </View>
+                    </View>
+                    {(item.hindiName || item.city || item.line) && (
+                      <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
+                        {[item.hindiName, item.line, item.city].filter(Boolean).join(' · ')}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
           />
         </View>
       </Modal>

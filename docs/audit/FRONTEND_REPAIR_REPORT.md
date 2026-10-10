@@ -105,6 +105,14 @@ All 22 statutory transit services have been reconciled, verified, and mapped to 
   - Added TTE Examiner banner in `tickets.tsx` linking to `/tte` for QR hash verification and Section 137/138 Railways Act penalty calculations.
   - Enhanced `apps/mobile/src/storage/offlineStorage.ts` with durable `localStorage` sync and fallback memory cache for station indexes, recent searches, vector maps, tickets, and user preferences.
 
+### 9. Reduced Motion, Zero-Emoji Compliance, Canonical Normalization & 3D Train Wiring
+- **Problem:** Startup animations lacked accessibility reduced-motion support; non-compliant Unicode emojis were present in several mobile screens; station search lacked typo and Devanagari resolution on client; and `MovingTrain3DModal` was not wired into the web passenger app.
+- **Repair:**
+  - Integrated `AccessibilityInfo.isReduceMotionEnabled()` in `apps/mobile/src/components/NativeLaunchSequence.tsx` to bypass locomotive and track animations when user motion reduction preferences are enabled.
+  - Replaced all non-compliant Unicode emojis across `help.tsx`, `status.tsx`, `feedback.tsx`, `wayfinding.tsx`, and `guide.tsx` with clean SVG vector icons and design tokens per `AGENTS.md` and UI UX Pro Max.
+  - Implemented `apps/mobile/src/services/canonicalStationResolver.ts` delivering typo-tolerant search (e.g. `ghatkoper` -> `GC`), native Devanagari script resolution (`घाटकोपर` -> `GC` with `EXACT` confidence), and ambiguous interchange candidate separation (`dadar` -> `DR` and `DDR`), while preserving modal code isolation (`GC` vs `METRO_GHT`).
+  - Wired `MovingTrain3DModal` into `src/components/PassengerMobileApp.tsx` with full lazy loading (`React.Suspense`) and hooked into the action dispatcher for `moving_train_3d`, `3d_train`, `cancellation_refunds`, and `replay_launch`.
+
 ---
 
 ## Verification & Quality Gates Summary
@@ -113,7 +121,8 @@ All 22 statutory transit services have been reconciled, verified, and mapped to 
 | :--- | :--- | :--- | :--- |
 | **Root Test Suite** | `npm test` | **PASS (282/282)** | All 30 suites passing with zero regressions |
 | **Regression Contracts** | `npm run test:contracts` | **PASS (13/13)** | Zero security or truthfulness violations |
-| **Mobile Navigation Tests** | `npx tsx tests/mobile-navigation.test.ts` | **PASS** | 22 services, 11 hubs, guide, status, wallet verified |
+| **Mobile Navigation Tests** | `npx tsx tests/mobile-navigation.test.ts` | **PASS (12/12)** | 22 services, 11 hubs, guide, status, wallet, reduced-motion, zero emojis, canonical resolver verified |
 | **Mobile TypeScript Lint** | `npm run mobile:lint` | **PASS (0 errors)** | Strict TypeScript compilation in Expo |
 | **Root TypeScript Lint** | `npm run lint` | **PASS (0 errors)** | Strict TypeScript compilation at root |
-| **Expo Web Build** | `npm run mobile:build-web` | **PASS** | Bundle produced in `dist/` (6.35 MB unminified) |
+| **Expo Web Build** | `npm run mobile:build-web` | **PASS** | Bundle produced in `dist/` (2.63 MB web bundle) |
+| **Vite Production Build** | `npm run build` | **PASS** | Production client built in 1.72s with zero errors |

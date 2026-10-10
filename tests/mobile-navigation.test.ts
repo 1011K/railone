@@ -136,6 +136,101 @@ assert(
   ticketsContent.includes("handleRecharge"),
   'Tickets screen must render RailWallet UI with top-up chips and transaction ledger'
 );
-console.log('✓ Tickets screen renders RailWallet tab with top-up chips and transaction ledger');
+import { normalizeStation } from '../src/engine/stationNormalizer';
+
+// 7. Canonical Station Normalizer integration & typo resolution
+const typoResult = normalizeStation('ghatkoper');
+assert.strictEqual(
+  typoResult.matchedStation?.code,
+  'GC',
+  'Canonical normalizer must resolve typo "ghatkoper" to Central Suburban GC'
+);
+const devanagariResult = normalizeStation('घाटकोपर');
+assert.strictEqual(
+  devanagariResult.matchedStation?.code,
+  'GC',
+  'Canonical normalizer must resolve Devanagari script "घाटकोपर" to Central Suburban GC'
+);
+const metroResult = normalizeStation('METRO_GHT');
+assert.strictEqual(
+  metroResult.matchedStation?.code,
+  'METRO_GHT',
+  'Canonical normalizer must maintain modal isolation for Metro Line 1 METRO_GHT'
+);
+assert.notStrictEqual(
+  typoResult.matchedStation?.code,
+  metroResult.matchedStation?.code,
+  'Suburban GC and Metro METRO_GHT must maintain strict modal isolation'
+);
+console.log('✓ Canonical normalizer resolves typos (ghatkoper) and preserves modal isolation (GC vs METRO_GHT)');
+
+// 8. Reduced-Motion Accessibility Check in NativeLaunchSequence
+const launchContent = readFileSync(join(process.cwd(), 'apps/mobile/src/components/NativeLaunchSequence.tsx'), 'utf8');
+assert(
+  launchContent.includes('AccessibilityInfo.isReduceMotionEnabled') ||
+  launchContent.includes('isReduceMotionEnabled'),
+  'NativeLaunchSequence must check AccessibilityInfo.isReduceMotionEnabled for reduced motion accessibility'
+);
+console.log('✓ NativeLaunchSequence enforces reduced-motion accessibility fallback');
+
+// 9. Zero-Emoji Compliance across mobile screens (AGENTS.md Charter)
+const emojiRegex = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}]/u;
+const helpContent = readFileSync(join(process.cwd(), 'apps/mobile/app/(tabs)/help.tsx'), 'utf8');
+const freshStatusContent = readFileSync(statusPath, 'utf8');
+const feedbackContent = readFileSync(join(process.cwd(), 'apps/mobile/app/feedback.tsx'), 'utf8');
+const freshWayfindingContent = readFileSync(wayfindingPath, 'utf8');
+const freshGuideContent = readFileSync(guidePath, 'utf8');
+
+assert(!emojiRegex.test(helpContent), 'help.tsx must contain zero emojis');
+assert(!emojiRegex.test(freshStatusContent), 'status.tsx must contain zero emojis');
+assert(!emojiRegex.test(feedbackContent), 'feedback.tsx must contain zero emojis');
+assert(!emojiRegex.test(freshWayfindingContent), 'wayfinding.tsx must contain zero emojis');
+assert(!emojiRegex.test(freshGuideContent), 'guide.tsx must contain zero emojis');
+console.log('✓ Zero-emoji compliance verified across help, status, feedback, wayfinding, and guide screens');
+
+// 10. MovingTrain3DModal wired into PassengerMobileApp
+const passengerAppContent = readFileSync(join(process.cwd(), 'src/components/PassengerMobileApp.tsx'), 'utf8');
+assert(
+  passengerAppContent.includes('<MovingTrain3DModal') &&
+  passengerAppContent.includes("case 'moving_train_3d':"),
+  'PassengerMobileApp must wire MovingTrain3DModal into JSX and handleActionModal'
+);
+console.log('✓ MovingTrain3DModal connected to PassengerMobileApp startup and action dispatcher');
+
+// 11. Station picker empty state and mode badges in index.tsx
+const freshMobileIndexContent = readFileSync(mobileIndexPath, 'utf8');
+assert(
+  freshMobileIndexContent.includes('ListEmptyComponent') &&
+  freshMobileIndexContent.includes('No stations found matching') &&
+  freshMobileIndexContent.includes('resolveStationCanonical(text)'),
+  'Station picker must implement ListEmptyComponent and consume canonical normalizer'
+);
+console.log('✓ Station picker implements ListEmptyComponent and consumes canonical normalizer');
+
+// 12. Client-side Canonical Station Resolver tests
+import { resolveStationCanonical } from '../apps/mobile/src/services/canonicalStationResolver';
+const mobileTypoResult = resolveStationCanonical('ghatkoper');
+assert.strictEqual(
+  mobileTypoResult.matchedStation?.code,
+  'GC',
+  'Mobile canonical resolver must resolve typo "ghatkoper" to Central Suburban GC'
+);
+const mobileDevanagari = resolveStationCanonical('घाटकोपर');
+assert.strictEqual(
+  mobileDevanagari.matchedStation?.code,
+  'GC',
+  'Mobile canonical resolver must resolve Devanagari script "घाटकोपर" to Central Suburban GC'
+);
+const mobileDadar = resolveStationCanonical('dadar');
+assert.strictEqual(
+  mobileDadar.isAmbiguous,
+  true,
+  'Mobile canonical resolver must flag generic "dadar" as ambiguous'
+);
+assert.ok(
+  mobileDadar.candidates.some(c => c.code === 'DR') && mobileDadar.candidates.some(c => c.code === 'DDR'),
+  'Mobile canonical resolver must return both DR (Central) and DDR (Western) for Dadar'
+);
+console.log('✓ Mobile canonical station resolver handles typos, Devanagari, and Dadar platform ambiguity');
 
 console.log('--- ALL MOBILE NAVIGATION & WORKFLOW TESTS PASSED ---');

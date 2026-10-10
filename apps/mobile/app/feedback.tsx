@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
 
 import { OfflineStorage } from '../src/storage/offlineStorage';
+import Svg, { Path, Rect, Polygon } from 'react-native-svg';
 
 export default function FeedbackScreen() {
   const { colors } = useMobileTheme();
@@ -51,9 +52,9 @@ export default function FeedbackScreen() {
             style={styles.starBtn}
             accessibilityLabel={`${star} stars`}
           >
-            <Text style={{ fontSize: 18, color: star <= rating ? '#f59e0b' : colors.cardBorder }}>
-              ★
-            </Text>
+            <Svg width={18} height={18} viewBox="0 0 24 24" fill={star <= rating ? '#f59e0b' : 'none'} stroke={star <= rating ? '#f59e0b' : colors.cardBorder} strokeWidth={2}>
+              <Polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </Svg>
           </TouchableOpacity>
         ))}
       </View>
@@ -78,7 +79,10 @@ export default function FeedbackScreen() {
         {submittedRef ? (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder, alignItems: 'center', paddingVertical: 32 }]}>
             <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.warning + '25', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <Text style={{ fontSize: 24, color: colors.warning }}>📝</Text>
+              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={colors.warning} strokeWidth={2}>
+                <Path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <Path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </Svg>
             </View>
             <Text style={[styles.successTitle, { color: colors.textPrimary }]}>Saved as Local Draft</Text>
             <Text style={[styles.successSub, { color: colors.textMuted, textAlign: 'center', marginHorizontal: 16, marginTop: 4 }]}>

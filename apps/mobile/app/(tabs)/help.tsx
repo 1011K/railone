@@ -140,7 +140,7 @@ export default function HelpScreen() {
             accessibilityRole="button"
             accessibilityLabel="Replay Cinematic Train Intro"
           >
-            <Text style={styles.actionBtnText}>Replay Cinematic Intro 🎬</Text>
+            <Text style={styles.actionBtnText}>Replay Cinematic Intro</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

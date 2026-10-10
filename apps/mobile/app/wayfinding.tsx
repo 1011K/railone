@@ -479,7 +479,7 @@ export default function WayfindingScreen() {
                           fontSize={8}
                           fontWeight="bold"
                         >
-                          {b.name} {b.hasLifts ? '· 🛗 LIFT' : ''}
+                          {b.name} {b.hasLifts ? '· LIFT' : ''}
                         </SvgText>
                       </G>
                     );
@@ -770,16 +770,16 @@ export default function WayfindingScreen() {
                   Landmarks: {ex.destinationLandmarks.join(', ')}
                 </Text>
                 {ex.onwardTransit.taxiStand && (
-                  <Text style={styles.exitTransitText}>🚕 Taxi: {ex.onwardTransit.taxiStand}</Text>
+                  <Text style={styles.exitTransitText}>Taxi: {ex.onwardTransit.taxiStand}</Text>
                 )}
                 {ex.onwardTransit.autoStand && (
-                  <Text style={styles.exitTransitText}>🛺 Auto: {ex.onwardTransit.autoStand}</Text>
+                  <Text style={styles.exitTransitText}>Auto: {ex.onwardTransit.autoStand}</Text>
                 )}
                 {ex.onwardTransit.busInterchange && (
-                  <Text style={styles.exitTransitText}>🚌 Bus: {ex.onwardTransit.busInterchange}</Text>
+                  <Text style={styles.exitTransitText}>Bus: {ex.onwardTransit.busInterchange}</Text>
                 )}
                 {ex.onwardTransit.metroInterchange && (
-                  <Text style={styles.exitTransitText}>🚇 Metro: {ex.onwardTransit.metroInterchange}</Text>
+                  <Text style={styles.exitTransitText}>Metro: {ex.onwardTransit.metroInterchange}</Text>
                 )}
                 <View style={styles.exitFooterRow}>
                   <Text style={styles.exitStepFreeTag}>
