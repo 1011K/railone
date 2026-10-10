@@ -82,7 +82,14 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const [currentTime, setCurrentTime] = useState<string>('10:42');
 
   // Modals & Flow States
-  const [showLaunchSequence, setShowLaunchSequence] = useState<boolean>(false);
+  const [showLaunchSequence, setShowLaunchSequence] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        return window.sessionStorage.getItem('railone_launch_seen') !== 'true';
+      }
+    } catch {}
+    return false;
+  });
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
   const [showPnrModal, setShowPnrModal] = useState<boolean>(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
@@ -137,7 +144,16 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   }, [authority.id, authority.defaultOriginCode, authority.defaultDestCode]);
 
   const handleLaunchComplete = () => {
-    sessionStorage.setItem('railone_launch_seen', 'true');
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.setItem('railone_launch_seen', 'true');
+      }
+      if (typeof window !== 'undefined' && window.localStorage) {
+        if (localStorage.getItem('railone_onboarding_completed') !== 'true') {
+          setShowOnboarding(true);
+        }
+      }
+    } catch {}
     setShowLaunchSequence(false);
   };
 
@@ -147,6 +163,11 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
     travelClass: TravelClass;
     isAuthenticated: boolean;
   }) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('railone_onboarding_completed', 'true');
+      }
+    } catch {}
     setSelectedCityId(prefs.cityId);
     setLanguage(prefs.language);
     setShowOnboarding(false);

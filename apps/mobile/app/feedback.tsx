@@ -13,6 +13,8 @@ import {
 import { router } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
 
+import { OfflineStorage } from '../src/storage/offlineStorage';
+
 export default function FeedbackScreen() {
   const { colors } = useMobileTheme();
   const [trainName, setTrainName] = useState('Suburban Fast Local (95112)');
@@ -25,8 +27,17 @@ export default function FeedbackScreen() {
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
 
   const handleSubmit = () => {
-    const ref = `RO-FB-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-    setSubmittedRef(ref);
+    const draft = {
+      trainInfo: trainName,
+      stationInfo: stationName,
+      ratings: { cleanliness, punctuality, amenities, safety },
+      comments,
+      submittedAt: new Date().toISOString()
+    };
+    try {
+      OfflineStorage.saveFeedbackDraft(draft);
+    } catch {}
+    setSubmittedRef(`LOCAL-DRAFT-${Date.now().toString().slice(-6)}`);
   };
 
   const renderStars = (rating: number, setRating: (r: number) => void, title: string) => (
@@ -66,16 +77,18 @@ export default function FeedbackScreen() {
 
         {submittedRef ? (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder, alignItems: 'center', paddingVertical: 32 }]}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>✓</Text>
-            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>Feedback Recorded</Text>
-            <Text style={[styles.successSub, { color: colors.textMuted }]}>
-              Thank you for sharing your commuter experience.
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.warning + '25', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 24, color: colors.warning }}>📝</Text>
+            </View>
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>Saved as Local Draft</Text>
+            <Text style={[styles.successSub, { color: colors.textMuted, textAlign: 'center', marginHorizontal: 16, marginTop: 4 }]}>
+              Central railway feedback endpoint is disconnected. Your responses are preserved in local offline storage and have not been submitted to the central rail server.
             </Text>
-            <View style={[styles.refBox, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
-              <Text style={[styles.refText, { color: colors.primary }]}>Reference: {submittedRef}</Text>
+            <View style={[styles.refBox, { backgroundColor: colors.background, borderColor: colors.cardBorder, marginTop: 12 }]}>
+              <Text style={[styles.refText, { color: colors.primary }]}>Local Draft ID: {submittedRef}</Text>
             </View>
             <TouchableOpacity
-              style={[styles.doneBtn, { backgroundColor: colors.primary }]}
+              style={[styles.doneBtn, { backgroundColor: colors.primary, marginTop: 16 }]}
               onPress={() => router.back()}
             >
               <Text style={styles.doneBtnText}>Return to Home</Text>

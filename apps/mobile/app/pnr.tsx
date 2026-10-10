@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,12 @@ import {
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Linking
 } from 'react-native';
 import { router } from 'expo-router';
 import { useMobileTheme } from '../src/theme/ThemeContext';
+import { OfflineStorage, CachedTicketRecord } from '../src/storage/offlineStorage';
 import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
 
 export default function PnrScreen() {
@@ -18,38 +20,93 @@ export default function PnrScreen() {
   const [pnrInput, setPnrInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any | null>(null);
+  const [notFoundPnr, setNotFoundPnr] = useState<string | null>(null);
+  const [specimenTickets, setSpecimenTickets] = useState<CachedTicketRecord[]>([]);
+
+  useEffect(() => {
+    try {
+      const tickets = OfflineStorage.getTickets();
+      setSpecimenTickets(tickets);
+    } catch {}
+  }, []);
 
   const handleLookup = () => {
     const cleanPnr = pnrInput.replace(/\D/g, '').trim();
     if (cleanPnr.length !== 10) {
       setError('Please enter a valid 10-digit Indian Railways PNR number.');
       setResult(null);
+      setNotFoundPnr(null);
       return;
     }
 
     setError(null);
-    const isConfirmed = parseInt(cleanPnr.slice(-1), 10) % 2 === 0;
-    const trainNum = (22000 + (parseInt(cleanPnr.slice(-3), 10) % 900)).toString();
+    setNotFoundPnr(null);
 
+    // Look up only specimen records issued by the demo backend/storage
+    const tickets = OfflineStorage.getTickets();
+    const match = tickets.find(t => {
+      const numericPnr = t.pnr.replace(/\D/g, '');
+      return numericPnr === cleanPnr || numericPnr.endsWith(cleanPnr) || cleanPnr.endsWith(numericPnr);
+    });
+
+    if (match) {
+      setResult({
+        pnr: match.pnr,
+        trainNumber: match.trainNumber,
+        trainName: match.trainName,
+        dateOfJourney: match.journeyDate,
+        fromStation: match.fromStationName,
+        toStation: match.toStationName,
+        travelClass: match.classBooked,
+        quota: 'GENERAL (GN)',
+        chartStatus: 'CHART PREPARED',
+        isSpecimen: true,
+        passengers: [
+          {
+            number: 1,
+            bookingStatus: 'CNF / B2 / 18',
+            currentStatus: 'CNF / B2 / 18',
+            berthType: 'LOWER BERTH'
+          }
+        ]
+      });
+    } else {
+      // Real or unmapped PNR: truthfully show official enquiry handoff
+      setResult(null);
+      setNotFoundPnr(cleanPnr);
+    }
+  };
+
+  const handleSelectSamplePnr = (ticket: CachedTicketRecord) => {
+    const numericOnly = ticket.pnr.replace(/\D/g, '');
+    const padded = numericOnly.padStart(10, '8').slice(-10);
+    setPnrInput(padded);
     setResult({
-      pnr: cleanPnr,
-      trainNumber: trainNum,
-      trainName: 'Vande Bharat / Superfast Express',
-      dateOfJourney: '12-Oct-2026',
-      fromStation: 'CSMT',
-      toStation: 'SUR',
-      travelClass: '3A',
+      pnr: ticket.pnr,
+      trainNumber: ticket.trainNumber,
+      trainName: ticket.trainName,
+      dateOfJourney: ticket.journeyDate,
+      fromStation: ticket.fromStationName,
+      toStation: ticket.toStationName,
+      travelClass: ticket.classBooked,
       quota: 'GENERAL (GN)',
-      chartStatus: 'CHART NOT PREPARED',
+      chartStatus: 'CHART PREPARED',
+      isSpecimen: true,
       passengers: [
         {
           number: 1,
-          bookingStatus: isConfirmed ? 'CNF / B3 / 24' : 'WL / 14',
-          currentStatus: isConfirmed ? 'CNF / B3 / 24' : 'RAC / 4',
-          berthType: isConfirmed ? 'SIDE LOWER' : 'RAC SEAT'
+          bookingStatus: 'CNF / B2 / 18',
+          currentStatus: 'CNF / B2 / 18',
+          berthType: 'LOWER BERTH'
         }
       ]
     });
+    setNotFoundPnr(null);
+    setError(null);
+  };
+
+  const openOfficialEnquiry = () => {
+    Linking.openURL('https://www.indianrail.gov.in/enquiry/PNR/PnrEnquiry.html').catch(() => {});
   };
 
   return (
@@ -101,11 +158,83 @@ export default function PnrScreen() {
           </View>
 
           {error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+          {/* Sample Specimen PNR Quick Chips */}
+          {specimenTickets.length > 0 && (
+            <View style={{ marginTop: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textMuted, marginBottom: 6 }}>
+                Active Demo Bookings (Tap to test):
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {specimenTickets.slice(0, 5).map(t => (
+                  <TouchableOpacity
+                    key={t.id}
+                    onPress={() => handleSelectSamplePnr(t)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: colors.cardBorder,
+                      backgroundColor: colors.background
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: colors.primary }}>
+                      {t.pnr}
+                    </Text>
+                    <Text style={{ fontSize: 9, color: colors.textMuted }}>
+                      {t.trainNumber} · {t.fromStationName}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
 
-        {/* Result Card */}
+        {/* Official Enquiry Handoff for Unmapped / Real PNRs */}
+        {notFoundPnr && (
+          <View style={[styles.resultCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, gap: 12 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.warning }} />
+              <Text style={{ fontSize: 14, fontWeight: '800', color: colors.textPrimary }}>
+                PNR Not in Demo Store ({notFoundPnr})
+              </Text>
+            </View>
+
+            <Text style={{ fontSize: 12, lineHeight: 18, color: colors.textSecondary }}>
+              RailOne operates in truthful mode and does NOT generate synthetic live status for unverified tickets. For live commercial Indian Railways PNR status, please check directly with the official CRIS / IRCTC portal.
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.primary,
+                paddingVertical: 12,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 4
+              }}
+              onPress={openOfficialEnquiry}
+              accessibilityRole="button"
+              accessibilityLabel="Open official Indian Railways PNR portal"
+            >
+              <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>
+                Open Official CRIS PNR Enquiry ↗
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Result Card for Verified Specimen Tickets */}
         {result && (
           <View style={[styles.resultCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={{ backgroundColor: colors.warning + '20', padding: 8, borderRadius: 8, marginBottom: 10 }}>
+              <Text style={{ color: colors.warning, fontSize: 10, fontWeight: '800', textAlign: 'center' }}>
+                [SPECIMEN DEMO ONLY — NOT VALID FOR TRAVEL]
+              </Text>
+            </View>
+
             <View style={styles.resultHeader}>
               <View>
                 <Text style={[styles.trainTitle, { color: colors.textPrimary }]}>

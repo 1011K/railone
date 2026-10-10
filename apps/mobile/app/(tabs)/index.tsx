@@ -12,11 +12,12 @@ import {
   Switch,
   Linking
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMobileTheme, THEME_PALETTES, ColorTheme, AppLanguage } from '../../src/theme/ThemeContext';
 import { MobileApiClient } from '../../src/api/client';
 import { OfflineStorage } from '../../src/storage/offlineStorage';
 import { CITIES_REGISTRY, CityCoverageConfig } from '../../src/fixtures/citiesData';
+import { NativeLaunchSequence } from '../../src/components/NativeLaunchSequence';
 import Svg, { Path, Circle, Polyline, Line, Rect, Polygon } from 'react-native-svg';
 
 export interface NativeServiceItem {
@@ -55,7 +56,7 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     description: 'Issue 2-hour platform access permit for station concourses.',
     badge: '₹10 Demo',
     route: '/booking/local',
-    routeParams: { type: 'platform' }
+    routeParams: { mode: 'PLATFORM', type: 'platform' }
   },
   {
     id: 'season_passes',
@@ -64,7 +65,7 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     description: 'Monthly and quarterly commuter season passes across verified suburban corridors.',
     badge: 'Suburban',
     route: '/booking/local',
-    routeParams: { type: 'season' }
+    routeParams: { mode: 'SEASON_MST', type: 'season' }
   },
   {
     id: 'metro_ticketing',
@@ -72,7 +73,8 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     category: 'ticketing',
     description: 'QR tokens and single journey passes for Mumbai Metro Lines 1, 2A, 7, and 3.',
     badge: 'MMRDA/MMRC',
-    route: '/map'
+    route: '/booking/local',
+    routeParams: { mode: 'METRO_TOKEN' }
   },
   {
     id: 'my_tickets_qr',
@@ -87,14 +89,16 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     category: 'ticketing',
     description: 'Passenger transit wallet balance, mock recharge, and instant refund credits.',
     badge: 'Simulated',
-    route: '/(tabs)/tickets'
+    route: '/(tabs)/tickets',
+    routeParams: { tab: 'wallet' }
   },
   {
     id: 'cancellation_refunds',
     name: 'Cancellation & Refunds',
     category: 'ticketing',
     description: 'Cancel bookings with statutory clerical deductions and simulated RailWallet credits.',
-    route: '/(tabs)/tickets'
+    route: '/(tabs)/tickets',
+    routeParams: { tab: 'cancelled' }
   },
   {
     id: 'journey_planning',
@@ -117,7 +121,8 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     category: 'insights',
     description: 'Empirical delay histograms, corridor bunching, and peak direction crowd estimates.',
     badge: 'Statistical',
-    route: '/(tabs)/status'
+    route: '/(tabs)/status',
+    routeParams: { view: 'crowd' }
   },
   {
     id: 'station_navigation_2d',
@@ -163,7 +168,8 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     name: 'Nearest Station Locator',
     category: 'navigation',
     description: 'Find nearest suburban or metro terminal based on verified coordinates and lines.',
-    route: '/wayfinding'
+    route: '/wayfinding',
+    routeParams: { nearest: 'true' }
   },
   {
     id: 'network_maps',
@@ -186,14 +192,16 @@ export const NATIVE_22_SERVICES: NativeServiceItem[] = [
     category: 'assistance',
     description: 'Wheelchair step-free paths, tactile paving guide, and elevator status at major hubs.',
     badge: 'Step-Free',
-    route: '/wayfinding'
+    route: '/wayfinding',
+    routeParams: { stepFree: 'true' }
   },
   {
     id: 'disruption_weather',
     name: 'Weather & Disruption Context',
     category: 'insights',
     description: 'Monsoon flooding alerts, Sunday mega-blocks, jumbo-blocks, and corridor track work.',
-    route: '/(tabs)/status'
+    route: '/(tabs)/status',
+    routeParams: { view: 'disruptions' }
   },
   {
     id: 'travel_feedback',
@@ -405,6 +413,7 @@ const renderServiceSvgIcon = (id: string, color: string) => {
 
 export default function HomeScreen() {
   const { colors, language, setLanguage, isDarkMode, toggleDarkMode, colorTheme, setColorTheme } = useMobileTheme();
+  const params = useLocalSearchParams<{ replayLaunch?: string; reset?: string }>();
 
   // Selected city & config
   const [selectedCityId, setSelectedCityId] = useState<string>(() => OfflineStorage.getUserCity());
@@ -419,10 +428,13 @@ export default function HomeScreen() {
   const [journeyDate, setJourneyDate] = useState('Today');
   const [acOnly, setAcOnly] = useState(false);
   const [recentSearches, setRecentSearches] = useState<Array<{ from: string; to: string }>>([]);
+  const [savedTickets, setSavedTickets] = useState<any[]>([]);
 
   // Modals state
-  const [showLaunchModal, setShowLaunchModal] = useState<boolean>(false);
-  const [isLaunchMuted, setIsLaunchMuted] = useState(false);
+  const [showLaunchModal, setShowLaunchModal] = useState<boolean>(() => {
+    if (params.replayLaunch === 'true') return true;
+    return !OfflineStorage.getHasSeenLaunch();
+  });
   const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
   const [showCityModal, setShowCityModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -462,15 +474,25 @@ export default function HomeScreen() {
   }, [selectedCityId]);
 
   useEffect(() => {
+    if (params.replayLaunch === 'true') {
+      setShowLaunchModal(true);
+    }
+    if (params.reset === 'true') {
+      setShowOnboardingModal(true);
+    }
     try {
       const recents = OfflineStorage.getRecentSearches();
       if (recents && recents.length > 0) {
         setRecentSearches(recents.slice(0, 4));
       }
+      const tickets = OfflineStorage.getTickets();
+      if (tickets && tickets.length > 0) {
+        setSavedTickets(tickets);
+      }
     } catch {
       // offline fallback
     }
-  }, []);
+  }, [params.replayLaunch, params.reset]);
 
   // When city changes, update hubs
   const handleSelectCity = (cityId: string) => {
@@ -561,6 +583,9 @@ export default function HomeScreen() {
   const handleDismissLaunch = () => {
     OfflineStorage.setHasSeenLaunch(true);
     setShowLaunchModal(false);
+    if (!OfflineStorage.getHasCompletedOnboarding()) {
+      setShowOnboardingModal(true);
+    }
   };
 
   const handleServiceSelect = (service: NativeServiceItem) => {
@@ -676,17 +701,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* 2. Rail Alert Banner (Timetable Scenario Advisory) */}
-      <View style={[styles.alertBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <View style={styles.alertBadge}>
-          <Text style={styles.alertBadgeText}>[TIMETABLE SCHEDULE]</Text>
-        </View>
-        <Text style={[styles.alertText, { color: colors.textSecondary }]}>
-          Suburban EMU services operating on published timetable. Platform indicators verified against schedule.
-        </Text>
-      </View>
-
-      {/* 5. Journey Search Container */}
+      {/* 2. Journey Search Container */}
       <View style={[styles.searchCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Plan Journey ({currentCity.name})</Text>
 
@@ -779,134 +794,16 @@ export default function HomeScreen() {
           onPress={onSearchTrains}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Search trains"
+          accessibilityLabel="Find Best Journey"
         >
-          <Text style={styles.searchButtonText}>Search Trains</Text>
+          <Text style={styles.searchButtonText}>Find Best Journey</Text>
         </TouchableOpacity>
-
-        {/* Fast Booking Secondary Workflows: 4 Primary Categories */}
-        <View style={styles.bookingGrid}>
-          <TouchableOpacity
-            style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
-            onPress={() => router.push('/booking/local')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Local Unreserved</Text>
-            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>UTS Single & Return</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
-            onPress={() => router.push('/booking/express')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Reserved Express</Text>
-            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Mail / Express Demo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
-            onPress={() => router.push({ pathname: '/booking/local', params: { type: 'platform' } })}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Platform Permit</Text>
-            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>₹10 Station Access</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
-            onPress={() => router.push({ pathname: '/booking/local', params: { type: 'season' } })}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Season Pass</Text>
-            <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Monthly MST Pass</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 4-Column Square Services Grid (CRIS Benchmark) */}
-        <View style={styles.squareGridSection}>
-          <View style={styles.squareGridHeader}>
-            <Text style={[styles.squareGridTitle, { color: colors.textPrimary }]}>
-              SERVICES DIRECTORY (22)
-            </Text>
-            <TouchableOpacity onPress={() => setShowServicesModal(true)}>
-              <Text style={[styles.squareGridHubLink, { color: colors.primary }]}>All 22 Transit Services →</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.squareGridContainer}>
-            {NATIVE_22_SERVICES.map(svc => {
-              const basePastel = NATIVE_SERVICE_PASTELS[svc.id];
-              const pastel = {
-                bg: isDarkMode ? '#1e293b' : (basePastel?.bg || colors.card),
-                border: isDarkMode ? '#334155' : (basePastel?.border || colors.cardBorder),
-                icon: basePastel?.icon || colors.primary
-              };
-              return (
-                <TouchableOpacity
-                  key={svc.id}
-                  style={styles.squareTile}
-                  onPress={() => handleServiceSelect(svc)}
-                  activeOpacity={0.7}
-                  accessibilityLabel={svc.name}
-                >
-                  <View style={[styles.squareIconBox, { backgroundColor: pastel.bg, borderColor: pastel.border }]}>
-                    {renderServiceSvgIcon(svc.id, pastel.icon)}
-                  </View>
-                  <Text style={[styles.squareTileLabel, { color: colors.textPrimary }]} numberOfLines={2}>
-                    {svc.name.replace(/\s*\([^)]*\)/g, '').replace('Door-to-Door ', '')}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Services Hub Entry Point */}
-        <TouchableOpacity
-          style={[styles.servicesHubBanner, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '40' }]}
-          onPress={() => setShowServicesModal(true)}
-          activeOpacity={0.8}
-        >
-          <View style={styles.servicesHubContent}>
-            <Text style={[styles.servicesHubTitle, { color: colors.primary }]}>All 22 Transit Services Directory</Text>
-            <Text style={[styles.servicesHubSubtitle, { color: colors.textMuted }]}>Metro, FOB Navigation, RailMadad, TTE Demo, Amenity guides</Text>
-          </View>
-          <View style={[styles.servicesHubBadge, { backgroundColor: colors.primary }]}>
-            <Text style={styles.servicesHubBadgeText}>HUB</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* RailSathi Assistant Quick Actions */}
-        <View style={[styles.assistantStrip, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.assistantStripTitle, { color: colors.textPrimary }]}>Rail Yatri AI Assistant</Text>
-            <Text style={[styles.assistantStripSub, { color: colors.textMuted }]}>Grounded voice & chat assistance</Text>
-          </View>
-          <View style={styles.assistantButtonsRow}>
-            <TouchableOpacity
-              style={[styles.callButtonCircle, { backgroundColor: colors.primary }]}
-              onPress={() => router.push('/call')}
-              accessibilityRole="button"
-              accessibilityLabel="Call Rail Yatri voice assistant"
-            >
-              <Text style={styles.callButtonText}>CALL</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.callButtonCircle, { backgroundColor: colors.primary }]}
-              onPress={() => router.push('/(tabs)/railsathi')}
-              accessibilityRole="button"
-              accessibilityLabel="Chat with Rail Yatri assistant"
-            >
-              <Text style={styles.callButtonText}>CHAT</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </View>
 
-      {/* 6. Saved Journeys */}
+      {/* 3. Next Departures / Last Saved Journeys */}
       {recentSearches.length > 0 && (
         <View style={[styles.savedSection, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Text style={[styles.savedSectionTitle, { color: colors.textPrimary }]}>Saved Journeys</Text>
+          <Text style={[styles.savedSectionTitle, { color: colors.textPrimary }]}>Recent Route Searches</Text>
           <View style={styles.savedPillsRow}>
             {recentSearches.map((sj, idx) => (
               <TouchableOpacity
@@ -924,6 +821,156 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
+      )}
+
+      {/* 4. Rail Alert Banner (Verified Disruption / Advisory Notice) */}
+      <View style={[styles.alertBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        <View style={styles.alertBadge}>
+          <Text style={styles.alertBadgeText}>[TIMETABLE SCHEDULE]</Text>
+        </View>
+        <Text style={[styles.alertText, { color: colors.textSecondary }]}>
+          Suburban EMU services operating on published timetable. Platform indicators verified against schedule.
+        </Text>
+      </View>
+
+      {/* 5. Four Primary Fast Booking Actions */}
+      <View style={styles.bookingGrid}>
+        <TouchableOpacity
+          style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
+          onPress={() => router.push('/booking/local')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Local UTS</Text>
+          <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Suburban EMU</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
+          onPress={() => router.push('/booking/express')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>PRS Express</Text>
+          <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Mail / Express</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
+          onPress={() => router.push('/(tabs)/status')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Running Status</Text>
+          <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Live Boards</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.bookingGridItem, { borderColor: colors.cardBorder }]}
+          onPress={() => router.push({ pathname: '/booking/local', params: { mode: 'METRO_TOKEN' } })}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.bookingGridTitle, { color: colors.textPrimary }]}>Metro Token</Text>
+          <Text style={[styles.bookingGridSub, { color: colors.textMuted }]}>Lines 1, 2A, 7, 3</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 6. 4-Column Square Services Grid (CRIS Benchmark) */}
+      <View style={styles.squareGridSection}>
+        <View style={styles.squareGridHeader}>
+          <Text style={[styles.squareGridTitle, { color: colors.textPrimary }]}>
+            SERVICES DIRECTORY (22)
+          </Text>
+          <TouchableOpacity onPress={() => setShowServicesModal(true)}>
+            <Text style={[styles.squareGridHubLink, { color: colors.primary }]}>All 22 Transit Services →</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.squareGridContainer}>
+          {NATIVE_22_SERVICES.map(svc => {
+            const basePastel = NATIVE_SERVICE_PASTELS[svc.id];
+            const pastel = {
+              bg: isDarkMode ? '#1e293b' : (basePastel?.bg || colors.card),
+              border: isDarkMode ? '#334155' : (basePastel?.border || colors.cardBorder),
+              icon: basePastel?.icon || colors.primary
+            };
+            return (
+              <TouchableOpacity
+                key={svc.id}
+                style={styles.squareTile}
+                onPress={() => handleServiceSelect(svc)}
+                activeOpacity={0.7}
+                accessibilityLabel={svc.name}
+              >
+                <View style={[styles.squareIconBox, { backgroundColor: pastel.bg, borderColor: pastel.border }]}>
+                  {renderServiceSvgIcon(svc.id, pastel.icon)}
+                </View>
+                <Text style={[styles.squareTileLabel, { color: colors.textPrimary }]} numberOfLines={2}>
+                  {svc.name.replace(/\s*\([^)]*\)/g, '').replace('Door-to-Door ', '')}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Services Hub Entry Point */}
+      <TouchableOpacity
+        style={[styles.servicesHubBanner, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '40' }]}
+        onPress={() => setShowServicesModal(true)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.servicesHubContent}>
+          <Text style={[styles.servicesHubTitle, { color: colors.primary }]}>All 22 Transit Services Directory</Text>
+          <Text style={[styles.servicesHubSubtitle, { color: colors.textMuted }]}>Metro, FOB Navigation, RailMadad, TTE Demo, Amenity guides</Text>
+        </View>
+        <View style={[styles.servicesHubBadge, { backgroundColor: colors.primary }]}>
+          <Text style={styles.servicesHubBadgeText}>HUB</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* 7. RailSathi Assistant Quick Actions */}
+      <View style={[styles.assistantStrip, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.assistantStripTitle, { color: colors.textPrimary }]}>Rail Yatri AI Assistant</Text>
+          <Text style={[styles.assistantStripSub, { color: colors.textMuted }]}>Grounded voice & chat assistance</Text>
+        </View>
+        <View style={styles.assistantButtonsRow}>
+          <TouchableOpacity
+            style={[styles.callButtonCircle, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/call')}
+            accessibilityRole="button"
+            accessibilityLabel="Call Rail Yatri voice assistant"
+          >
+            <Text style={styles.callButtonText}>CALL</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.callButtonCircle, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/(tabs)/railsathi')}
+            accessibilityRole="button"
+            accessibilityLabel="Chat with Rail Yatri assistant"
+          >
+            <Text style={styles.callButtonText}>CHAT</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 8. My Tickets Specimen Preview (if available) */}
+      {savedTickets.length > 0 && (
+        <TouchableOpacity
+          style={[styles.savedSection, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => router.push('/(tabs)/tickets')}
+          activeOpacity={0.8}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <Text style={[styles.savedSectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+              Active Specimen Ticket ({savedTickets.length})
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>View QR ➔</Text>
+          </View>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>
+            {savedTickets[0].trainName || 'Suburban EMU Local'}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+            {savedTickets[0].fromStation || savedTickets[0].fromCode || 'Origin'} ➔ {savedTickets[0].toStation || savedTickets[0].toCode || 'Destination'} · {savedTickets[0].travelClass || 'II'} Class
+          </Text>
+        </TouchableOpacity>
       )}
 
       {/* 7. Quick Nav: Network Map & FOB Wayfinding */}
@@ -1055,42 +1102,7 @@ export default function HomeScreen() {
       {/* MODAL 3: Launch Sequence Animation Modal                       */}
       {/* ============================================================== */}
       <Modal visible={showLaunchModal} animationType="fade" transparent={false}>
-        <View style={[styles.launchScreen, { backgroundColor: '#090d16' }]}>
-          <View style={styles.launchCenter}>
-            <View style={styles.launchLogoCircle}>
-              <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={2}>
-                <Rect x="4" y="3" width="16" height="16" rx="2" />
-                <Path d="M4 11h16" />
-                <Path d="M12 3v8" />
-                <Circle cx="8" cy="15" r="1" fill="#ffffff" />
-                <Circle cx="16" cy="15" r="1" fill="#ffffff" />
-                <Path d="M8 19l-2 3" />
-                <Path d="M16 19l2 3" />
-              </Svg>
-            </View>
-            <Text style={styles.launchTitle}>RailOne Next</Text>
-            <Text style={styles.launchSubtitle}>Truthful Transit Intelligence · Indian Railways</Text>
-
-            <View style={styles.launchFeedList}>
-              <View style={styles.launchFeedItem}>
-                <View style={styles.launchFeedDot} />
-                <Text style={styles.launchFeedText}>Western Railway & Central Railway Timetables Loaded</Text>
-              </View>
-              <View style={styles.launchFeedItem}>
-                <View style={styles.launchFeedDot} />
-                <Text style={styles.launchFeedText}>Mumbai Metro Lines 1, 2A, 7, 3 Topology Initialized</Text>
-              </View>
-              <View style={styles.launchFeedItem}>
-                <View style={styles.launchFeedDot} />
-                <Text style={styles.launchFeedText}>SQLite Persistence & Tariff Contracts Verified</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.launchEnterBtn} onPress={handleDismissLaunch}>
-              <Text style={styles.launchEnterBtnText}>Enter RailOne</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <NativeLaunchSequence onComplete={handleDismissLaunch} />
       </Modal>
 
       {/* ============================================================== */}

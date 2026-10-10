@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,50 @@ import {
   TouchableOpacity,
   Alert
 } from 'react-native';
+import { router } from 'expo-router';
 import { useMobileTheme, THEME_PALETTES, ColorTheme } from '../../src/theme/ThemeContext';
+import { OfflineStorage } from '../../src/storage/offlineStorage';
 
 export default function HelpScreen() {
   const { colors, language, setLanguage, isDarkMode, toggleDarkMode, colorTheme, setColorTheme } = useMobileTheme();
+  const [locationConsent, setLocationConsent] = useState(() => OfflineStorage.getLocationConsent() ?? true);
+
+  const toggleLocationConsent = () => {
+    const next = !locationConsent;
+    setLocationConsent(next);
+    OfflineStorage.setLocationConsent(next);
+  };
+
+  const handleReplayIntro = () => {
+    OfflineStorage.setHasSeenLaunch(false);
+    router.replace({
+      pathname: '/(tabs)',
+      params: { replayLaunch: 'true' }
+    });
+  };
+
+  const handleResetPreferences = () => {
+    Alert.alert(
+      'Reset All Preferences',
+      'This will reset your default city to Mumbai, clear recent searches and cached preferences, and reopen first-time onboarding. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Everything',
+          style: 'destructive',
+          onPress: () => {
+            OfflineStorage.resetAllPreferences();
+            Alert.alert('Preferences Cleared', 'Your preferences have been reset. Reloading home...', [
+              {
+                text: 'OK',
+                onPress: () => router.replace({ pathname: '/(tabs)', params: { reset: 'true' } })
+              }
+            ]);
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -73,6 +113,47 @@ export default function HelpScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Location Consent Toggle */}
+        <View style={[styles.settingRow, { marginTop: 14 }]}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Location Services Consent</Text>
+            <Text style={[styles.subLabel, { color: colors.textMuted, marginTop: 2 }]}>
+              Used only for nearest station discovery. Never tracked continuously.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.toggleBtn, { backgroundColor: locationConsent ? colors.primary : colors.cardBorder }]}
+            onPress={toggleLocationConsent}
+            accessibilityRole="switch"
+            accessibilityLabel="Location services consent"
+          >
+            <Text style={styles.toggleBtnText}>{locationConsent ? 'ENABLED' : 'OFF'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Action Buttons: Replay Intro & Reset Preferences */}
+        <View style={{ marginTop: 18, gap: 10 }}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+            onPress={handleReplayIntro}
+            accessibilityRole="button"
+            accessibilityLabel="Replay Cinematic Train Intro"
+          >
+            <Text style={styles.actionBtnText}>Replay Cinematic Intro 🎬</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionBtnSecondary, { borderColor: colors.danger }]}
+            onPress={handleResetPreferences}
+            accessibilityRole="button"
+            accessibilityLabel="Reset Passenger Preferences & Cache"
+          >
+            <Text style={[styles.actionBtnSecondaryText, { color: colors.danger }]}>
+              Reset Preferences & Clear Cache
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 2. Official Statutory Boundary & 139 Disclosure */}
@@ -81,10 +162,10 @@ export default function HelpScreen() {
           Statutory Telephony & 139 Hotline Boundary
         </Text>
         <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-          Indian Railways national helpline <strong>139</strong> is an official emergency and passenger grievance hotline under statutory Indian Railways control. RailOne Next does NOT co-opt, hijack, or route AI voice interactions through 139.
+          Indian Railways national helpline <Text style={{ fontWeight: '700' }}>139</Text> is an official emergency and passenger grievance helpline under statutory Indian Railways control. RailOne Next does NOT co-opt, hijack, or route AI voice interactions through 139.
         </Text>
         <Text style={[styles.bodyText, { color: colors.textSecondary, marginTop: 8 }]}>
-          Direct PSTN telephony dialing is disabled without explicit DoT/TRAI enterprise SIP trunk authorization. Use the in-app <strong>Call RailSathi</strong> feature for natural voice journey planning.
+          Direct PSTN telephony dialing is disabled without explicit DoT/TRAI enterprise SIP trunk authorization. Use the in-app <Text style={{ fontWeight: '700' }}>Call RailSathi</Text> feature for natural voice journey planning.
         </Text>
       </View>
 
@@ -188,5 +269,28 @@ const styles = StyleSheet.create({
   langChipText: {
     fontSize: 12,
     fontWeight: '700'
+  },
+  actionBtn: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  actionBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  actionBtnSecondary: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent'
+  },
+  actionBtnSecondaryText: {
+    fontSize: 13,
+    fontWeight: '800'
   }
 });
