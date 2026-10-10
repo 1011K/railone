@@ -84,11 +84,20 @@ const DEMO_TICKETS: DemoTicket[] = [
   }
 ];
 
+import { OfflineStorage } from '../src/storage/offlineStorage';
+
 export default function TteInspectionScreen() {
   const { colors } = useMobileTheme();
   const [selectedTicketId, setSelectedTicketId] = useState<string>(DEMO_TICKETS[0].id);
   const [manualCode, setManualCode] = useState('');
   const [inspectionResult, setInspectionResult] = useState<DemoTicket | null>(DEMO_TICKETS[0]);
+  const [issuedTickets, setIssuedTickets] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    try {
+      setIssuedTickets(OfflineStorage.getTickets());
+    } catch {}
+  }, []);
 
   const onInspect = (ticket: DemoTicket) => {
     setSelectedTicketId(ticket.id);
@@ -101,22 +110,45 @@ export default function TteInspectionScreen() {
     if (found) {
       setInspectionResult(found);
       setSelectedTicketId(found.id);
-    } else {
-      setInspectionResult({
-        id: 'UNKNOWN',
-        pnr: manualCode || 'UNKNOWN-QR',
-        type: 'Unverified Passenger Token',
-        from: 'UNKNOWN',
-        to: 'UNKNOWN',
-        travelClass: 'NONE',
-        fare: 0,
-        trainName: 'Unverified Service',
-        trainNumber: '00000',
-        status: 'EXPIRED',
-        validityWindow: 'No cryptographically signed token found in official ticketing registry',
-        passengerName: 'Unknown Passenger'
-      });
+      return;
     }
+
+    const userTickets = OfflineStorage.getTickets();
+    const userMatch = userTickets.find(t => t.pnr.toUpperCase().includes(q) || t.id.toUpperCase() === q);
+    if (userMatch) {
+      const converted: DemoTicket = {
+        id: userMatch.id,
+        pnr: userMatch.pnr,
+        type: `${userMatch.classBooked} Issued Specimen`,
+        from: userMatch.fromStationName,
+        to: userMatch.toStationName,
+        travelClass: userMatch.classBooked,
+        fare: userMatch.farePaid,
+        trainName: userMatch.trainName,
+        trainNumber: userMatch.trainNumber,
+        status: 'VALID',
+        validityWindow: `Issued ${userMatch.journeyDate} · Valid for demo transit`,
+        passengerName: 'App Commuter'
+      };
+      setInspectionResult(converted);
+      setSelectedTicketId(converted.id);
+      return;
+    }
+
+    setInspectionResult({
+      id: 'UNKNOWN',
+      pnr: manualCode || 'UNKNOWN-QR',
+      type: 'Unverified Passenger Token',
+      from: 'UNKNOWN',
+      to: 'UNKNOWN',
+      travelClass: 'NONE',
+      fare: 0,
+      trainName: 'Unverified Service',
+      trainNumber: '00000',
+      status: 'EXPIRED',
+      validityWindow: 'No cryptographically signed token found in official ticketing registry',
+      passengerName: 'Unknown Passenger'
+    });
   };
 
   return (
@@ -156,6 +188,43 @@ export default function TteInspectionScreen() {
                 </Text>
                 <Text style={[styles.ticketSelectBtnType, { color: isSel ? '#FFFFFF' : colors.textSecondary }]}>
                   {t.type}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+          {issuedTickets.map(t => {
+            const isSel = selectedTicketId === t.id;
+            const converted: DemoTicket = {
+              id: t.id,
+              pnr: t.pnr,
+              type: `${t.classBooked} Booked Ticket`,
+              from: t.fromStationName,
+              to: t.toStationName,
+              travelClass: t.classBooked,
+              fare: t.farePaid,
+              trainName: t.trainName,
+              trainNumber: t.trainNumber,
+              status: 'VALID',
+              validityWindow: `Issued ${t.journeyDate} · Valid demo specimen`,
+              passengerName: 'App Commuter'
+            };
+            return (
+              <TouchableOpacity
+                key={t.id}
+                style={[
+                  styles.ticketSelectBtn,
+                  { borderColor: colors.cardBorder },
+                  isSel && { backgroundColor: colors.primary, borderColor: colors.primary }
+                ]}
+                onPress={() => onInspect(converted)}
+                accessibilityRole="button"
+                accessibilityLabel={`Inspect ticket ${t.pnr}`}
+              >
+                <Text style={[styles.ticketSelectBtnCode, { color: isSel ? '#FFFFFF' : colors.primary }]}>
+                  {t.pnr}
+                </Text>
+                <Text style={[styles.ticketSelectBtnType, { color: isSel ? '#FFFFFF' : colors.textSecondary }]}>
+                  [MY BOOKING] {t.trainNumber}
                 </Text>
               </TouchableOpacity>
             );
