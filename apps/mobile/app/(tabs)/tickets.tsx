@@ -9,31 +9,73 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useMobileTheme } from '../../src/theme/ThemeContext';
 import { MobileApiClient } from '../../src/api/client';
+import { OfflineStorage } from '../../src/storage/offlineStorage';
 
 export default function MyTicketsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string }>();
   const { colors } = useMobileTheme();
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'cancelled' | 'season_passes'>('upcoming');
+
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'cancelled' | 'season_passes' | 'wallet'>(() => {
+    if (params.tab === 'wallet') return 'wallet';
+    if (params.tab === 'cancelled' || params.tab === 'refunds') return 'cancelled';
+    return 'upcoming';
+  });
+
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [cancellationResult, setCancellationResult] = useState<any | null>(null);
+
+  // Simulated RailWallet State
+  const [walletBalance, setWalletBalance] = useState<number>(() => OfflineStorage.getWalletBalance());
+  const [walletTransactions, setWalletTransactions] = useState<any[]>(() => OfflineStorage.getWalletTransactions());
+
+  useEffect(() => {
+    if (params.tab === 'wallet') setActiveTab('wallet');
+    else if (params.tab === 'cancelled' || params.tab === 'refunds') setActiveTab('cancelled');
+    else if (params.tab === 'upcoming' || params.tab === 'past' || params.tab === 'season_passes') setActiveTab(params.tab as any);
+  }, [params.tab]);
 
   useEffect(() => {
     loadTickets();
   }, [activeTab]);
 
   const loadTickets = async () => {
+    if (activeTab === 'wallet') {
+      setWalletBalance(OfflineStorage.getWalletBalance());
+      setWalletTransactions(OfflineStorage.getWalletTransactions());
+      return;
+    }
+
     setLoading(true);
     try {
       const cat = activeTab === 'upcoming' ? 'upcoming' : activeTab === 'cancelled' ? 'cancelled' : 'all';
       const list = await MobileApiClient.getTickets(cat);
-      setTickets(list);
+      if (list && list.length > 0) {
+        setTickets(list);
+      } else {
+        const cached = OfflineStorage.getTickets();
+        if (activeTab === 'cancelled') {
+          setTickets(cached.filter(t => t.status === 'CANCELLED' || (t as any).bookingState === 'CANCELLED_DEMO'));
+        } else if (activeTab === 'past') {
+          setTickets(cached.filter(t => t.status === 'COMPLETED' || t.status === 'EXPIRED'));
+        } else {
+          setTickets(cached.filter(t => t.status !== 'CANCELLED' && (t as any).bookingState !== 'CANCELLED_DEMO'));
+        }
+      }
     } catch {
-      setTickets([]);
+      const cached = OfflineStorage.getTickets();
+      if (activeTab === 'cancelled') {
+        setTickets(cached.filter(t => t.status === 'CANCELLED' || (t as any).bookingState === 'CANCELLED_DEMO'));
+      } else if (activeTab === 'past') {
+        setTickets(cached.filter(t => t.status === 'COMPLETED' || t.status === 'EXPIRED'));
+      } else {
+        setTickets(cached.filter(t => t.status !== 'CANCELLED' && (t as any).bookingState !== 'CANCELLED_DEMO'));
+      }
     } finally {
       setLoading(false);
     }
@@ -42,7 +84,7 @@ export default function MyTicketsScreen() {
   const handleCancelTicket = async (ticket: any) => {
     Alert.alert(
       'Cancel Ticket',
-      `Are you sure you want to cancel ticket for ${ticket.trainName}? Statutory clerical cancellation fees apply.`,
+      `Are you sure you want to cancel ticket for ${ticket.trainName || ticket.trainNumber}? Statutory clerical cancellation fees apply.`,
       [
         { text: 'Keep Ticket', style: 'cancel' },
         {
@@ -52,14 +94,43 @@ export default function MyTicketsScreen() {
             try {
               const res = await MobileApiClient.cancelTicket(ticket.id, 'Passenger voluntary cancellation');
               setCancellationResult(res);
+              const refundAmount = res?.refundAmount || Math.max(0, (ticket.farePaid || ticket.totalFare || 60) - 30);
+              OfflineStorage.addWalletTransaction({
+                type: 'CREDIT',
+                amount: refundAmount,
+                description: `Statutory Refund: ${ticket.trainName || ticket.id}`
+              });
+              setWalletBalance(OfflineStorage.getWalletBalance());
+              setWalletTransactions(OfflineStorage.getWalletTransactions());
               loadTickets();
             } catch (err: any) {
-              Alert.alert('Error', err.message);
+              const refundAmount = Math.max(0, (ticket.farePaid || ticket.totalFare || 60) - 30);
+              OfflineStorage.addWalletTransaction({
+                type: 'CREDIT',
+                amount: refundAmount,
+                description: `Offline Refund Credit: ${ticket.trainName || ticket.id}`
+              });
+              setWalletBalance(OfflineStorage.getWalletBalance());
+              setWalletTransactions(OfflineStorage.getWalletTransactions());
+              Alert.alert('Simulated Cancellation Recorded', `Ticket marked cancelled. ₹${refundAmount} credited to simulated RailWallet.`);
+              loadTickets();
             }
           }
         }
       ]
     );
+  };
+
+  const handleRecharge = (amount: number) => {
+    OfflineStorage.addWalletTransaction({
+      type: 'CREDIT',
+      amount,
+      description: `Simulated Top-Up (+₹${amount})`
+    });
+    const newBal = OfflineStorage.getWalletBalance();
+    setWalletBalance(newBal);
+    setWalletTransactions(OfflineStorage.getWalletTransactions());
+    Alert.alert('Recharge Successful', `₹${amount} credited to your simulated RailWallet.\nCurrent Balance: ₹${newBal.toFixed(2)}`);
   };
 
   return (
