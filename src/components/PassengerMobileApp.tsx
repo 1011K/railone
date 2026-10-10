@@ -312,8 +312,15 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       case 'travel_feedback':
         setShowFeedbackModal(true);
         break;
-      case 'services_hub':
-        setShowServicesHub(true);
+      case 'cancellation_refunds':
+        setActiveTab('tickets');
+        break;
+      case 'moving_train_3d':
+      case '3d_train':
+        setShow3DTrain(true);
+        break;
+      case 'replay_launch':
+        setShowLaunchSequence(true);
         break;
       default:
         break;
@@ -746,6 +753,16 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       {/* First-Run Launch Sequence Animation */}
       {showLaunchSequence && (
         <LaunchSequence onComplete={handleLaunchComplete} />
+      )}
+
+      {/* Cinematic 3D Moving Train Modal */}
+      {show3DTrain && (
+        <React.Suspense fallback={null}>
+          <MovingTrain3DModal
+            isOpen={show3DTrain}
+            onClose={() => setShow3DTrain(false)}
+          />
+        </React.Suspense>
       )}
 
     </div>

@@ -164,7 +164,7 @@ export default function GuideScreen() {
         <View style={[styles.platformAlertCard, { backgroundColor: platformChangeAlert.isSafe ? '#065f46' : '#7f1d1d' }]}>
           <View style={styles.alertHeaderRow}>
             <Text style={styles.alertTitle}>
-              {platformChangeAlert.isSafe ? '⚡ PLATFORM CHANGED' : '⚠️ URGENT: PLATFORM CHANGE WARNING'}
+              {platformChangeAlert.isSafe ? 'PLATFORM CHANGED' : 'URGENT: PLATFORM CHANGE WARNING'}
             </Text>
             <TouchableOpacity onPress={() => setPlatformChangeAlert(null)}>
               <Text style={styles.dismissAlertText}>Dismiss</Text>
@@ -706,16 +706,16 @@ export default function GuideScreen() {
                 <View style={styles.transitSection}>
                   <Text style={styles.sectionSmallLabel}>Onward Transit Link:</Text>
                   {selectedExit.onwardTransit.metroInterchange && (
-                    <Text style={styles.transitItem}>🚇 Metro: {selectedExit.onwardTransit.metroInterchange}</Text>
+                    <Text style={styles.transitItem}>Metro: {selectedExit.onwardTransit.metroInterchange}</Text>
                   )}
                   {selectedExit.onwardTransit.taxiStand && (
-                    <Text style={styles.transitItem}>🚕 Taxi: {selectedExit.onwardTransit.taxiStand}</Text>
+                    <Text style={styles.transitItem}>Taxi: {selectedExit.onwardTransit.taxiStand}</Text>
                   )}
                   {selectedExit.onwardTransit.autoStand && (
-                    <Text style={styles.transitItem}>🛺 Auto: {selectedExit.onwardTransit.autoStand}</Text>
+                    <Text style={styles.transitItem}>Auto: {selectedExit.onwardTransit.autoStand}</Text>
                   )}
                   {selectedExit.onwardTransit.busInterchange && (
-                    <Text style={styles.transitItem}>🚌 Bus: {selectedExit.onwardTransit.busInterchange}</Text>
+                    <Text style={styles.transitItem}>Bus: {selectedExit.onwardTransit.busInterchange}</Text>
                   )}
                 </View>
 

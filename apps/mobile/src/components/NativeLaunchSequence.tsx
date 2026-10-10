@@ -5,7 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Platform
+  Platform,
+  AccessibilityInfo
 } from 'react-native';
 import Svg, { Rect, Path, Circle, Line, Polygon, Polyline, Text as SvgText } from 'react-native-svg';
 
@@ -70,12 +71,32 @@ export const NativeLaunchSequence: React.FC<NativeLaunchSequenceProps> = ({ onCo
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Respect reduced motion accessibility setting (Task B1.7)
+    if (typeof AccessibilityInfo !== 'undefined' && AccessibilityInfo.isReduceMotionEnabled) {
+      AccessibilityInfo.isReduceMotionEnabled()
+        .then(isReduced => {
+          if (isReduced && !cancelled) {
+            onComplete();
+          }
+        })
+        .catch(() => {
+          if (typeof window !== 'undefined' && window.matchMedia) {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches && !cancelled) {
+              onComplete();
+            }
+          }
+        });
+    }
+
     playSynthesizedHorn(isMuted);
-    const t1 = setTimeout(() => setPhase('train'), 800);
-    const t2 = setTimeout(() => setPhase('fadeout'), 2500);
-    const t3 = setTimeout(() => onComplete(), 2900);
+    const t1 = setTimeout(() => { if (!cancelled) setPhase('train'); }, 800);
+    const t2 = setTimeout(() => { if (!cancelled) setPhase('fadeout'); }, 2500);
+    const t3 = setTimeout(() => { if (!cancelled) onComplete(); }, 2900);
 
     return () => {
+      cancelled = true;
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);

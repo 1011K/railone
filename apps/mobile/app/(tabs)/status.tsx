@@ -359,7 +359,7 @@ export default function TrainStatusScreen() {
 
           {/* Commuter Tip */}
           <View style={[styles.tipCard, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '40' }]}>
-            <Text style={[styles.tipTitle, { color: colors.primary }]}>💡 Commuter Strategy Note</Text>
+            <Text style={[styles.tipTitle, { color: colors.primary }]}>Commuter Strategy Note</Text>
             <Text style={[styles.tipDesc, { color: colors.textPrimary }]}>
               During heavy morning congestion from Thane/Mulund toward Dadar, on-time Slow locals often arrive faster than bunched Fast services and carry 25% lower coach compression.
             </Text>
