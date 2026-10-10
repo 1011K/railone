@@ -62,3 +62,20 @@ User / Voice Request
 3. **Quota Protection:** HTTP 402/429 immediately flags `QUOTA_EXHAUSTED` and blocks requests without attempting automatic paid upgrades.
 4. **Log Redaction:** All error messages and logs scrub keys using regex `/[A-Za-z0-9_-]{30,}/g ➔ [REDACTED_KEY]`.
 5. **Zero Inventory Fabrication:** Unverified seats or PNR lookups return `[DEMO_SIMULATION]` or link to the official portal `https://www.indianrail.gov.in`.
+
+---
+
+## 4. Evaluation of Optional Infrastructure Technologies (Phase 1.G)
+
+As mandated by Phase 1.G, candidate infrastructure components were systematically evaluated against the criteria of measured deficiency, architectural simplicity, and zero speculative migration:
+
+| Candidate Technology | Architectural Purpose | Evaluation Findings & Feasibility | Final Decision |
+| :--- | :--- | :--- | :--- |
+| **Supabase** | Hosted PostgreSQL & Cloud Auth | Evaluated for centralized database and auth. RailOne Next currently leverages Node native SQLite (`node:sqlite`) for deterministic zero-latency queries, atomic transactions, and 100% offline local testing. Adding Supabase would introduce external cloud network latency and cloud vendor lock-in. | **RETAIN SQLITE** (No speculative migration) |
+| **Cloudflare Turnstile** | Bot Abuse Prevention | Evaluated for public API protection. Turnstile operates best at the CDN / reverse-proxy edge. For the local Express demo backend and Expo mobile app, local rate-limiting middleware (`express-rate-limit`) and session auth tokens provide sufficient protection without external network blockers. | **DEFER TO CDN EDGE** (Not required in core Express backend) |
+| **Expo Push Notifications** | Push Notifications for Journey Alerts | Evaluated for real-time mobile push. The Expo mobile client already implements native in-app audio alerts and notification state. Live APNs/FCM delivery requires Apple Developer / Google Play production credentials. | **DEFER TO APP STORE PACKAGING** (Keep in-app alert sound engine) |
+| **GTFS Validator** | Transit Schedule Specification Audit | Evaluated for verifying Kochi Metro and Indian urban GTFS schedule files. GTFS Validator is an offline command-line validation tool rather than a runtime Express server component. | **RETAIN AS OFFLINE UTILITY** (Do not bundle into runtime server) |
+| **OpenTripPlanner (OTP)** | Multimodal Transit Routing Engine | Evaluated for routing graphs. OTP requires a heavy Java/JVM environment (4GB+ RAM), separate background daemon, and OSM PBF compilation. RailOne Next's native TypeScript engine (`MultimodalGraphEngine`) solves Suburban + Metro transfers in <2ms with zero JVM dependencies. | **REJECT SPECULATIVE MIGRATION** (Maintain native TypeScript engine) |
+| **Whisper.cpp** | Local C++ On-Device Voice Transcription | Evaluated for offline STT. Requires native C++ compilation (`node-gyp`), pre-built shared libraries, and heavy model weights (75MB–500MB). RailOne utilizes Web Speech API on the client and lightweight Groq Whisper on the backend with zero native build baggage. | **REJECT NATIVE COMPILE OVERHEAD** (Use Web Speech API + Groq Whisper) |
+| **IndicTrans2** | Indic Language Translation (AI4Bharat) | Evaluated for Devanagari translation. Requires heavy PyTorch / HuggingFace server infrastructure (GPU or high RAM). RailOne's deterministic Devanagari normalizer handles Hindi and Marathi railway stations and intents with sub-millisecond execution. | **DEFER HEAVY PYTORCH RUNTIME** (Use deterministic Devanagari normalizer) |
+

@@ -1,7 +1,7 @@
 /**
  * RailOne Next — Free API Providers & Backend Hardening Test Suite (Test Suite 34)
  * Verifies NVIDIA NIM, Gemini, Groq, OpenRouteService, Open-Meteo, MapLibre/OpenFreeMap,
- * and RailSathi Voice Grounding.
+ * and RailSathi Voice Grounding with adversarial edge-case testing.
  */
 
 import { AiProviderRouter } from '../src/backend/modules/ai/aiProviderRouter';
@@ -103,7 +103,8 @@ export async function runFreeApiProvidersTestSuite(assert: (cond: boolean, name:
     dadarWalk.routeType === 'INTERNAL_STATION_FOB' &&
     dadarWalk.provenance === 'STATION_GEOMETRY' &&
     dadarWalk.notice.includes('FOB_STATION_INTERCHANGE') &&
-    dadarWalk.durationMinutes >= 7,
+    dadarWalk.durationMinutes >= 7 &&
+    !dadarWalk.instructions.includes('Invalid platform specified.'),
     '34.9: OpenRouteService strictly rejects street pedestrian routing for Dadar track crossing and enforces 7-min FOB transfer geometry'
   );
 
@@ -118,8 +119,12 @@ export async function runFreeApiProvidersTestSuite(assert: (cond: boolean, name:
   });
   assert(
     gcWalk.routeType === 'INTERNAL_STATION_FOB' &&
-    gcWalk.notice.includes('FOB_STATION_INTERCHANGE'),
-    '34.10: Ghatkopar Suburban to Metro connection strictly enforces internal FOB transfer'
+    gcWalk.notice.includes('FOB_STATION_INTERCHANGE') &&
+    gcWalk.distanceMeters > 0 &&
+    gcWalk.instructions.length >= 3 &&
+    !gcWalk.instructions.includes('Invalid platform specified.') &&
+    gcWalk.stepFreeAccessible === true,
+    '34.10: Ghatkopar Suburban to Metro connection strictly enforces internal FOB transfer with valid instructions'
   );
 
   // 34.11: Street Pedestrian Geometric Walk Fallback
@@ -182,5 +187,73 @@ export async function runFreeApiProvidersTestSuite(assert: (cond: boolean, name:
     finalizeBooking.issuedBooking !== undefined &&
     finalizeBooking.issuedBooking.isSimulated === true,
     '34.16: RailSathi executed booking produces strictly simulated demo specimen invalid for real travel'
+  );
+
+  // 34.17: Pedestrian Routing Unavailable Path Beyond 15km Limit
+  const longWalk = await orsAdapter.planPedestrianRoute({
+    startLat: 19.0178, // Mumbai
+    startLon: 72.8478,
+    endLat: 28.6139,   // New Delhi (~1,150km)
+    endLon: 77.2090
+  });
+  assert(
+    longWalk.notice.includes('UNAVAILABLE_PATH') &&
+    longWalk.instructions.some(i => i.includes('exceeds realistic pedestrian walking range')),
+    '34.17: Pedestrian navigation handles excessive distances (>15km) truthfully as UNAVAILABLE_PATH'
+  );
+
+  // 34.18: RailSathi Voice Multilingual Marathi Booking & Confirmation
+  const mrSession = startVoiceSession({ language: 'mr' });
+  await processVoiceTurn(mrSession.sessionId, 'मला ठाण्याहून दादरला जायचे आहे', { language: 'mr' });
+  const mrBookTurn = await processVoiceTurn(mrSession.sessionId, 'हे बुक करा', { language: 'mr' });
+  assert(
+    mrBookTurn.state === 'AWAITING_CONFIRMATION' &&
+    mrBookTurn.spokenResponse.includes('कृपया पुष्टी करा'),
+    '34.18a: RailSathi Marathi booking prompt initiates AWAITING_CONFIRMATION in Marathi'
+  );
+  const mrConfirmTurn = await processVoiceTurn(mrSession.sessionId, 'हो, पुष्टी करा', { language: 'mr' });
+  assert(
+    mrConfirmTurn.state === 'BOOKING_EXECUTED' &&
+    mrConfirmTurn.issuedBooking !== undefined &&
+    mrConfirmTurn.spokenResponse.includes('अभिनंदन'),
+    '34.18b: RailSathi executes booking upon native Marathi confirmation ("हो, पुष्टी करा")'
+  );
+
+  // 34.19: RailSathi Voice Cancellation Handling
+  const cancelSession = startVoiceSession({ language: 'en' });
+  await processVoiceTurn(cancelSession.sessionId, 'From Thane to Dadar');
+  await processVoiceTurn(cancelSession.sessionId, 'Book this one');
+  const cancelledTurn = await processVoiceTurn(cancelSession.sessionId, 'No, cancel');
+  assert(
+    cancelledTurn.state === 'ITINERARY_OFFERED' &&
+    cancelledTurn.spokenResponse.includes('Booking cancelled') &&
+    cancelledTurn.issuedBooking === undefined,
+    '34.19: RailSathi acknowledges passenger cancellation in AWAITING_CONFIRMATION without issuing ticket'
+  );
+
+  // 34.20: Confirmation Gate Bypass Prevention
+  const bypassSession = startVoiceSession({ language: 'en' });
+  await processVoiceTurn(bypassSession.sessionId, 'From Thane to Dadar');
+  const earlyConfirm = await processVoiceTurn(bypassSession.sessionId, 'Confirm booking');
+  assert(
+    earlyConfirm.state === 'AWAITING_CONFIRMATION' &&
+    earlyConfirm.issuedBooking === undefined &&
+    earlyConfirm.spokenResponse.includes('Please confirm'),
+    '34.20: Premature "Confirm booking" utterance safely transitions to AWAITING_CONFIRMATION rather than bypassing review'
+  );
+
+  // 34.21: AI Provider Feature Flags & Latency Prioritization
+  assert(
+    router.isAiGloballyEnabled() === true &&
+    router.isProviderEnabled('deterministic') === true,
+    '34.21: Feature flag checks correctly validate provider enablement states'
+  );
+
+  // 34.22: NVIDIA NIM Model Validation Entitlement Check
+  const entitlementCheck = await nvidiaProvider.validateModelAvailability();
+  assert(
+    typeof entitlementCheck.available === 'boolean' &&
+    typeof entitlementCheck.entitlementStatus === 'string',
+    '34.22: NVIDIA NIM implements validateModelAvailability entitlement check'
   );
 }

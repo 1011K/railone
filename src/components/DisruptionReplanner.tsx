@@ -101,9 +101,13 @@ export const DisruptionReplanner: React.FC<DisruptionReplannerProps> = ({
       originCode: selectedDisruption.originCode,
       destCode: selectedDisruption.destCode,
       departureTime: selectedDisruption.timeContext,
+      userContext: 'pre_departure',
       preferences: {
         priority: 'fastest',
-        classPreference: 'any'
+        classPreference: 'any',
+        hasSeasonPass: false,
+        walkToStationMinutes: 10,
+        maxTransfers: 2
       }
     });
     setOriginalItineraries(normalResults);
@@ -128,7 +132,10 @@ export const DisruptionReplanner: React.FC<DisruptionReplannerProps> = ({
         userContext: 'waiting_at_station',
         preferences: {
           priority: 'fastest',
-          classPreference: 'any'
+          classPreference: 'any',
+          hasSeasonPass: false,
+          walkToStationMinutes: 10,
+          maxTransfers: 2
         }
       });
       setRecoveredItineraries(replanned);

@@ -48,7 +48,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Building2,
-  Train
+  Train,
+  Clock
 } from 'lucide-react';
 
 const MovingTrain3DModal = React.lazy(() => import('./MovingTrain3DModal'));
