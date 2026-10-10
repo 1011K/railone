@@ -25,7 +25,7 @@ The integration branch `integrate/railone-recovery-2026-10-10` was constructed d
 | `a971f5b` | `merge: incorporate mobile phone-first UX and 22-service workflows` | Integration Merge (Track A) |
 | `622059a` | `feat(integrate): synchronize canonical metro and layout fixtures to mobile app and wire suite 32` | Integration Fixture Synchronization |
 | `0fa3610` | `docs(audit): publish final integration report, feature acceptance matrix, and remaining gaps` | Authoritative Audit Handover |
-| `HEAD` | `feat(recovery): fix multimodal graph transfer guard, add metro 1 corridor edges, reconcile mobile types, and wire suite 33` | Antigravity Recovery & Regression Closure |
+| `HEAD` | `fix(test): correct unsupported-route assertion — CSMT-NDLS is valid long-distance, use metro-to-national cross-system hop instead` | Test Accuracy Correction |
 
 Both tracks merged cleanly. Comprehensive red-team testing subsequently identified and resolved three critical functional gaps:
 1. **Multimodal Graph Engine Transfer Guard:** In `src/engine/multimodal/graphEngine.ts`, `findPaths` evaluated `this.isTargetReached(startNodeId, targetNodeId)` before traversing initial edges. Because `equivalenceMap` listed `GC` and `METRO_GHT` as intermodal equivalents, querying `GC -> METRO_GHT` erroneously returned 0 itineraries. Removing this check from the start guard restored the 3-minute FOB transfer walk (`EDGE_WALK_GC_RAIL_METRO`).
