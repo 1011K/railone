@@ -99,8 +99,8 @@ export async function runRegressionCasesTests(customAssert?: AssertFn): Promise<
     '33.7: Unknown station returns 0 itineraries and undefined matchedStation'
   );
 
-  // 8. Unsupported route
-  const unsup = searchRoutes({ from: 'CSMT', to: 'DEL_NDLS' });
+  // 8. Unsupported route (metro station to national rail in different city — illegal cross-system hop)
+  const unsup = searchRoutes({ from: 'METRO_ADH', to: 'DEL_NDLS' });
   assert(
     unsup.length === 0,
     '33.8: Unsupported route returns 0 itineraries without illegal cross-system hops'
