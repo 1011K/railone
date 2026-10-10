@@ -2657,6 +2657,10 @@ await import('./mobile-navigation.test.ts');
 const { runRegressionCasesTests } = await import('./regression-cases.test.ts');
 await runRegressionCasesTests(assert);
 
+// Run Test Suite 34: Free API Providers & Backend Hardening
+const { runFreeApiProvidersTestSuite } = await import('./free-api-providers.test.ts');
+await runFreeApiProvidersTestSuite(assert);
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');

@@ -116,7 +116,10 @@ export async function runSystematicLiveAudit() {
   console.log('\nALL 8 SYSTEMATIC LIVE VERIFICATION CHECKS PASSED WITH ZERO FABRICATION');
 }
 
-runSystematicLiveAudit().catch(e => {
-  console.error('VERIFICATION FAILED:', e);
-  process.exit(1);
-});
+if (process.argv[1] && process.argv[1].includes('systematic-live-audit')) {
+  runSystematicLiveAudit().catch(e => {
+    console.error('VERIFICATION FAILED:', e);
+    process.exit(1);
+  });
+}
+

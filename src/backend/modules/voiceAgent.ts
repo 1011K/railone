@@ -160,17 +160,20 @@ export async function processVoiceTurn(
   }
 
   // 1. Check for Confirmation / Final Booking Intent ("book this one", "confirm", "proceed", "yes book it")
+  const cleanText = text.replace(/[,.!?]/g, '').trim();
   const isConfirmIntent =
-    text === 'book this one' ||
-    text === 'book this' ||
-    text === 'confirm' ||
-    text === 'yes confirm' ||
-    text === 'proceed' ||
-    text.includes('confirm booking') ||
-    text.includes('yes book') ||
-    text.includes('book karo') ||
-    text.includes('बुक करा') ||
-    text.includes('बुक करो');
+    cleanText === 'book this one' ||
+    cleanText === 'book this' ||
+    cleanText === 'confirm' ||
+    cleanText === 'yes confirm' ||
+    cleanText === 'proceed' ||
+    cleanText.includes('confirm') ||
+    cleanText.includes('yes confirm') ||
+    cleanText.includes('confirm booking') ||
+    cleanText.includes('yes book') ||
+    cleanText.includes('book karo') ||
+    cleanText.includes('बुक करा') ||
+    cleanText.includes('बुक करो');
 
   if (isConfirmIntent && draft.originCode && draft.destCode && draft.selectedTrainNumber) {
     // Check if we already requested explicit confirmation
@@ -445,6 +448,10 @@ function extractJourneyEntities(text: string, draft: VoiceBookingDraft): void {
     { name: 'बोरिवली', code: 'BVI' },
     { name: 'kurla', code: 'CLA' },
     { name: 'कुर्ला', code: 'CLA' },
+    { name: 'ghatkopar', code: 'GC' },
+    { name: 'घाटकोपर', code: 'GC' },
+    { name: 'panvel', code: 'PNVL' },
+    { name: 'पनवेल', code: 'PNVL' },
     { name: 'mumbai', code: 'CSMT' },
     { name: 'delhi', code: 'NDLS' },
     { name: 'new delhi', code: 'NDLS' }

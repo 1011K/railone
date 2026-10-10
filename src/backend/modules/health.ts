@@ -34,6 +34,12 @@ export interface HealthCheckResult {
     configured: boolean;
     mode: 'live_gemini' | 'deterministic_railway_engine';
   };
+  providersRegistry?: Array<{
+    name: string;
+    status: string;
+    configured: boolean;
+    model?: string;
+  }>;
   timestamp: string;
 }
 
@@ -195,6 +201,41 @@ export function checkSystemHealth(geminiConfigured = false): HealthCheckResult {
       configured: geminiConfigured,
       mode: geminiConfigured ? 'live_gemini' : 'deterministic_railway_engine'
     },
+    providersRegistry: [
+      {
+        name: 'Google Gemini',
+        status: (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY') ? 'AVAILABLE' : 'MISSING',
+        configured: !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY'),
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+      },
+      {
+        name: 'NVIDIA NIM',
+        status: (process.env.NVIDIA_API_KEY && !process.env.NVIDIA_API_KEY.includes('placeholder')) ? 'AVAILABLE' : 'MISSING',
+        configured: !!(process.env.NVIDIA_API_KEY && !process.env.NVIDIA_API_KEY.includes('placeholder')),
+        model: process.env.NVIDIA_MODEL || 'meta/llama-3.3-70b-instruct'
+      },
+      {
+        name: 'Groq',
+        status: (process.env.GROQ_API_KEY && !process.env.GROQ_API_KEY.includes('placeholder')) ? 'AVAILABLE' : 'MISSING',
+        configured: !!(process.env.GROQ_API_KEY && !process.env.GROQ_API_KEY.includes('placeholder')),
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+      },
+      {
+        name: 'OpenRouteService',
+        status: (process.env.ORS_API_KEY && !process.env.ORS_API_KEY.includes('placeholder')) ? 'AVAILABLE' : 'MISSING',
+        configured: !!(process.env.ORS_API_KEY && !process.env.ORS_API_KEY.includes('placeholder'))
+      },
+      {
+        name: 'Open-Meteo',
+        status: 'AVAILABLE',
+        configured: true
+      },
+      {
+        name: 'OpenFreeMap',
+        status: 'AVAILABLE',
+        configured: true
+      }
+    ],
     timestamp: new Date().toISOString()
   };
 }

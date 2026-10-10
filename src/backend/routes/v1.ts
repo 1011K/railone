@@ -30,6 +30,9 @@ import {
 } from '../middleware/auth';
 import { MultimodalGraphEngine } from '../../engine/multimodal/graphEngine';
 import { getAllCityPacks, getCityPack } from '../../engine/multimodal/cityPacks';
+import { OpenRouteServiceAdapter } from '../modules/openRouteService';
+import { OpenMeteoService } from '../modules/openMeteo';
+import { AiProviderRouter } from '../modules/ai/aiProviderRouter';
 
 export const v1Router = Router();
 
@@ -699,4 +702,82 @@ v1Router.get('/interchanges/guide', (req: Request, res: Response) => {
   }
   res.json({ guide });
 });
+
+// ---------------------------------------------------------------------------
+// 22. Pedestrian Navigation (OpenRouteService HeiGIT Adapter)
+// ---------------------------------------------------------------------------
+v1Router.post('/navigation/pedestrian', async (req: Request, res: Response) => {
+  const { startLat, startLon, endLat, endLon, accessibleStepFree, stationOriginCode, stationDestCode } = req.body;
+  if (startLat === undefined || startLon === undefined || endLat === undefined || endLon === undefined) {
+    return res.status(400).json({ error: 'INVALID_COORDINATES', message: 'startLat, startLon, endLat, endLon are required.' });
+  }
+
+  try {
+    const adapter = new OpenRouteServiceAdapter();
+    const route = await adapter.planPedestrianRoute({
+      startLat: Number(startLat),
+      startLon: Number(startLon),
+      endLat: Number(endLat),
+      endLon: Number(endLon),
+      accessibleStepFree: !!accessibleStepFree,
+      stationOriginCode,
+      stationDestCode
+    });
+    res.json(route);
+  } catch (err: any) {
+    res.status(500).json({ error: 'PEDESTRIAN_ROUTING_FAILED', message: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 23. Open-Meteo Weather Advisory (Zero Delay Fabrication)
+// ---------------------------------------------------------------------------
+v1Router.get('/weather', async (req: Request, res: Response) => {
+  const lat = req.query.lat ? parseFloat(req.query.lat as string) : 19.0760; // Mumbai default
+  const lon = req.query.lon ? parseFloat(req.query.lon as string) : 72.8777;
+  const stationCode = req.query.stationCode as string | undefined;
+
+  try {
+    const weatherService = new OpenMeteoService();
+    const report = await weatherService.getWeatherForCoordinates(lat, lon, stationCode);
+    res.json(report);
+  } catch (err: any) {
+    res.status(500).json({ error: 'WEATHER_FETCH_FAILED', message: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 24. AI Provider Health & Credential Readiness Matrix
+// ---------------------------------------------------------------------------
+v1Router.get('/providers/readiness', (_req: Request, res: Response) => {
+  const router = AiProviderRouter.getInstance();
+  const providers = router.getProvidersHealth();
+  const orsAdapter = new OpenRouteServiceAdapter();
+
+  res.json({
+    aiProviders: providers,
+    navigation: {
+      provider: 'OpenRouteService (HeiGIT)',
+      endpoint: 'https://api.heigit.org/v2/directions',
+      configured: orsAdapter.isConfigured(),
+      status: orsAdapter.isConfigured() ? 'AVAILABLE' : 'MISSING',
+      notes: 'Pedestrian street navigation. Internal station interchange uses verified FOB geometry.'
+    },
+    weather: {
+      provider: 'Open-Meteo',
+      endpoint: 'https://api.open-meteo.com/v1/forecast',
+      configured: true,
+      status: 'AVAILABLE',
+      notes: 'Free public weather tier. Zero delay fabrication guard enforced.'
+    },
+    cartography: {
+      provider: 'MapLibre + OpenFreeMap',
+      endpoint: 'https://tiles.openfreemap.org/styles/liberty',
+      configured: true,
+      status: 'AVAILABLE',
+      notes: 'Free open vector tiles. Zero Google Maps paid API dependency.'
+    }
+  });
+});
+
 

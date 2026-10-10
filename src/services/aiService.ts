@@ -11,8 +11,8 @@ export interface DecomposeResponse {
     stationCode?: string;
     provenance?: 'LIVE_VERIFIED' | 'SCHEDULED' | 'DEMO' | 'UNKNOWN';
   }>;
-  source: 'gemini' | 'deterministic_fallback';
-  provenance: 'LIVE_VERIFIED' | 'SCHEDULED' | 'DEMO' | 'UNKNOWN';
+  source: 'gemini' | 'nvidia' | 'groq' | 'deterministic_fallback' | string;
+  provenance: 'PREDICTED' | 'LIVE_VERIFIED' | 'SCHEDULED' | 'DEMO' | 'UNKNOWN' | string;
   feedStatusNotice?: string;
 }
 
