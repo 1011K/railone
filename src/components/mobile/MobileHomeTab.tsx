@@ -7,7 +7,9 @@ import { getTranslation } from '../../i18n/translations';
 import { ALL_22_SERVICES, ServiceItem } from '../ServicesHubModal';
 import { MockBookingStore } from '../../engine/mockBookingStore';
 import { resolveStation } from '../../engine/journeyEngine';
+import { normalizeStation } from '../../engine/stationNormalizer';
 import { STATIONS } from '../../fixtures/railwayData';
+import { Station } from '../../types/railway';
 import {
   Train,
   MapPin,
@@ -86,6 +88,10 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
   // Search station state
   const [fromCode, setFromCode] = useState(authority.defaultOriginCode || 'DR');
   const [toCode, setToCode] = useState(authority.defaultDestCode || 'TNA');
+  const [fromInputText, setFromInputText] = useState(authority.defaultOriginCode || 'DR');
+  const [toInputText, setToInputText] = useState(authority.defaultDestCode || 'TNA');
+  const [fromSuggestions, setFromSuggestions] = useState<Station[]>([]);
+  const [toSuggestions, setToSuggestions] = useState<Station[]>([]);
   const [journeyDate, setJourneyDate] = useState<'today' | 'tomorrow'>('today');
   const [acOnly, setAcOnly] = useState(false);
 
@@ -98,8 +104,12 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
   const [savedBookings, setSavedBookings] = useState<any[]>([]);
 
   useEffect(() => {
-    setFromCode(authority.defaultOriginCode || 'DR');
-    setToCode(authority.defaultDestCode || 'TNA');
+    const origin = authority.defaultOriginCode || 'DR';
+    const dest = authority.defaultDestCode || 'TNA';
+    setFromCode(origin);
+    setToCode(dest);
+    setFromInputText(origin);
+    setToInputText(dest);
   }, [authority.defaultOriginCode, authority.defaultDestCode]);
 
   useEffect(() => {
@@ -110,8 +120,13 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
 
   const swapStations = () => {
     const temp = fromCode;
+    const tempText = fromInputText;
     setFromCode(toCode);
+    setFromInputText(toInputText);
     setToCode(temp);
+    setToInputText(tempText);
+    setFromSuggestions([]);
+    setToSuggestions([]);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -327,22 +342,61 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
           {/* Station Selector with Center Swap */}
           <div className="relative space-y-2">
             {/* FROM Station Input */}
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 relative">
               <div className="flex-1">
                 <span className="block text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400">
                   From Station
                 </span>
                 <input
                   type="text"
-                  value={fromCode}
-                  onChange={(e) => setFromCode(e.target.value.toUpperCase())}
-                  placeholder="Station code (e.g. DR)"
+                  value={fromInputText}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFromInputText(val);
+                    setFromCode(val.toUpperCase().trim());
+                    if (val.trim().length > 1) {
+                      const res = normalizeStation(val);
+                      setFromSuggestions(res.candidates.slice(0, 4));
+                    } else {
+                      setFromSuggestions([]);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (fromInputText.trim().length > 1) {
+                      const res = normalizeStation(fromInputText);
+                      setFromSuggestions(res.candidates.slice(0, 4));
+                    }
+                  }}
+                  placeholder="Station code or name (e.g. DR, Dadar, Thane)"
                   className="w-full bg-transparent text-sm font-black text-slate-900 dark:text-white focus:outline-hidden"
                 />
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate block">
                   {fromStationObj.name}
                 </span>
               </div>
+
+              {/* Station Suggestions Dropdown */}
+              {fromSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-30 p-1 space-y-0.5">
+                  {fromSuggestions.map(stn => (
+                    <button
+                      key={stn.code}
+                      type="button"
+                      onClick={() => {
+                        setFromCode(stn.code);
+                        setFromInputText(stn.code);
+                        setFromSuggestions([]);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center justify-between"
+                    >
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{stn.name}</span>
+                      <span className="font-mono text-[10px] px-1.5 py-0.2 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 font-bold">
+                        {stn.code}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Circular Swap Button */}
@@ -359,23 +413,93 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
             </div>
 
             {/* TO Station Input */}
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 relative">
               <div className="flex-1">
                 <span className="block text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400">
                   To Station
                 </span>
                 <input
                   type="text"
-                  value={toCode}
-                  onChange={(e) => setToCode(e.target.value.toUpperCase())}
-                  placeholder="Station code (e.g. TNA)"
+                  value={toInputText}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setToInputText(val);
+                    setToCode(val.toUpperCase().trim());
+                    if (val.trim().length > 1) {
+                      const res = normalizeStation(val);
+                      setToSuggestions(res.candidates.slice(0, 4));
+                    } else {
+                      setToSuggestions([]);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (toInputText.trim().length > 1) {
+                      const res = normalizeStation(toInputText);
+                      setToSuggestions(res.candidates.slice(0, 4));
+                    }
+                  }}
+                  placeholder="Station code or name (e.g. TNA, CSMT)"
                   className="w-full bg-transparent text-sm font-black text-slate-900 dark:text-white focus:outline-hidden"
                 />
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate block">
                   {toStationObj.name}
                 </span>
               </div>
+
+              {/* Station Suggestions Dropdown */}
+              {toSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-30 p-1 space-y-0.5">
+                  {toSuggestions.map(stn => (
+                    <button
+                      key={stn.code}
+                      type="button"
+                      onClick={() => {
+                        setToCode(stn.code);
+                        setToInputText(stn.code);
+                        setToSuggestions([]);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-blue-50 dark:hover:bg-slate-800 flex items-center justify-between"
+                    >
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{stn.name}</span>
+                      <span className="font-mono text-[10px] px-1.5 py-0.2 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 font-bold">
+                        {stn.code}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Quick Hub Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[10px] pt-0.5">
+            <span className="text-slate-400 font-bold shrink-0">Hubs:</span>
+            {[
+              { code: 'TNA', label: 'Thane' },
+              { code: 'DR', label: 'Dadar CR' },
+              { code: 'DDR', label: 'Dadar WR' },
+              { code: 'CSMT', label: 'CSMT' },
+              { code: 'CCG', label: 'Churchgate' },
+              { code: 'ADH', label: 'Andheri' },
+              { code: 'KYN', label: 'Kalyan' }
+            ].map(h => (
+              <button
+                key={h.code}
+                type="button"
+                onClick={() => {
+                  setToCode(h.code);
+                  setToInputText(h.code);
+                  setToSuggestions([]);
+                }}
+                className={`px-2 py-0.5 rounded-md font-bold whitespace-nowrap transition-all border shrink-0 ${
+                  toCode === h.code
+                    ? 'bg-blue-800 text-white border-blue-800 shadow-2xs'
+                    : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                }`}
+              >
+                {h.label}
+              </button>
+            ))}
           </div>
 
           {/* Date & Service Filters */}
@@ -494,6 +618,49 @@ export const MobileHomeTab: React.FC<MobileHomeTabProps> = ({
             </span>
           </button>
         </div>
+      </div>
+
+      {/* Quick Action Banners: Disruption Replanner & Leave-Home Planner */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => onOpenActionModal('disruption_replanner')}
+          className="p-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-left transition-all active:scale-98 flex items-center justify-between"
+        >
+          <div className="space-y-0.5">
+            <span className="text-[9px] font-mono font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
+              Flagship AI
+            </span>
+            <span className="text-[11px] font-black text-slate-900 dark:text-white block">
+              Replan Journey
+            </span>
+            <span className="text-[9px] text-slate-500 dark:text-slate-400 block">
+              Simulate Delay & Divert
+            </span>
+          </div>
+          <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+            <Zap className="w-3.5 h-3.5" />
+          </div>
+        </button>
+
+        <button
+          onClick={() => onOpenActionModal('leave_home_planner')}
+          className="p-2.5 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-left transition-all active:scale-98 flex items-center justify-between"
+        >
+          <div className="space-y-0.5">
+            <span className="text-[9px] font-mono font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider block">
+              On-Time Reach
+            </span>
+            <span className="text-[11px] font-black text-slate-900 dark:text-white block">
+              Leave-Home
+            </span>
+            <span className="text-[9px] text-slate-500 dark:text-slate-400 block">
+              Target arrival buffer
+            </span>
+          </div>
+          <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+            <Clock className="w-3.5 h-3.5" />
+          </div>
+        </button>
       </div>
 
       {/* ============================================================== */}

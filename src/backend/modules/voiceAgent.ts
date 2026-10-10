@@ -159,25 +159,84 @@ export async function processVoiceTurn(
     session.language = 'en';
   }
 
-  // 1. Check for Confirmation / Final Booking Intent ("book this one", "confirm", "proceed", "yes book it")
+  // 0. Check for Cancellation Intent when awaiting confirmation
   const cleanText = text.replace(/[,.!?]/g, '').trim();
-  const isConfirmIntent =
-    cleanText === 'book this one' ||
-    cleanText === 'book this' ||
-    cleanText === 'confirm' ||
+  const isCancelIntent =
+    cleanText === 'cancel' ||
+    cleanText === 'no' ||
+    cleanText === 'stop' ||
+    cleanText === 'abort' ||
+    cleanText.includes('cancel') ||
+    cleanText.includes('dont book') ||
+    cleanText.includes("don't book") ||
+    cleanText.includes('रद्द') ||
+    cleanText.includes('नाही') ||
+    cleanText.includes('नको') ||
+    cleanText.includes('नहीं') ||
+    cleanText.includes('रहने दो');
+
+  if (isCancelIntent && session.state === 'AWAITING_CONFIRMATION') {
+    session.state = 'ITINERARY_OFFERED';
+    draft.confirmationRequired = false;
+    draft.confirmed = false;
+
+    if (session.language === 'hi') {
+      spokenResponse = 'बुकिंग रद्द कर दी गई है। आपके खाते से कोई शुल्क नहीं काटा गया है। आप कोई अन्य ट्रेन चुन सकते हैं।';
+    } else if (session.language === 'mr') {
+      spokenResponse = 'बुकिंग रद्द करण्यात आली आहे. कोणतेही भाडे आकारले नाही. आपण दुसरी गाडी निवडू शकता.';
+    } else {
+      spokenResponse = 'Booking cancelled. No fare has been deducted. You can select another service or check another route.';
+    }
+
+    const turnsStmt = db.prepare('UPDATE voice_sessions SET state = ?, turns_json = ?, active_draft_json = ?, updated_at = ? WHERE session_id = ?');
+    turnsStmt.run(session.state, JSON.stringify(session.turns), JSON.stringify(session.draft), now, session.sessionId);
+
+    return {
+      sessionId: session.sessionId,
+      language: session.language,
+      state: session.state,
+      spokenResponse,
+      transcript: userUtterance,
+      suggestedActions: ['Check another train', 'Change stations'],
+      activeDraft: session.draft,
+      groundedToolCalls: toolCalls
+    };
+  }
+
+  // 1. Check for Confirmation / Final Booking Intent ("book this one", "confirm", "proceed", "yes book it", "हो, पुष्टी करा")
+  const isAffirmative =
+    cleanText === 'yes' ||
     cleanText === 'yes confirm' ||
+    cleanText === 'confirm' ||
     cleanText === 'proceed' ||
-    cleanText.includes('confirm') ||
+    cleanText === 'ok' ||
+    cleanText === 'हाँ' ||
+    cleanText === 'हो' ||
+    cleanText === 'होय' ||
+    cleanText === 'नक्की' ||
     cleanText.includes('yes confirm') ||
     cleanText.includes('confirm booking') ||
-    cleanText.includes('yes book') ||
+    cleanText.includes('पुष्टी करा') ||
+    cleanText.includes('पुष्टि करें') ||
+    cleanText.includes('हो पुष्टी') ||
+    cleanText.includes('हाँ पुष्टि') ||
+    cleanText.includes('होय');
+
+  const isBookingInitiation =
+    cleanText === 'book this one' ||
+    cleanText === 'book this' ||
+    cleanText === 'book it' ||
+    cleanText === 'book ticket' ||
+    cleanText.includes('book this') ||
     cleanText.includes('book karo') ||
     cleanText.includes('बुक करा') ||
     cleanText.includes('बुक करो');
 
+  const isConfirmIntent = isAffirmative || isBookingInitiation;
+
   if (isConfirmIntent && draft.originCode && draft.destCode && draft.selectedTrainNumber) {
-    // Check if we already requested explicit confirmation
-    if (session.state === 'AWAITING_CONFIRMATION' || text.includes('confirm') || text.includes('yes')) {
+    // Only execute if passenger was ALREADY presented with the review summary and asked to confirm
+    if (session.state === 'AWAITING_CONFIRMATION' && (isAffirmative || isBookingInitiation)) {
       // Execute genuine server-side booking
       try {
         const idempotencyKey = `VOICE-${session.sessionId}-${Date.now().toString().slice(0, 8)}`;
@@ -452,6 +511,11 @@ function extractJourneyEntities(text: string, draft: VoiceBookingDraft): void {
     { name: 'घाटकोपर', code: 'GC' },
     { name: 'panvel', code: 'PNVL' },
     { name: 'पनवेल', code: 'PNVL' },
+    { name: 'ठाण्याहून', code: 'TNA' },
+    { name: 'ठाण्याला', code: 'TNA' },
+    { name: 'दादरला', code: 'DR' },
+    { name: 'कुर्ल्याला', code: 'CLA' },
+    { name: 'बोरिवलीला', code: 'BVI' },
     { name: 'mumbai', code: 'CSMT' },
     { name: 'delhi', code: 'NDLS' },
     { name: 'new delhi', code: 'NDLS' }
@@ -466,7 +530,14 @@ function extractJourneyEntities(text: string, draft: VoiceBookingDraft): void {
     text.includes('नाही');
 
   for (const s of stationsToTest) {
-    if (text.includes(`from ${s.name}`) || text.includes(`${s.name} से`)) {
+    if (
+      text.includes(`from ${s.name}`) ||
+      text.includes(`${s.name} से`) ||
+      text.includes(`${s.name} पासून`) ||
+      text.includes(`${s.name} वरून`) ||
+      text.includes(`${s.name} हून`) ||
+      (s.name.endsWith('हून') && text.includes(s.name))
+    ) {
       draft.originCode = s.code;
       draft.originName = s.name.toUpperCase();
       draft.selectedTrainNumber = undefined;
@@ -479,12 +550,24 @@ function extractJourneyEntities(text: string, draft: VoiceBookingDraft): void {
       draft.selectedTrainName = undefined;
       draft.selectedItinerary = undefined;
     }
-    if (text.includes(`to ${s.name}`) || text.includes(`तक ${s.name}`) || text.includes(`ते ${s.name}`)) {
-      draft.destCode = s.code;
-      draft.destName = s.name.toUpperCase();
-      draft.selectedTrainNumber = undefined;
-      draft.selectedTrainName = undefined;
-      draft.selectedItinerary = undefined;
+    if (
+      text.includes(`to ${s.name}`) ||
+      text.includes(`तक ${s.name}`) ||
+      text.includes(`${s.name} तक`) ||
+      text.includes(`ते ${s.name}`) ||
+      text.includes(`${s.name} पर्यंत`) ||
+      text.includes(`से ${s.name}`) ||
+      text.includes(`${s.name} जाना`) ||
+      (s.name.endsWith('ला') && text.includes(s.name))
+    ) {
+      // Guard against setting same station as both origin and dest if utterance was "X से"
+      if (s.code !== draft.originCode) {
+        draft.destCode = s.code;
+        draft.destName = s.name.toUpperCase();
+        draft.selectedTrainNumber = undefined;
+        draft.selectedTrainName = undefined;
+        draft.selectedItinerary = undefined;
+      }
     }
   }
 

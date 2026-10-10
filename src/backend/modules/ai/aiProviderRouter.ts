@@ -33,13 +33,58 @@ export class AiProviderRouter {
   }
 
   /**
+   * Check feature flags for AI providers
+   */
+  public isAiGloballyEnabled(): boolean {
+    const val = process.env.AI_ENABLED?.toLowerCase().trim();
+    return val !== 'false' && val !== '0' && val !== 'no';
+  }
+
+  public isProviderEnabled(name: AiProviderName): boolean {
+    if (!this.isAiGloballyEnabled() && name !== 'deterministic') return false;
+
+    switch (name) {
+      case 'gemini': {
+        const val = process.env.ENABLE_GEMINI?.toLowerCase().trim();
+        return val !== 'false' && val !== '0';
+      }
+      case 'nvidia': {
+        const val = process.env.ENABLE_NVIDIA_NIM?.toLowerCase().trim();
+        return val !== 'false' && val !== '0';
+      }
+      case 'groq': {
+        const val = process.env.ENABLE_GROQ?.toLowerCase().trim();
+        return val !== 'false' && val !== '0';
+      }
+      case 'deterministic':
+      default:
+        return true;
+    }
+  }
+
+  /**
    * Get all provider health states and readiness
    */
   public getProvidersHealth(): ProviderHealth[] {
+    const geminiHealth = this.gemini.getHealth();
+    if (!this.isProviderEnabled('gemini') && geminiHealth.configured) {
+      geminiHealth.notes += ' [DISABLED_BY_FEATURE_FLAG: ENABLE_GEMINI=false]';
+    }
+
+    const nvidiaHealth = this.nvidia.getHealth();
+    if (!this.isProviderEnabled('nvidia') && nvidiaHealth.configured) {
+      nvidiaHealth.notes += ' [DISABLED_BY_FEATURE_FLAG: ENABLE_NVIDIA_NIM=false]';
+    }
+
+    const groqHealth = this.groq.getHealth();
+    if (!this.isProviderEnabled('groq') && groqHealth.configured) {
+      groqHealth.notes += ' [DISABLED_BY_FEATURE_FLAG: ENABLE_GROQ=false]';
+    }
+
     return [
-      this.gemini.getHealth(),
-      this.nvidia.getHealth(),
-      this.groq.getHealth(),
+      geminiHealth,
+      nvidiaHealth,
+      groqHealth,
       this.deterministic.getHealth()
     ];
   }
@@ -57,6 +102,7 @@ export class AiProviderRouter {
 
   /**
    * Generate text using the preferred provider or optimal fallback order.
+   * Honors feature flags and latency sensitivity.
    * Never fans out duplicate requests across providers simultaneously.
    */
   public async generateChat(
@@ -65,20 +111,31 @@ export class AiProviderRouter {
   ): Promise<ChatCompletionResult> {
     const candidateOrder: IAIProvider[] = [];
 
+    // Global kill-switch check
+    if (!this.isAiGloballyEnabled()) {
+      return this.deterministic.generateText(options);
+    }
+
     if (preferred === 'deterministic') {
       candidateOrder.push(this.deterministic);
     } else {
-      if (preferred) {
+      if (preferred && this.isProviderEnabled(preferred)) {
         candidateOrder.push(this.getProvider(preferred));
       }
+
+      // If latency-sensitive inference requested, prioritize Groq LPU
+      if (options.latencySensitive && this.groq.isConfigured() && this.isProviderEnabled('groq')) {
+        if (!candidateOrder.includes(this.groq)) candidateOrder.push(this.groq);
+      }
+
       // Default priority order: Gemini -> Nvidia NIM -> Groq -> Deterministic
-      if (this.gemini.isConfigured() && !candidateOrder.includes(this.gemini)) {
+      if (this.gemini.isConfigured() && this.isProviderEnabled('gemini') && !candidateOrder.includes(this.gemini)) {
         candidateOrder.push(this.gemini);
       }
-      if (this.nvidia.isConfigured() && !candidateOrder.includes(this.nvidia)) {
+      if (this.nvidia.isConfigured() && this.isProviderEnabled('nvidia') && !candidateOrder.includes(this.nvidia)) {
         candidateOrder.push(this.nvidia);
       }
-      if (this.groq.isConfigured() && !candidateOrder.includes(this.groq)) {
+      if (this.groq.isConfigured() && this.isProviderEnabled('groq') && !candidateOrder.includes(this.groq)) {
         candidateOrder.push(this.groq);
       }
       // Guaranteed deterministic fallback
@@ -89,7 +146,7 @@ export class AiProviderRouter {
     for (const provider of candidateOrder) {
       try {
         const health = provider.getHealth();
-        if (health.circuitOpen || health.status === 'QUOTA_EXHAUSTED') {
+        if (health.circuitOpen || health.status === 'QUOTA_EXHAUSTED' || health.status === 'INVALID') {
           continue;
         }
 
@@ -113,6 +170,20 @@ export class AiProviderRouter {
     context?: string,
     preferred?: AiProviderName
   ): Promise<{ tasks: any[]; source: string; provenance: string; feedStatusNotice?: string }> {
+    const trimmed = (prompt || '').trim();
+    if (!trimmed) {
+      const fallback = await this.deterministic.generateText({
+        messages: [{ role: 'user', content: 'default commute' }],
+        responseMimeType: 'application/json'
+      });
+      return {
+        tasks: JSON.parse(fallback.text),
+        source: 'deterministic_fallback',
+        provenance: 'DEMO',
+        feedStatusNotice: 'Prompt empty. Showing scheduled/demo baseline.'
+      };
+    }
+
     const systemInstruction = `
 You are an expert Indian Railways & Mumbai Suburban operations planner for RailOne Next.
 Decompose the user's journey or travel situation into 2 to 4 prioritized, actionable commuter tasks.
@@ -145,7 +216,7 @@ Return ONLY valid JSON array of objects with keys:
     try {
       const completion = await this.generateChat({
         messages: [
-          { role: 'user', content: `Travel query: "${prompt}". Context: "${context || 'mumbai suburban'}"` }
+          { role: 'user', content: `Travel query: "${trimmed}". Context: "${context || 'mumbai suburban'}"` }
         ],
         systemInstruction,
         responseMimeType: 'application/json',
@@ -156,14 +227,23 @@ Return ONLY valid JSON array of objects with keys:
       const cleaned = completion.text.trim().replace(/^```json|^```|```$/g, '').trim();
       const parsed = JSON.parse(cleaned);
 
-      if (Array.isArray(parsed) && parsed.length >= 2) {
+      // Normalize array if wrapped in object (e.g. { tasks: [...] } or { data: [...] })
+      const taskArray = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.tasks)
+        ? parsed.tasks
+        : Array.isArray(parsed?.data)
+        ? parsed.data
+        : null;
+
+      if (taskArray && taskArray.length >= 2) {
         const validCategories = new Set([
           'DISRUPTION_RECOVERY', 'JOURNEY_PLANNING', 'BOOKING_TICKETING', 'GRIEVANCE_RAILMADAD',
           'SAFETY_LOST_FOUND', 'STATION_AMENITIES', 'COACH_POSITIONING', 'CREW_OPERATIONS'
         ]);
         const validPriorities = new Set(['P0_CRITICAL', 'P1_HIGH', 'P2_MEDIUM', 'P3_LOW']);
 
-        const validatedTasks = parsed.map((t: any) => ({
+        const validatedTasks = taskArray.map((t: any) => ({
           title: String(t.title || 'Commuter Action').slice(0, 80),
           description: String(t.description || '').slice(0, 300),
           category: validCategories.has(t.category) ? t.category : 'JOURNEY_PLANNING',
@@ -185,7 +265,7 @@ Return ONLY valid JSON array of objects with keys:
 
     // Deterministic Domain Fallback
     const fallback = await this.deterministic.generateText({
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: trimmed }],
       responseMimeType: 'application/json'
     });
     return {
@@ -204,6 +284,19 @@ Return ONLY valid JSON array of objects with keys:
     history: Array<{ role: 'user' | 'assistant'; text: string }> = [],
     preferred?: AiProviderName
   ): Promise<{ reply: string; source: string; provenance: string; feedStatusNotice?: string }> {
+    const trimmed = (query || '').trim();
+    if (!trimmed) {
+      const fallback = await this.deterministic.generateText({
+        messages: [{ role: 'user', content: 'help' }]
+      });
+      return {
+        reply: fallback.text,
+        source: 'deterministic_fallback',
+        provenance: 'DEMO',
+        feedStatusNotice: 'Operational feed unavailable. Showing scheduled/demo information only.'
+      };
+    }
+
     const systemInstruction = `
 You are the RailOne Next AI Travel Copilot for Indian Railways & Mumbai Suburban commuters.
 You provide honest, highly knowledgeable advice on:
@@ -220,7 +313,7 @@ Never fabricate live train running times or CRIS official seat inventory.
       role: h.role === 'assistant' ? ('assistant' as const) : ('user' as const),
       content: h.text
     }));
-    messages.push({ role: 'user' as const, content: query });
+    messages.push({ role: 'user' as const, content: trimmed });
 
     try {
       const completion = await this.generateChat({
@@ -241,7 +334,7 @@ Never fabricate live train running times or CRIS official seat inventory.
     }
 
     const fallback = await this.deterministic.generateText({
-      messages: [{ role: 'user', content: query }]
+      messages: [{ role: 'user', content: trimmed }]
     });
     return {
       reply: fallback.text,

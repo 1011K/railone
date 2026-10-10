@@ -51,25 +51,75 @@ export class OpenRouteServiceAdapter {
 
       if (isDadarInterchange || isGhatkoparInterchange) {
         const hubCode = isDadarInterchange ? 'DR' : 'GC';
-        const fromPf = isDadarInterchange ? 'DR_WR_1' : '1';
-        const toPf = isDadarInterchange ? 'DR_CR_4' : '2';
+        const fromPf = isDadarInterchange
+          ? (orig === 'DR' ? 'DR_CR_4' : 'DR_WR_1')
+          : (orig === 'GC' ? 'GC_PF_1' : 'GC_METRO_1');
+        const toPf = isDadarInterchange
+          ? (dest === 'DR' ? 'DR_CR_4' : 'DR_WR_1')
+          : (dest === 'GC' ? 'GC_PF_1' : 'GC_METRO_1');
         const guide = getTransferWalkGuide(hubCode, fromPf, toPf, req.accessibleStepFree);
+
+        const instructions = (guide && guide.success && guide.steps && guide.steps.length > 0)
+          ? guide.steps
+          : [
+            `Ascend ${isDadarInterchange ? 'North' : 'Metro Integrated'} Foot Overbridge (FOB) via stairs/elevator.`,
+            `Cross corridor to target platform indicators.`,
+            `Descend to target platform indicator.`
+          ];
 
         return {
           routeType: 'INTERNAL_STATION_FOB',
-          distanceMeters: (guide && guide.distanceMeters > 0) ? guide.distanceMeters : 280,
-          durationMinutes: (guide && guide.walkMinutes > 0) ? guide.walkMinutes : 7,
-          stepFreeAccessible: req.accessibleStepFree ? (guide?.stepFreeAvailable ?? false) : false,
+          distanceMeters: (guide && guide.success && guide.distanceMeters > 0) ? guide.distanceMeters : (isDadarInterchange ? 320 : 180),
+          durationMinutes: (guide && guide.success && guide.walkMinutes > 0) ? guide.walkMinutes : (isDadarInterchange ? 7 : 4),
+          stepFreeAccessible: !!(guide && guide.success && guide.stepFreeAvailable),
           coordinates: [[req.startLon, req.startLat], [req.endLon, req.endLat]],
-          instructions: (guide && guide.steps && guide.steps.length > 0) ? guide.steps : [
-            'Ascend Northern Foot Overbridge (FOB) via stairs/ramp.',
-            'Cross railway track corridor to designated platform bridge.',
-            'Descend to target platform indicator.'
-          ],
+          instructions,
           provenance: 'STATION_GEOMETRY',
           notice: '[FOB_STATION_INTERCHANGE] Internal station foot-overbridge route. Street pedestrian routing strictly rejected to protect passenger track safety.'
         };
       }
+    }
+
+    // Coordinate validation
+    if (
+      isNaN(req.startLat) || isNaN(req.startLon) || isNaN(req.endLat) || isNaN(req.endLon) ||
+      Math.abs(req.startLat) > 90 || Math.abs(req.endLat) > 90 ||
+      Math.abs(req.startLon) > 180 || Math.abs(req.endLon) > 180
+    ) {
+      return {
+        routeType: 'CALCULATED_ESTIMATE',
+        distanceMeters: 0,
+        durationMinutes: 0,
+        stepFreeAccessible: false,
+        coordinates: [],
+        instructions: ['Invalid coordinates supplied for pedestrian route calculation.'],
+        provenance: 'CALCULATED_ESTIMATE',
+        notice: '[UNAVAILABLE_PATH] Coordinates out of range or malformed.'
+      };
+    }
+
+    // Pre-calculate geometric distance
+    const distMeters = this.calculateHaversineDistance(req.startLat, req.startLon, req.endLat, req.endLon);
+
+    // Urban pedestrian limit: walking to station beyond 15 km is considered unavailable for pedestrian mode
+    const MAX_WALK_DISTANCE_METERS = 15000;
+    if (distMeters > MAX_WALK_DISTANCE_METERS) {
+      return {
+        routeType: 'CALCULATED_ESTIMATE',
+        distanceMeters: Math.round(distMeters),
+        durationMinutes: Math.ceil(distMeters / 75),
+        stepFreeAccessible: false,
+        coordinates: [
+          [req.startLon, req.startLat],
+          [req.endLon, req.endLat]
+        ],
+        instructions: [
+          `Distance (${Math.round(distMeters / 1000)} km) exceeds realistic pedestrian walking range (15 km limit).`,
+          `Please select public transit (Suburban EMU / Metro) or feeder road transport.`
+        ],
+        provenance: 'CALCULATED_ESTIMATE',
+        notice: '[UNAVAILABLE_PATH] Pedestrian route exceeds walkable urban distance threshold. Public transit required.'
+      };
     }
 
     // 2. If ORS API key is available, call HeiGIT foot-walking endpoint
@@ -121,6 +171,23 @@ export class OpenRouteServiceAdapter {
               notice: '[OPENROUTESERVICE_HEIGIT] Verified public pedestrian routing via api.heigit.org. Street routing does not represent internal station platform connections.'
             };
           }
+        } else if (response.status === 404 || response.status === 400) {
+          // Explicitly handle when HeiGIT cannot find a pedestrian path (e.g. wheelchair inaccessible or disconnected)
+          if (req.accessibleStepFree) {
+            return {
+              routeType: 'CALCULATED_ESTIMATE',
+              distanceMeters: Math.round(distMeters),
+              durationMinutes: Math.ceil(distMeters / 75),
+              stepFreeAccessible: false,
+              coordinates: [[req.startLon, req.startLat], [req.endLon, req.endLat]],
+              instructions: [
+                'No verified wheelchair step-free pedestrian path found between specified locations on public street network.',
+                'Urban walkways in this sector may contain curbs or stairs without ramps.'
+              ],
+              provenance: 'CALCULATED_ESTIMATE',
+              notice: '[UNAVAILABLE_PATH] Step-free wheelchair path unavailable on verified pedestrian network.'
+            };
+          }
         }
       } catch {
         // Fall through to deterministic geometric estimate
@@ -128,7 +195,6 @@ export class OpenRouteServiceAdapter {
     }
 
     // 3. Deterministic Haversine Estimate Fallback
-    const distMeters = this.calculateHaversineDistance(req.startLat, req.startLon, req.endLat, req.endLon);
     // Average urban walking speed: 4.5 km/h = 75 meters / minute
     const walkMinutes = Math.max(1, Math.ceil(distMeters / 75));
 

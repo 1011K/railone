@@ -24,6 +24,8 @@ import { ThemeSelectorModal } from './ThemeSelectorModal';
 import { ServicesHubModal, ServiceItem } from './ServicesHubModal';
 import { PnrStatusModal } from './PnrStatusModal';
 import { TravelFeedbackModal } from './TravelFeedbackModal';
+import { DisruptionReplanner } from './DisruptionReplanner';
+import { LeaveHomePlanner } from './LeaveHomePlanner';
 import { useAuthority } from './AuthorityContext';
 import { InstitutionalInsignia } from './common/InstitutionalInsignia';
 import { getTranslation } from '../i18n/translations';
@@ -102,6 +104,8 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
   const [godsEyeStationCode, setGodsEyeStationCode] = useState<string>('DR');
   const [showInstitutionalDossier, setShowInstitutionalDossier] = useState<boolean>(false);
   const [showServicesHub, setShowServicesHub] = useState<boolean>(false);
+  const [showDisruptionModal, setShowDisruptionModal] = useState<boolean>(false);
+  const [showLeaveHomeModal, setShowLeaveHomeModal] = useState<boolean>(false);
 
   // Booking Modal State
   const [selectedItinerary, setSelectedItinerary] = useState<JourneyItinerary | null>(null);
@@ -318,6 +322,12 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
       case 'moving_train_3d':
       case '3d_train':
         setShow3DTrain(true);
+        break;
+      case 'disruption_replanner':
+        setShowDisruptionModal(true);
+        break;
+      case 'leave_home_planner':
+        setShowLeaveHomeModal(true);
         break;
       case 'replay_launch':
         setShowLaunchSequence(true);
@@ -740,6 +750,48 @@ export const PassengerMobileApp: React.FC<PassengerMobileAppProps> = ({
           defaultStation={currentCity.primaryHubs[0]?.name || 'Dadar (DR)'}
         />
       )}
+
+      {/* Flagship AI Disruption Replanner Modal */}
+      <AccessibleModal
+        isOpen={showDisruptionModal}
+        onClose={() => setShowDisruptionModal(false)}
+        title="AI Disruption Replanner"
+        subtitle="Live Contingency Simulation & Delay Inversion Engine"
+        icon={<AlertTriangle className="w-5 h-5 text-amber-500" />}
+        variant="sheet"
+      >
+        <DisruptionReplanner
+          onSelectAlternative={(itinerary, travelClass) => {
+            setShowDisruptionModal(false);
+            handleOpenBooking(itinerary, travelClass);
+          }}
+          onOpenStationGuide={(stationCode) => {
+            setShowDisruptionModal(false);
+            handleOpenGodsEye(stationCode);
+          }}
+        />
+      </AccessibleModal>
+
+      {/* Smart Leave-Home Planner Modal */}
+      <AccessibleModal
+        isOpen={showLeaveHomeModal}
+        onClose={() => setShowLeaveHomeModal(false)}
+        title="Smart Leave-Home Planner"
+        subtitle="On-Time Target Arrival & Station Access Allowance"
+        icon={<Clock className="w-5 h-5 text-indigo-500" />}
+        variant="sheet"
+      >
+        <LeaveHomePlanner
+          defaultOrigin={journeyOrigin}
+          defaultDest={journeyDest}
+          onPlanJourney={(from, to, depTime) => {
+            setShowLeaveHomeModal(false);
+            setJourneyOrigin(from);
+            setJourneyDest(to);
+            setActiveTab('journey');
+          }}
+        />
+      </AccessibleModal>
 
 
       {/* Onboarding Flow */}

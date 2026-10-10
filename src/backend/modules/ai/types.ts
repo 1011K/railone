@@ -19,6 +19,7 @@ export interface ChatCompletionOptions {
   responseMimeType?: 'text/plain' | 'application/json';
   systemInstruction?: string;
   timeoutMs?: number;
+  latencySensitive?: boolean;
 }
 
 export interface ChatCompletionResult {
@@ -45,4 +46,5 @@ export interface IAIProvider {
   getModel(): string;
   getHealth(): ProviderHealth;
   generateText(options: ChatCompletionOptions): Promise<ChatCompletionResult>;
+  validateModelAvailability?(): Promise<{ available: boolean; entitlementStatus: string; latencyMs: number }>;
 }
