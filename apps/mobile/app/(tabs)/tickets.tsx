@@ -60,21 +60,21 @@ export default function MyTicketsScreen() {
       } else {
         const cached = OfflineStorage.getTickets();
         if (activeTab === 'cancelled') {
-          setTickets(cached.filter(t => t.status === 'CANCELLED' || (t as any).bookingState === 'CANCELLED_DEMO'));
+          setTickets(cached.filter(t => (t as any).status === 'CANCELLED' || (t as any).bookingState === 'CANCELLED_DEMO'));
         } else if (activeTab === 'past') {
-          setTickets(cached.filter(t => t.status === 'COMPLETED' || t.status === 'EXPIRED'));
+          setTickets(cached.filter(t => (t as any).status === 'COMPLETED' || (t as any).status === 'EXPIRED'));
         } else {
-          setTickets(cached.filter(t => t.status !== 'CANCELLED' && (t as any).bookingState !== 'CANCELLED_DEMO'));
+          setTickets(cached.filter(t => (t as any).status !== 'CANCELLED' && (t as any).bookingState !== 'CANCELLED_DEMO'));
         }
       }
     } catch {
       const cached = OfflineStorage.getTickets();
       if (activeTab === 'cancelled') {
-        setTickets(cached.filter(t => t.status === 'CANCELLED' || (t as any).bookingState === 'CANCELLED_DEMO'));
+        setTickets(cached.filter(t => (t as any).status === 'CANCELLED' || (t as any).bookingState === 'CANCELLED_DEMO'));
       } else if (activeTab === 'past') {
-        setTickets(cached.filter(t => t.status === 'COMPLETED' || t.status === 'EXPIRED'));
+        setTickets(cached.filter(t => (t as any).status === 'COMPLETED' || (t as any).status === 'EXPIRED'));
       } else {
-        setTickets(cached.filter(t => t.status !== 'CANCELLED' && (t as any).bookingState !== 'CANCELLED_DEMO'));
+        setTickets(cached.filter(t => (t as any).status !== 'CANCELLED' && (t as any).bookingState !== 'CANCELLED_DEMO'));
       }
     } finally {
       setLoading(false);
@@ -152,7 +152,7 @@ export default function MyTicketsScreen() {
 
       {/* Category Filter Tabs */}
       <View style={[styles.tabsRow, { backgroundColor: colors.card, borderBottomColor: colors.cardBorder }]}>
-        {(['upcoming', 'past', 'cancelled', 'season_passes'] as const).map(tab => (
+        {(['upcoming', 'past', 'cancelled', 'season_passes', 'wallet'] as const).map(tab => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
@@ -167,14 +167,73 @@ export default function MyTicketsScreen() {
                 { color: activeTab === tab ? colors.primary : colors.textMuted }
               ]}
             >
-              {tab === 'upcoming' ? 'Upcoming' : tab === 'past' ? 'Past' : tab === 'cancelled' ? 'Cancelled' : 'Season Passes'}
+              {tab === 'upcoming' ? 'Upcoming' : tab === 'past' ? 'Past' : tab === 'cancelled' ? 'Refunds' : tab === 'season_passes' ? 'Passes' : 'Wallet'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Ticket List */}
-      {loading ? (
+      {/* Wallet View */}
+      {activeTab === 'wallet' ? (
+        <ScrollView contentContainerStyle={styles.walletContainer}>
+          <View style={[styles.walletBalanceCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.walletHeaderRow}>
+              <Text style={[styles.walletTitle, { color: colors.textPrimary }]}>RailOne Transit Wallet</Text>
+              <View style={styles.simulatedBadge}>
+                <Text style={styles.simulatedBadgeText}>SIMULATED TRANSIT WALLET</Text>
+              </View>
+            </View>
+            <Text style={[styles.walletBalanceLabel, { color: colors.textMuted }]}>Available Balance</Text>
+            <Text style={[styles.walletBalanceValue, { color: colors.primary }]}>₹{walletBalance.toFixed(2)}</Text>
+            <Text style={[styles.walletNote, { color: colors.textMuted }]}>
+              Valid for suburban UTS unreserved tickets, platform permits, and Metro Line 1/2A/7/3 tokens.
+            </Text>
+
+            {/* Quick Recharge Chips */}
+            <View style={styles.rechargeSection}>
+              <Text style={[styles.rechargeLabel, { color: colors.textPrimary }]}>Instant Recharge (Demo Credit):</Text>
+              <View style={styles.rechargeChipsRow}>
+                {[100, 200, 500].map(amt => (
+                  <TouchableOpacity
+                    key={amt}
+                    style={[styles.rechargeChip, { borderColor: colors.primary, backgroundColor: colors.background }]}
+                    onPress={() => handleRecharge(amt)}
+                  >
+                    <Text style={[styles.rechargeChipText, { color: colors.primary }]}>+₹{amt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* Transaction History Ledger */}
+          <View style={[styles.ledgerCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.ledgerTitle, { color: colors.textPrimary }]}>Transaction History</Text>
+            {walletTransactions.length === 0 ? (
+              <Text style={[styles.emptyLedgerText, { color: colors.textMuted }]}>No wallet transactions recorded yet.</Text>
+            ) : (
+              walletTransactions.map(tx => (
+                <View key={tx.id} style={[styles.txRow, { borderBottomColor: colors.cardBorder }]}>
+                  <View style={styles.txInfo}>
+                    <Text style={[styles.txDesc, { color: colors.textPrimary }]}>{tx.description}</Text>
+                    <Text style={[styles.txDate, { color: colors.textMuted }]}>
+                      {new Date(tx.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })} · {tx.id}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.txAmount,
+                      { color: tx.type === 'CREDIT' ? '#16a34a' : '#dc2626' }
+                    ]}
+                  >
+                    {tx.type === 'CREDIT' ? '+' : '-'}₹{tx.amount.toFixed(2)}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      ) : loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.emptyText, { color: colors.textMuted }]}>Loading ticket records...</Text>
@@ -614,5 +673,115 @@ const styles = StyleSheet.create({
   tteBannerSubtitle: {
     fontSize: 11,
     lineHeight: 15
+  },
+  walletContainer: {
+    padding: 16,
+    gap: 16
+  },
+  walletBalanceCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 18
+  },
+  walletHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  walletTitle: {
+    fontSize: 16,
+    fontWeight: '800'
+  },
+  simulatedBadge: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6
+  },
+  simulatedBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5
+  },
+  walletBalanceLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4
+  },
+  walletBalanceValue: {
+    fontSize: 32,
+    fontWeight: '900',
+    marginBottom: 8
+  },
+  walletNote: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 16
+  },
+  rechargeSection: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(150,150,150,0.2)',
+    paddingTop: 12
+  },
+  rechargeLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 8
+  },
+  rechargeChipsRow: {
+    flexDirection: 'row',
+    gap: 10
+  },
+  rechargeChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center'
+  },
+  rechargeChipText: {
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  ledgerCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16
+  },
+  ledgerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 12
+  },
+  emptyLedgerText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    paddingVertical: 12,
+    textAlign: 'center'
+  },
+  txRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1
+  },
+  txInfo: {
+    flex: 1,
+    paddingRight: 12
+  },
+  txDesc: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2
+  },
+  txDate: {
+    fontSize: 11
+  },
+  txAmount: {
+    fontSize: 14,
+    fontWeight: '800'
   }
 });
