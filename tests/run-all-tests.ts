@@ -2650,6 +2650,9 @@ console.log('\nTest Suite 30: Ghatkopar Resolution & Metro Isolation, Dadar Plat
 const { runBackendRedTeamAcceptanceTests } = await import('./backend-redteam-acceptance.test.ts');
 await runBackendRedTeamAcceptanceTests();
 
+// Run Test Suite 32: Native Mobile 22-Services & Screen Parity Acceptance
+await import('./mobile-navigation.test.ts');
+
 console.log('\n====================================================');
 console.log(`TEST SUMMARY: ${passedTests}/${totalTests} Passed (${failedTests} Failed)`);
 console.log('====================================================');

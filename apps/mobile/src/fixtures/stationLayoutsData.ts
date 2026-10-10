@@ -765,8 +765,8 @@ export function calculateStationTransferRoute(
     };
   }
 
-  const fromPlatform = station.platforms.find(p => p.id === fromPlatformId);
-  const toPlatform = station.platforms.find(p => p.id === toPlatformId);
+  const fromPlatform = station.platforms.find(p => p.id === fromPlatformId || p.number === fromPlatformId);
+  const toPlatform = station.platforms.find(p => p.id === toPlatformId || p.number === toPlatformId);
 
   if (!fromPlatform || !toPlatform) {
     return {
@@ -1128,4 +1128,3 @@ export function getStationExitGuidance(stationCode: string): StationExitProfile 
   }
   return null;
 }
-
