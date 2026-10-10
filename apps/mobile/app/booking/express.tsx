@@ -12,6 +12,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useMobileTheme } from '../../src/theme/ThemeContext';
 import { MobileApiClient } from '../../src/api/client';
+import { OfflineStorage } from '../../src/storage/offlineStorage';
 
 function CheckIcon({ size = 16, color = '#ffffff' }: { size?: number; color?: string }) {
   return (
@@ -122,6 +123,21 @@ export default function ExpressBookingScreen() {
       });
 
       setIssuedBooking(booking);
+      try {
+        OfflineStorage.saveTicket({
+          id: booking.id,
+          pnr: booking.pnr,
+          trainNumber,
+          trainName,
+          fromStationName: fromCode,
+          toStationName: toCode,
+          journeyDate,
+          classBooked: travelClass,
+          farePaid: booking.farePaid,
+          qrPayload: booking.qrPayload || `PRS-DEMO-${booking.pnr}`,
+          cachedAt: new Date().toISOString()
+        });
+      } catch {}
       setStep(4);
     } catch (err: any) {
       Alert.alert('Booking Failed', err.message);

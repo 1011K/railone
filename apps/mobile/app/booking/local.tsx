@@ -32,6 +32,18 @@ const POPULAR_SUBURBAN_STATIONS = [
   { code: 'PNVL', name: 'Panvel', line: 'Harbour' }
 ];
 
+const POPULAR_METRO_STATIONS = [
+  { code: 'METRO_VER', name: 'Versova Metro', line: 'Metro Line 1' },
+  { code: 'METRO_ADH', name: 'Andheri Metro (Interchange)', line: 'Metro Line 1' },
+  { code: 'METRO_WEH', name: 'Western Express Highway', line: 'Metro Line 1' },
+  { code: 'METRO_GHT', name: 'Ghatkopar Metro (Interchange)', line: 'Metro Line 1' },
+  { code: 'METRO_GUN', name: 'Gundavali Metro', line: 'Metro Line 7' },
+  { code: 'METRO_DHE', name: 'Dahisar East Metro', line: 'Metro Line 2A / 7' },
+  { code: 'METRO_DNN', name: 'D.N. Nagar Metro', line: 'Metro Line 2A' },
+  { code: 'METRO_BKC', name: 'BKC Metro (Underground)', line: 'Metro Line 3' },
+  { code: 'METRO_AAR', name: 'Aarey JVLR Metro', line: 'Metro Line 3' }
+];
+
 function localJourneyDate(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -44,22 +56,34 @@ export default function LocalBookingScreen() {
     to?: string;
     classType?: string;
     mode?: string;
+    type?: string;
     trainNumber?: string;
     trainName?: string;
   }>();
 
+  const resolveInitialKind = (): TicketKind => {
+    const raw = (params.mode || params.type || '').toUpperCase();
+    if (raw === 'PLATFORM') return 'PLATFORM';
+    if (raw === 'SEASON' || raw === 'SEASON_MST') return 'SEASON_MST';
+    if (raw === 'METRO' || raw === 'METRO_TOKEN') return 'METRO_TOKEN';
+    if (raw === 'RETURN') return 'RETURN';
+    return 'SINGLE';
+  };
+
   // Booking parameters
-  const [ticketKind, setTicketKind] = useState<TicketKind>((params.mode as TicketKind) || 'SINGLE');
+  const initialKind = resolveInitialKind();
+  const isMetroInit = initialKind === 'METRO_TOKEN';
+  const [ticketKind, setTicketKind] = useState<TicketKind>(initialKind);
   const [suburbanClass, setSuburbanClass] = useState<SuburbanClass>(
     (params.classType as SuburbanClass) || 'II'
   );
   const [fromStation, setFromStation] = useState({
-    code: params.from || 'TNA',
-    name: params.from === 'CCG' ? 'Churchgate' : 'Thane'
+    code: params.from || (isMetroInit ? 'METRO_VER' : 'TNA'),
+    name: params.from === 'CCG' ? 'Churchgate' : isMetroInit ? 'Versova Metro' : 'Thane'
   });
   const [toStation, setToStation] = useState({
-    code: params.to || 'CSMT',
-    name: params.to === 'TNA' ? 'Thane' : 'CSMT Terminus'
+    code: params.to || (isMetroInit ? 'METRO_GHT' : 'CSMT'),
+    name: params.to === 'TNA' ? 'Thane' : isMetroInit ? 'Ghatkopar Metro' : 'CSMT Terminus'
   });
   const [passengerCount, setPassengerCount] = useState<number>(1);
 
@@ -67,7 +91,7 @@ export default function LocalBookingScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'from' | 'to'>('from');
   const [searchQuery, setSearchQuery] = useState('');
-  const [stationList, setStationList] = useState(POPULAR_SUBURBAN_STATIONS);
+  const [stationList, setStationList] = useState(isMetroInit ? POPULAR_METRO_STATIONS : POPULAR_SUBURBAN_STATIONS);
 
   // Fare quote state
   const [distanceKm, setDistanceKm] = useState(0);
@@ -133,27 +157,29 @@ export default function LocalBookingScreen() {
   const handleOpenPicker = (target: 'from' | 'to') => {
     setPickerTarget(target);
     setSearchQuery('');
-    setStationList(POPULAR_SUBURBAN_STATIONS);
+    setStationList(ticketKind === 'METRO_TOKEN' ? POPULAR_METRO_STATIONS : POPULAR_SUBURBAN_STATIONS);
     setPickerVisible(true);
   };
 
   const handleStationSearch = async (query: string) => {
     setSearchQuery(query);
+    const activeDefaults = ticketKind === 'METRO_TOKEN' ? POPULAR_METRO_STATIONS : POPULAR_SUBURBAN_STATIONS;
     if (!query.trim()) {
-      setStationList(POPULAR_SUBURBAN_STATIONS);
+      setStationList(activeDefaults);
       return;
     }
     try {
-      const results = await MobileApiClient.searchStations(query);
+      const lineFilter = ticketKind === 'METRO_TOKEN' ? 'metro' : undefined;
+      const results = await MobileApiClient.searchStations(query, lineFilter);
       if (results && results.length > 0) {
-        setStationList(results.map(s => ({ code: s.code, name: s.name, line: s.line || 'Suburban' })));
+        setStationList(results.map(s => ({ code: s.code, name: s.name, line: s.line || (ticketKind === 'METRO_TOKEN' ? 'Metro' : 'Suburban') })));
+        return;
       }
-    } catch {
-      const filtered = POPULAR_SUBURBAN_STATIONS.filter(
-        s => s.name.toLowerCase().includes(query.toLowerCase()) || s.code.toLowerCase().includes(query.toLowerCase())
-      );
-      setStationList(filtered);
-    }
+    } catch {}
+    const filtered = activeDefaults.filter(
+      s => s.name.toLowerCase().includes(query.toLowerCase()) || s.code.toLowerCase().includes(query.toLowerCase())
+    );
+    setStationList(filtered);
   };
 
   const handleSelectStation = (station: { code: string; name: string }) => {
@@ -169,6 +195,21 @@ export default function LocalBookingScreen() {
     const temp = fromStation;
     setFromStation(toStation);
     setToStation(temp);
+  };
+
+  const selectTicketKind = (kind: TicketKind) => {
+    setTicketKind(kind);
+    if (kind === 'METRO_TOKEN') {
+      if (!fromStation.code.startsWith('METRO_')) {
+        setFromStation({ code: 'METRO_VER', name: 'Versova Metro' });
+        setToStation({ code: 'METRO_GHT', name: 'Ghatkopar Metro' });
+      }
+    } else {
+      if (fromStation.code.startsWith('METRO_')) {
+        setFromStation({ code: 'TNA', name: 'Thane' });
+        setToStation({ code: 'CSMT', name: 'CSMT Terminus' });
+      }
+    }
   };
 
   const handleIssueTicket = async () => {
@@ -433,7 +474,7 @@ export default function LocalBookingScreen() {
               styles.segmentItem,
               ticketKind === 'SINGLE' && { backgroundColor: colors.primary, borderColor: colors.primary }
             ]}
-            onPress={() => setTicketKind('SINGLE')}
+            onPress={() => selectTicketKind('SINGLE')}
           >
             <Text
               style={[
@@ -450,7 +491,7 @@ export default function LocalBookingScreen() {
               styles.segmentItem,
               ticketKind === 'RETURN' && { backgroundColor: colors.primary, borderColor: colors.primary }
             ]}
-            onPress={() => setTicketKind('RETURN')}
+            onPress={() => selectTicketKind('RETURN')}
           >
             <Text
               style={[
@@ -467,7 +508,7 @@ export default function LocalBookingScreen() {
               styles.segmentItem,
               ticketKind === 'SEASON_MST' && { backgroundColor: colors.primary, borderColor: colors.primary }
             ]}
-            onPress={() => setTicketKind('SEASON_MST')}
+            onPress={() => selectTicketKind('SEASON_MST')}
           >
             <Text
               style={[
@@ -484,7 +525,7 @@ export default function LocalBookingScreen() {
               styles.segmentItem,
               ticketKind === 'PLATFORM' && { backgroundColor: colors.primary, borderColor: colors.primary }
             ]}
-            onPress={() => setTicketKind('PLATFORM')}
+            onPress={() => selectTicketKind('PLATFORM')}
           >
             <Text
               style={[
@@ -501,7 +542,7 @@ export default function LocalBookingScreen() {
               styles.segmentItem,
               ticketKind === 'METRO_TOKEN' && { backgroundColor: colors.primary, borderColor: colors.primary }
             ]}
-            onPress={() => setTicketKind('METRO_TOKEN')}
+            onPress={() => selectTicketKind('METRO_TOKEN')}
           >
             <Text
               style={[

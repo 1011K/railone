@@ -184,36 +184,92 @@ export const OfflineStorage = {
   },
 
   getUserProfile(): { name?: string; phone?: string; isGuest: boolean } | null {
-    return memoryCache.get('user_profile') || null;
+    return loadDurable<{ name?: string; phone?: string; isGuest: boolean } | null>('user_profile', null);
   },
 
   setUserProfile(profile: { name?: string; phone?: string; isGuest: boolean }): void {
-    memoryCache.set('user_profile', profile);
+    saveDurable('user_profile', profile);
   },
 
   getLocationConsent(): boolean | null {
-    const val = memoryCache.get('location_consent');
-    return val !== undefined ? val : null;
+    return loadDurable<boolean | null>('location_consent', null);
   },
 
   setLocationConsent(consent: boolean): void {
-    memoryCache.set('location_consent', consent);
+    saveDurable('location_consent', consent);
   },
 
   getHasSeenLaunch(): boolean {
-    return Boolean(memoryCache.get('has_seen_launch'));
+    return Boolean(loadDurable('has_seen_launch', false));
   },
 
   setHasSeenLaunch(seen: boolean): void {
-    memoryCache.set('has_seen_launch', seen);
+    saveDurable('has_seen_launch', seen);
   },
 
   getHasCompletedOnboarding(): boolean {
-    return Boolean(memoryCache.get('has_completed_onboarding'));
+    return Boolean(loadDurable('has_completed_onboarding', false));
   },
 
   setHasCompletedOnboarding(completed: boolean): void {
-    memoryCache.set('has_completed_onboarding', completed);
+    saveDurable('has_completed_onboarding', completed);
+  },
+
+  // Wallet Persistence (Simulated Passenger Balance)
+  getWalletBalance(): number {
+    return loadDurable<number>('wallet_balance', 250);
+  },
+
+  setWalletBalance(balance: number): void {
+    saveDurable('wallet_balance', balance);
+  },
+
+  getWalletTransactions(): Array<{ id: string; type: 'CREDIT' | 'DEBIT'; amount: number; description: string; timestamp: string }> {
+    return loadDurable('wallet_transactions', [
+      {
+        id: 'TXN-INIT-001',
+        type: 'CREDIT',
+        amount: 250,
+        description: 'Welcome Commuter Promotional Transit Credit',
+        timestamp: new Date().toISOString()
+      }
+    ]);
+  },
+
+  addWalletTransaction(tx: { type: 'CREDIT' | 'DEBIT'; amount: number; description: string }): void {
+    const list = this.getWalletTransactions();
+    const currentBalance = this.getWalletBalance();
+    const newBalance = tx.type === 'CREDIT' ? currentBalance + tx.amount : Math.max(0, currentBalance - tx.amount);
+    this.setWalletBalance(newBalance);
+    list.unshift({
+      id: `TXN-${Date.now()}`,
+      ...tx,
+      timestamp: new Date().toISOString()
+    });
+    saveDurable('wallet_transactions', list.slice(0, 50));
+  },
+
+  // Feedback Drafts Persistence
+  saveFeedbackDraft(feedback: { id?: string; trainInfo: string; stationInfo: string; ratings: Record<string, number>; comments: string; submittedAt: string }): void {
+    const list: any[] = loadDurable('feedback_drafts', []);
+    list.unshift({ id: `DRAFT-${Date.now()}`, ...feedback });
+    saveDurable('feedback_drafts', list.slice(0, 30));
+  },
+
+  getFeedbackDrafts(): any[] {
+    return loadDurable('feedback_drafts', []);
+  },
+
+  // Reset all passenger preferences & onboarding state
+  resetAllPreferences(): void {
+    deleteDurable('user_city');
+    deleteDurable('user_profile');
+    deleteDurable('location_consent');
+    deleteDurable('has_seen_launch');
+    deleteDurable('has_completed_onboarding');
+    deleteDurable('recent_searches');
+    deleteDurable('saved_journeys');
+    memoryCache.clear();
   },
 
   // 6. Offline Vector Map & Geometry Caching (Zero-connectivity tunnel navigation)
