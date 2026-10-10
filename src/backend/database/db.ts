@@ -149,9 +149,22 @@ function initSchema(db: DatabaseSync): void {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS feedback (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      rating INTEGER NOT NULL,
+      feedback_text TEXT NOT NULL,
+      pnr TEXT,
+      train_number TEXT,
+      station_code TEXT,
+      passenger_profile_id TEXT,
+      created_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_bookings_pnr ON bookings(pnr);
     CREATE INDEX IF NOT EXISTS idx_bookings_profile ON bookings(passenger_profile_id);
     CREATE INDEX IF NOT EXISTS idx_bookings_idempotency ON bookings(idempotency_key);
     CREATE INDEX IF NOT EXISTS idx_audit_event ON audit_logs(event_type);
+    CREATE INDEX IF NOT EXISTS idx_feedback_category ON feedback(category);
   `);
 }

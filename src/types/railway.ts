@@ -43,7 +43,8 @@ export type TrainServiceType =
   | 'suburban_ac_fast'
   | 'mail_express'
   | 'superfast'
-  | 'vande_bharat_tejas';
+  | 'vande_bharat_tejas'
+  | 'metro';
 
 export type TravelClass = 
   | 'II'        // Suburban 2nd Class / General

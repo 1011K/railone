@@ -160,6 +160,19 @@ export function generateMetroTrips(depTime: string): TrainTrip[] {
     baseOffsets.forEach((offset, oIdx) => {
       const tDep = addMinutesToTimeString(depTime, offset);
 
+      // Operational curfew enforcement (MMRDA / MMRC timetable)
+      const opHours = METRO_LINES[cfg.lineId]?.operationalHours || '05:30 - 23:30';
+      const [startH, endH] = opHours.split('-').map(s => s.trim());
+      const [tH, tM] = tDep.split(':').map(Number);
+      const [sH, sM] = startH.split(':').map(Number);
+      const [eH, eM] = endH.split(':').map(Number);
+      const curM = tH * 60 + tM;
+      const openM = sH * 60 + sM;
+      const closeM = eH * 60 + eM;
+      if (curM < openM || curM > closeM) {
+        return; // Metro line closed for the night
+      }
+
       // Forward direction trip
       const fStops = forwardStopsTemplate.map((s, sIdx) => {
         const haltTime = addMinutesToTimeString(tDep, sIdx * cfg.stopSpacingMin);
@@ -171,7 +184,7 @@ export function generateMetroTrips(depTime: string): TrainTrip[] {
         trainName: cfg.name,
         originStation: cfg.orig,
         destinationStation: cfg.dest,
-        serviceType: 'suburban_ac_slow',
+        serviceType: 'metro',
         runningDays: [0, 1, 2, 3, 4, 5, 6],
         availableClasses: ['II', 'AC_LOCAL'],
         stops: fStops
@@ -188,7 +201,7 @@ export function generateMetroTrips(depTime: string): TrainTrip[] {
         trainName: cfg.revName,
         originStation: cfg.dest,
         destinationStation: cfg.orig,
-        serviceType: 'suburban_ac_slow',
+        serviceType: 'metro',
         runningDays: [0, 1, 2, 3, 4, 5, 6],
         availableClasses: ['II', 'AC_LOCAL'],
         stops: rStops
